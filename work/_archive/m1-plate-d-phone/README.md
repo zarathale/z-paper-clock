@@ -1,5 +1,7 @@
 # Archive — M1 Plate-D Outputs (gen-1)
 
+> _Note (2026-04-30 chunk-and-crop pivot): `work/pieces.csv` has since dropped its bbox columns and expanded from the 11-row plate-D table referenced below to a 123-row master index. Claims in this README about `pieces.csv` schema are accurate as of M1 archive time only — see the live `work/pieces.csv` and CLAUDE.md "Architectural Decisions" rows on chunk-and-crop / pieces.csv schema for current state._
+
 This directory holds the M1 milestone outputs that were produced against the gen-1 phone scans (now archived at `source/_archive/phone-scans-2025/`).
 
 ## Why archived

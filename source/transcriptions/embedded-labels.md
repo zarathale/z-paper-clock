@@ -2,7 +2,7 @@
 
 *All text and notation embedded directly on the cut-out plates and figure pages of* Make Your Own Working Paper Clock *by James Smith Rudolph (HarperCollins / Perennial 2003 reprint of Harper & Row 1983).*
 
-This document captures the labels, instructions, and direction markings that are printed *on* the plates themselves — the kind of information that's separate from the prose instructions on pages 34–40. Piece numbers and tab letters (e.g., `a`, `b`, `c₂₅`, `b₉`) are not exhaustively reproduced — those are best read directly from `scans-clean/`. What's recorded here is everything else: handwritten-style instruction notes, axle assignments, direction arrows, figure captions, and per-piece fold/score/glue markings.
+This document captures the labels, instructions, and direction markings that are printed *on* the plates themselves — the kind of information that's separate from the prose instructions on pages 34–40. Piece numbers and tab letters (e.g., `a`, `b`, `c₂₅`, `b₉`) are not exhaustively reproduced — those are best read directly from the per-piece scans in `source/pieces/` (or, until that archive populates, the chunk scans in `source/scans-chunks/`). What's recorded here is everything else: handwritten-style instruction notes, axle assignments, direction arrows, figure captions, and per-piece fold/score/glue markings.
 
 ---
 
