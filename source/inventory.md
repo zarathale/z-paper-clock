@@ -4,11 +4,22 @@ This is the inventory of source-material photographs for the model paper-clock p
 
 This material is held here strictly for personal reference. Anything published from this project should be original, derivative work — not a republication of the book.
 
+## Scan generations
+
+The repo is on **gen-2** scans: flat-bed home-scanner captures of the same 27 pages, captured starting 2026-04-30 to address gutter warp in the original phone scans. Capture standards and intake QC live in [`SCAN-INTAKE-CHECKLIST.md`](SCAN-INTAKE-CHECKLIST.md).
+
+- **gen-1** (handheld phone, 2025–2026) — archived at [`_archive/phone-scans-2025/`](_archive/phone-scans-2025/). Reference-only.
+- **gen-2** (flat-bed home scanner, 2026-04-30 onward) — populates the canonical paths below as scans come in.
+
+Filenames are reused across generations so downstream paths (`pieces.csv`, the pipeline scripts, the spec) don't need to change.
+
 ## Folder layout
 
-- `scans-raw/` — original phone photos, renamed by page reference. Filenames sort in reading order.
-- `scans-clean/` — (to be produced) cleaned versions: rotated to a single normalized orientation, perspective-corrected, deskewed, cropped to 10:13.
-- `transcriptions/` — (to be produced) plain-text/markdown transcriptions of the introduction, author's note, instructions, and ancillary embedded labels.
+- `scans-intake/` — drop folder for in-flight scanner output before it passes the per-file QC checks. See [`scans-intake/README.md`](scans-intake/README.md).
+- `scans-raw/` — promoted scans, renamed by page reference. Filenames sort in reading order.
+- `scans-clean/` — cleaned versions: rotated to a single normalized orientation, perspective-corrected, deskewed, cropped to 10:13. (For gen-2, well-aligned raw scans may need only a copy across; gen-1 needed a manual dewarp pass.)
+- `scans-prepped/` — flat-fielded + bleed-suppressed plates, output of `work/scripts/preprocess_scans.py`. Auto-trace input.
+- `transcriptions/` — plain-text/markdown transcriptions of the introduction, author's note, instructions, and ancillary embedded labels. **Scan-independent**; carries forward unchanged across generations.
 
 ## File-naming convention
 
@@ -77,4 +88,6 @@ The book's middle is filled with single-sided plates of numbered paper pieces (1
 
 ## Status
 
-All source material captured, cleaned, and transcribed. `scans-clean/` contains all 27 dewarped, perspective-corrected versions at uniform 10:13 portrait (2400×3120) or 20:13 landscape (4800×3120) for the two flat spreads (panels G and H); filenames mirror `scans-raw/`. `transcriptions/` contains five markdown files covering the covers and front-matter (front cover, title page, copyright page, back cover), the Asimov introduction, the author's note, the assembly instructions (pp. 34–40), and the embedded labels and figure captions printed on plates A–M. Reference documentation of the source is complete; subsequent work belongs in `work/`.
+**Transcriptions: complete.** `transcriptions/` contains five markdown files covering the covers and front-matter (front cover, title page, copyright page, back cover), the Asimov introduction, the author's note, the assembly instructions (pp. 34–40), and the embedded labels and figure captions printed on plates A–M. Audited 2026-04-29; carries forward unchanged across scan generations.
+
+**Scans: gen-2 in progress.** Gen-1 (phone) archived at `_archive/phone-scans-2025/` as of 2026-04-30. Gen-2 (flat-bed home scanner) capture is underway; `scans-raw/`, `scans-clean/`, and `scans-prepped/` will repopulate as plates come in. See `SCAN-INTAKE-CHECKLIST.md` for capture standard and QC procedure, and `sessions/2026-04-30-1800_cowork_rescan-restructure.md` for the restructure decision.

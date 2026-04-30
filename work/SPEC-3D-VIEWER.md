@@ -1,8 +1,8 @@
 # 3D Paper-Clock Viewer — Build Spec
 
 **Status:** draft, ready for review
-**Predecessor docs:** `work/auto-trace-test/RESULTS.md`, `work/scripts/RESCAN_FINDINGS.md`
-**Source materials:** `source/scans-prepped/` (13 plates), `source/transcriptions/` (5 markdown files)
+**Predecessor docs:** `work/_archive/m1-plate-d-phone/auto-trace-test/RESULTS.md`, `work/_archive/m1-plate-d-phone/RESCAN_FINDINGS.md` (both archived 2026-04-30 with the gen-1 phone scans they document; conclusions still hold)
+**Source materials:** `source/scans-prepped/` (13 plates — gen-2 capture in progress per `source/SCAN-INTAKE-CHECKLIST.md`), `source/transcriptions/` (5 markdown files, scan-independent)
 
 This spec locks in the production pipeline for turning the cleaned scans of *Make Your Own Working Paper Clock* into an interactive 3D viewer of the assembled clock, with each cut-out piece individually inspectable and cross-referenced to the book's own labels and figures.
 
@@ -12,7 +12,7 @@ The decisions feeding into this spec are settled:
 2. The pre-processing pass (LAB-luminance flat-field + levels stretch + chroma-aware bleed-through suppression) has been run against all 13 plates, with output in `source/scans-prepped/`. The v2 auto-trace test confirms the four bright-region test pieces (33, 92, 99, 122) now trace cleanly; piece 1 — a thin frame strip — remains in the hand-trace bucket as planned.
 3. Per piece, the SVG is split into separate layers: silhouette (the only thing that extrudes), fold lines (valley vs. mountain), letters and labels, and other instructional marks (axle centers, glue-zone hatching, construction dotted lines).
 
-No rescans are required to start the build. The two cosmetic rescan candidates from `RESCAN_FINDINGS.md` (plate L thumb, plate A higher resolution) remain optional and can be deferred without blocking.
+**Note (2026-04-30):** the original "no rescans required" stance was reversed after M1 plate-D output revealed gutter warp from the gen-1 phone scans. Full rescan on a flat-bed home scanner is now in progress as **M0.5** (see `ROADMAP.md`); gen-1 sources archived to `source/_archive/phone-scans-2025/`. The two earlier "cosmetic rescans" (plate L thumb, plate A higher-resolution) are subsumed by the gen-2 capture standard in `source/SCAN-INTAKE-CHECKLIST.md`.
 
 ## Goals and non-goals
 
@@ -79,8 +79,8 @@ The `connections` array is the spine of the assembly graph; it's compiled from `
 For each piece, the steps, roughly in order of automation:
 
 1. **Locate.** A `pieces.csv` index lists every piece with its plate, source-image bbox, and the bucket from `RESULTS.md` (auto-trace clean / auto-trace + edit / hand-trace). The bbox is set once, by hand, from the prepped scan.
-2. **Crop.** A short Python script reads `pieces.csv` and produces `work/pieces/NNN/crop.png` from the prepped plate. (Same logic as `auto-trace-test-v2/01_crop.py`.)
-3. **Trace.** For pieces in the auto-trace buckets, run `potrace` on the binarized crop. The `auto-trace-test-v2/02_trace.py` pipeline is the starting point; for production, swap pure-Python `potracer` for the native `potrace` binary (50–100× faster; we'll add it to the build environment). Output is a single-layer SVG with all printed marks as one undifferentiated set of paths.
+2. **Crop.** A short Python script reads `pieces.csv` and produces `work/pieces/NNN/crop.png` from the prepped plate. Implementation: `work/pipeline/01-crop.py` (shipped in M1; predecessor at `work/_archive/m1-plate-d-phone/auto-trace-test-v2/01_crop.py`).
+3. **Trace.** For pieces in the auto-trace buckets, run `potrace` on the binarized crop. Implementation: `work/pipeline/02-trace.py` (shipped in M1; predecessor at `work/_archive/m1-plate-d-phone/auto-trace-test-v2/02_trace.py`). Production uses the native `potrace` binary (50–100× faster than the pure-Python `potracer` fallback). Output is a single-layer SVG with all printed marks as one undifferentiated set of paths.
 4. **Layer-split.** A second pass classifies each path into one of the canonical layers above by stroke style (dashed → valley fold; plus-sign → mountain fold; etc.) and by area threshold (largest closed path → silhouette; small text-shape paths grouped → labels). Pieces in the "auto-trace + light edit" bucket land in Inkscape at this point for a 30–60 second cleanup; pieces in the "hand-trace" bucket are drawn from scratch over the crop image.
 5. **Sidecar.** The JSON is authored once per piece by hand, by reading off `embedded-labels.md` and `instructions.md`. We expect ~120 sidecars; estimate 1–3 minutes each, ≈ 4 hours total.
 6. **Validate.** A linter checks: silhouette is one closed path; folds are open paths; every `tab` in `connections` is referenced by some other piece's `atTab`; every `axle.id` referenced is also referenced from at least one other piece (so axles aren't orphaned).
@@ -203,12 +203,10 @@ work/
     package.json
     vite.config.ts
   pieces.csv                     master index: piece → plate → bucket → bbox
-  RESULTS.md                     (existing) auto-trace test results
   scripts/
-    preprocess_scans.py          (existing)
-    RESCAN_FINDINGS.md           (existing)
-  auto-trace-test/               (existing) v1 tests, retained
-  auto-trace-test-v2/            (existing) v2 tests, retained
+    preprocess_scans.py          (existing; re-tune in M0.5 if gen-2 prepped output looks washed-out)
+  _archive/
+    m1-plate-d-phone/            (archived 2026-04-30) gen-1 M1 outputs: pieces/, auto-trace-test/, auto-trace-test-v2/, RESCAN_FINDINGS.md, RESULTS.md
   SPEC-3D-VIEWER.md              this document
 ```
 

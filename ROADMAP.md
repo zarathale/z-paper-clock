@@ -29,8 +29,9 @@ Plain-text labels alongside the M-numbers. Use the long form on first reference 
 
 | ID | Name | Status | Est. h | Actual h | Depends on | Notes |
 |---|---|---|---|---|---|---|
-| M1 | Pipeline end-to-end on plate D | in-progress | 6.5 | — | none (SPEC + scans-prepped exist) | Pipeline shipped 2026-04-30; sidecars drafted 2026-04-30 (11/11 lint-clean); only task 1.5 (Inkscape hand-edit pass) outstanding. |
-| M2 | All pieces traced + gear-ratio validation | not-started | 27 | — | M1 | Bulk authoring; per-piece rows below. Gear-ratio validation added per resolved decision #5. |
+| M0.5 | Gen-2 rescan + pipeline re-bring-up | in-progress | 8 | — | none | Added 2026-04-30 after gutter warp surfaced in M1 output (piece 31 in Inkscape). Gen-1 phone scans archived; flat-bed home-scanner capture underway per `source/SCAN-INTAKE-CHECKLIST.md`. M1's pipeline scripts carry forward unchanged; only inputs and SVG outputs are regenerated. |
+| M1 | Pipeline end-to-end on plate D (gen-1) | archived | 6.5 | ~6 | none | **Shipped against gen-1 phone scans 2026-04-30; archived to `work/_archive/m1-plate-d-phone/` same day.** Pipeline (`01-crop` through `04-validate` + Makefile) shipped clean and 11 sidecars passed lint, but underlying SVG silhouettes inherit the gen-1 gutter warp. To be re-run against gen-2 input as part of M0.5. |
+| M2 | All pieces traced + gear-ratio validation | not-started | 27 | — | M0.5 | Bulk authoring; per-piece rows below. Gear-ratio validation added per resolved decision #5. |
 | M3 | Flat viewer (illustrative aesthetic) | not-started | 30 | — | M2 | First runnable viewer. Tag v0.1.0 at completion. |
 | M4 | Assemblies (clock takes its real shape) | not-started | 30 | — | M3 | Long pole — per-group transform authoring, ~8 groups. |
 | M5 | Polish + inspect-panel content | not-started | 12 | — | M4 | Figure refs, instruction blockquotes, photographic aesthetic if time. |
@@ -96,9 +97,39 @@ When in doubt, start one tier lower than feels safe and let the output tell you 
 
 ---
 
+## M0.5 — Gen-2 rescan + pipeline re-bring-up
+
+**Goal.** Re-capture all 27 source pages on a flat-bed home scanner per `source/SCAN-INTAKE-CHECKLIST.md`, run the existing pipeline against gen-2 plate D, and confirm the silhouette geometry is rectilinear (top edges run east–west, no gutter bow). Outputs: gen-2 `scans-raw/`, `scans-clean/`, `scans-prepped/` populated; new plate-D piece directories under `work/pieces/`; updated `pieces.csv` if bbox fractions need adjustment; gen-2 `RESCAN_FINDINGS.md`.
+
+**Why this milestone exists.** M1 pipeline shipped on 2026-04-30 against gen-1 phone scans. Visible in Inkscape post-merge (piece 31): top edge bows from gutter warp that survived pre-processing. Decision: source-quality fix beats any tracing-pass refinement. See `sessions/2026-04-30-1800_cowork_rescan-restructure.md`.
+
+**Dependencies.** None upstream. Blocks M2.
+
+**Strategy.** Pipeline scripts are scan-version-agnostic — re-running them on gen-2 should "just work" for the well-aligned auto-trace-clean pieces. Only changes that should be needed: possibly re-tune `preprocess_scans.py` parameters (gen-1 was tuned for handheld phone bleed-through; flat-bed scans are cleaner and may not need as aggressive flat-fielding); possibly nudge bbox fractions in `pieces.csv` if scanner framing differs from phone framing.
+
+| # | Task | Status | Est. h | Actual h | Owner | Output | Notes |
+|---|---|---|---|---|---|---|---|
+| 0.5.1 | Capture all 13 plates + 14 text/cover pages on flat-bed home scanner | in-progress | 3.0 | — | Cowork (Zarathale at the scanner) | 27 raw scans in `source/scans-intake/` | Per `SCAN-INTAKE-CHECKLIST.md`. Plates first; QC each before moving on. |
+| 0.5.2 | Promote intake → `scans-raw/` with canonical filenames | not-started | 0.5 | — | Cowork | 27 files in `source/scans-raw/` | Filenames per `inventory.md`. |
+| 0.5.3 | Produce `scans-clean/` (dewarp/perspective-correct only if needed; well-aligned raws can copy across) | not-started | 1.0 | — | Cowork | 27 files in `source/scans-clean/` | Likely much lighter than gen-1 because flat-bed output is already rectilinear. |
+| 0.5.4 | Re-tune `preprocess_scans.py` against gen-2 sample plates if needed | not-started | 0.5 | — | Cowork | Updated script + new `work/scripts/RESCAN_FINDINGS.md` | Skip if gen-2 prepped output looks good with current parameters. |
+| 0.5.5 | Run `preprocess_scans.py` across all 13 plates | not-started | 0.25 | — | Cowork | 13 files in `source/scans-prepped/` | Single command. |
+| 0.5.6 | Re-validate `work/pieces.csv` bbox fractions against gen-2 plate D | not-started | 0.5 | — | Cowork | Possibly-updated `pieces.csv` | Spot-check with `01-crop.py` output; nudge fractions if needed. |
+| 0.5.7 | Re-run M1 pipeline (`make pieces`) on gen-2 plate D | not-started | 0.5 | — | Code | 11 fresh piece directories in `work/pieces/` | Sidecars copy forward verbatim from `work/_archive/m1-plate-d-phone/` (scan-independent). |
+| 0.5.8 | Open piece 031 (and 1–2 others) in Inkscape; confirm rectilinear silhouettes | not-started | 0.5 | — | Cowork | Visual confirmation | Pass criterion for M0.5. |
+| 0.5.9 | Session note + commit; flip M1 row in this roadmap to `superseded`; flip M0.5 row to `done` | not-started | 0.25 | — | Cowork | sessions note | M2 unblocks once this row closes. |
+
+**M0.5 verification.** Piece 031's silhouette top edge runs east–west in Inkscape; no visible bow on any plate-D piece. `04-validate-sidecars.py` passes. The other plates are pre-processed and ready for M2's bulk authoring run.
+
+**What NOT to do in M0.5.** Don't re-author sidecars from scratch — the gen-1 sidecars are scan-independent and copy forward. Don't extend `pieces.csv` beyond plate D — that's M2's first task. Don't touch the viewer.
+
+---
+
 ## M1 — Pipeline end-to-end on plate D
 
-**Goal.** Build the per-piece authoring pipeline (`01-crop.py` through `04-validate-sidecars.py`) and run it end-to-end on plate D's 11 pieces. Output: 11 piece directories under `work/pieces/`, each with `crop.png`, `piece-NNN.svg` (layered), `piece-NNN.json` (sidecar), passing the linter. Plus a partial `pieces.csv` with plate-D rows.
+**Status (2026-04-30): archived against gen-1 phone scans.** This section is preserved as a decision record. The work happened; its outputs are at `work/_archive/m1-plate-d-phone/`. M0.5 above is the active follow-on.
+
+**Goal (as shipped).** Build the per-piece authoring pipeline (`01-crop.py` through `04-validate-sidecars.py`) and run it end-to-end on plate D's 11 pieces. Output: 11 piece directories under `work/pieces/`, each with `crop.png`, `piece-NNN.svg` (layered), `piece-NNN.json` (sidecar), passing the linter. Plus a partial `pieces.csv` with plate-D rows.
 
 **Dependencies.** None — `source/scans-prepped/p00x-plate-D-...jpg` exists, the auto-trace v2 test confirmed the pipeline approach, all five product decisions are resolved.
 
@@ -453,7 +484,7 @@ These aren't milestones — they're things to flag so they don't get lost.
 - **Documentation: "About the project" page or section** for the deployed viewer. Currently a sub-task of M5 (5.7) but if the public viewer wants more story (the book, the auto-trace pipeline, the assembly process), that could grow into its own pass.
 - **CHANGELOG.md** for the viewer. CLAUDE.md says "the viewer has its own [CHANGELOG]; the repo doesn't yet" — create when M3 first ships.
 - **`work/viewer/` README** — separate from the public README; for contributors / future-Zarathale.
-- **Cosmetic rescans (deferred per `RESCAN_FINDINGS.md`):** plate L thumb, plate A higher resolution. Optional. Surface again if M3 reveals a piece looks bad.
+- **Cosmetic rescans:** **closed.** Originally meant plate L thumb and plate A higher-resolution as deferred per gen-1 `RESCAN_FINDINGS.md`. Subsumed by M0.5's full gen-2 rescan, which captures every plate to the same standard.
 - **CI** — currently no CI. CLAUDE.md says the linter should run in CI before manifest build. Consider adding GitHub Actions in M2 or M3 (lint + build dist + deploy to gh-pages on merge to main).
 - **License/attribution** — repo public, source still personal-reference. Confirm the repo's LICENSE file (or its absence) reflects what you want; consider adding a NOTICE about the book's copyright.
 
@@ -473,4 +504,6 @@ These aren't milestones — they're things to flag so they don't get lost.
 
 ---
 
-*Last updated: 2026-04-30 — initial authoring; see `sessions/2026-04-30-1300_cowork_roadmap.md`.*
+*Last updated: 2026-04-30 — added M0.5 (gen-2 rescan) and archived M1 against gen-1; see `sessions/2026-04-30-1800_cowork_rescan-restructure.md`.*
+
+*Earlier: 2026-04-30 — initial authoring; see `sessions/2026-04-30-1300_cowork_roadmap.md`.*

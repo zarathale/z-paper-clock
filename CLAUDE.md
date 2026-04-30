@@ -54,23 +54,26 @@ Most design, transcription, and document work happens in **Cowork** (Claude desk
 3. Read the most recent entry in `sessions/` to pick up the thread
 4. **If working on a Code task:** read the relevant `CODE_PROMPT_*.md` in full before writing code
 5. **If touching transcriptions:** read `source/transcriptions/embedded-labels.md` (or `instructions.md`) before editing the relevant section
-6. **If touching the pre-processing pipeline:** re-skim `work/scripts/preprocess_scans.py` and `work/scripts/RESCAN_FINDINGS.md`
+6. **If touching the pre-processing pipeline:** re-skim `work/scripts/preprocess_scans.py`. The gen-1 per-plate quality assessment lives at `work/_archive/m1-plate-d-phone/RESCAN_FINDINGS.md` for reference; a fresh gen-2 version will live at `work/scripts/RESCAN_FINDINGS.md` once M0.5 surfaces re-tuning notes.
+7. **If receiving / processing scans:** read `source/SCAN-INTAKE-CHECKLIST.md` (capture standard, per-file QC, intake → raw promotion).
 
 ---
 
 ## Where We Are
 
-The study side is complete. The build side has the spec drafted, the roadmap detailed, and M1 prepped for Code (`CODE_PROMPT_M1-pipeline-plate-d.md` ready, `work/pieces.csv` populated for plate D). Quick status:
+The study side is complete. The build side hit a pause on 2026-04-30: M1 pipeline shipped successfully against gen-1 phone scans, but the gen-1 scans carry gutter warp that survives pre-processing (visible on piece 31 in Inkscape — top edge bows instead of running east–west). Decision: archive gen-1, capture gen-2 on a flat-bed home scanner, re-bring up the pipeline. M1 deliverables are preserved as a decision record under `work/_archive/m1-plate-d-phone/`. Quick status:
 
 | Track | State |
 |---|---|
-| Source scans (raw + clean + prepped) | ✅ Complete; 13 plates pre-processed |
-| Transcriptions (5 markdown files) | ✅ Complete; full audit pass done 2026-04-29 |
-| Auto-trace test v1 + v2 | ✅ Complete; v2 confirms pre-processing eliminates bleed-through |
+| Source scans — gen-1 (phone) | 📦 Archived 2026-04-30 to `source/_archive/phone-scans-2025/` |
+| Source scans — gen-2 (flat-bed home scanner) | 🔄 Capture in progress; intake at `source/scans-intake/`, see `source/SCAN-INTAKE-CHECKLIST.md` |
+| Transcriptions (5 markdown files) | ✅ Complete; audited 2026-04-29; scan-independent |
+| Auto-trace test v1 + v2 | 📦 Archived (gen-1 era) |
 | 3D viewer spec (`work/SPEC-3D-VIEWER.md`) | ✅ Drafted; 5 product decisions resolved 2026-04-30 |
-| Build roadmap (`ROADMAP.md`) | ✅ Drafted 2026-04-30 with M1–M6 + Post-M5 mobile detail |
-| M1 — pipeline end-to-end on plate D | ✅ Pipeline shipped (01-crop, 02-trace, 03-layer-split, 04-validate, Makefile; 11 plate-D pieces); ✅ 11 sidecars drafted (lint-clean); only task 1.5 (Inkscape hand-edit pass) outstanding |
-| M2 — all pieces traced + gear-ratio validation | ⏳ Pending |
+| Build roadmap (`ROADMAP.md`) | ✅ Drafted 2026-04-30; M0.5 added 2026-04-30 for rescan |
+| M0.5 — gen-2 rescan + pipeline re-bring-up | 🔄 In progress |
+| M1 — pipeline end-to-end on plate D (gen-1) | 📦 Shipped against gen-1 (archived); to be re-run against gen-2 in M0.5 |
+| M2 — all pieces traced + gear-ratio validation | ⏳ Pending; blocked on M0.5 |
 | M3 — flat viewer (illustrative aesthetic) | ⏳ Pending; ships v0.1.0 |
 | M4 — assembly transforms | ⏳ Pending |
 | M5 — polish + figure cross-references | ⏳ Pending |
@@ -181,27 +184,30 @@ z-paper-clock/                              ← repo root
 ├── README.md                               ← public-facing project description
 ├── source/                                 ← reference archive (personal-use only)
 │   ├── inventory.md
-│   ├── scans-raw/                          original phone photos
-│   ├── scans-clean/                        dewarped + perspective-corrected
+│   ├── SCAN-INTAKE-CHECKLIST.md            gen-2 capture standard + per-file QC
+│   ├── scans-intake/                       drop folder for in-flight scanner output
+│   ├── scans-raw/                          gen-2 promoted scans (post-QC)
+│   ├── scans-clean/                        dewarped + perspective-corrected (lighter pass for gen-2)
 │   ├── scans-prepped/                      flat-fielded + bleed-suppressed (auto-trace input)
-│   └── transcriptions/                     5 markdown files: prose, labels, instructions
+│   ├── transcriptions/                     5 markdown files: prose, labels, instructions
+│   └── _archive/
+│       └── phone-scans-2025/               gen-1 (handheld phone) raw + clean + prepped, archived 2026-04-30
 ├── work/                                   ← derivative work
 │   ├── SPEC-3D-VIEWER.md                   build spec; the source of truth for the viewer
-│   ├── pieces/                             per-piece SVG + JSON + crop (NEW, populated in M1+)
+│   ├── pieces/                             per-piece SVG + JSON + crop (NEW, repopulated in M0.5+)
 │   ├── assemblies/                         per-group transforms (NEW, populated in M4)
-│   ├── pipeline/                           Python pipeline scripts (NEW, populated in M1)
+│   ├── pipeline/                           Python pipeline scripts (4 stages + Makefile)
 │   ├── viewer/                             TS + three.js viewer (NEW, populated in M3)
-│   ├── pieces.csv                          master index: piece → plate → bucket → bbox (NEW)
+│   ├── pieces.csv                          master index: piece → plate → bucket → bbox (gen-1-derived; re-validate in M0.5)
 │   ├── scripts/
-│   │   ├── preprocess_scans.py             flat-field + chroma-aware bleed suppression
-│   │   └── RESCAN_FINDINGS.md              per-plate quality assessment
-│   ├── auto-trace-test/                    v1 test (kept as audit trail)
-│   └── auto-trace-test-v2/                 v2 test on pre-processed scans
+│   │   └── preprocess_scans.py             flat-field + chroma-aware bleed suppression (re-tune in M0.5 if needed)
+│   └── _archive/
+│       └── m1-plate-d-phone/               M1 gen-1 outputs: pieces/0NN/, auto-trace-test/, auto-trace-test-v2/, RESCAN_FINDINGS.md
 ├── sessions/                               session notes (NEW, this convention)
 └── CODE_PROMPT_*.md                        per-task orchestration prompts (NEW, root-level)
 ```
 
-The (NEW) entries don't exist yet but are reserved by name in the SPEC. Don't create them speculatively — let M1+ populate them.
+The (NEW) entries don't exist yet but are reserved by name in the SPEC. Don't create them speculatively — let the active milestone populate them.
 
 ---
 
@@ -378,7 +384,7 @@ Do not reopen these without Zarathale.
 | Assembly model | Hierarchical `Object3D` groups, one per book section (§II.A framework, §II.B mechanism subgroups, §II.C anchor/pendulum, §II.D hands, §II.E weight, §II.F face/case). Per-group JSON of transforms. |
 | Viewer tech stack | TypeScript + Vite + three.js. Vanilla TS, no React. Tailwind for inspect-panel layout. Static-site deploy. |
 | Source scope | `source/` is personal-reference. The deployed viewer ships per-piece crops (derivative work) and SVGs/JSONs, not the source plate JPGs themselves. |
-| Rescans | Not required to start. Plate L thumb and plate A higher-resolution are optional cosmetic rescans, deferred. |
+| Rescans (gen-1 → gen-2) | **Reversed 2026-04-30.** Originally "not required to start; cosmetic only, deferred." Now: full re-scan on a flat-bed home scanner is required. Gutter warp from gen-1 phone scans survived pre-processing and showed up as bowed silhouettes in M1 outputs. Gen-1 archived; gen-2 capture standard in `source/SCAN-INTAKE-CHECKLIST.md` (600 DPI sRGB JPG, glass-down flat-bed). Filenames preserved across generations to avoid downstream churn. |
 
 ---
 
@@ -399,6 +405,8 @@ Do not reopen these without Zarathale.
 - `instructions.md` §II.B Motor Wheel piece-40 assembly text is flagged as scan-unclear. Resolved in audit but tagged for re-verification if it surfaces in M2 sidecaring.
 - Pure-Python `potracer` is ~50–100× slower than native `potrace`. Acceptable for the auto-trace test; will need to swap to native for production tracing across all pieces. Track in M1 prereqs.
 - The mac filesystem is case-insensitive; if pipeline scripts ever produce both `piece-001.svg` and `Piece-001.svg`, they will collide. Convention: lowercase filenames everywhere.
+- `work/scripts/preprocess_scans.py` flat-field strength and bleed-suppression chroma threshold were tuned for handheld phone scans (strong vignette, visible bleed-through). Flat-bed gen-2 scans are cleaner; the same parameters may over-correct. Re-tune in M0.5 if gen-2 prepped plates look washed-out or detail-poor; capture findings in a fresh `work/scripts/RESCAN_FINDINGS.md` (gen-1 version archived under `work/_archive/m1-plate-d-phone/`).
+- `work/pieces.csv` bbox fractions were authored against gen-1 plate D. They should still be in the right neighborhood for gen-2 plate D but need a re-validation pass in M0.5 — small framing differences between the phone scan and the flat-bed scan can shift normalized fractions by a few percent.
 
 ---
 
@@ -424,4 +432,6 @@ Do not reopen these without Zarathale.
 
 ---
 
-*Last updated: 2026-04-29 — initial authoring; cross-pollinated from ScaenaShows and arc-qb-sync working conventions.*
+*Last updated: 2026-04-30 — added gen-1/gen-2 scan archive note; flipped M1 status; revised Rescans decision; expanded Known Issues for pre-processing tuning + bbox re-validation.*
+
+*Earlier: 2026-04-29 — initial authoring; cross-pollinated from ScaenaShows and arc-qb-sync working conventions.*
