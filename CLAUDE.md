@@ -60,20 +60,22 @@ Most design, transcription, and document work happens in **Cowork** (Claude desk
 
 ## Where We Are
 
-The study side is complete. The build side has the spec drafted and is ready to start M1 (pipeline end-to-end on plate D). Quick status:
+The study side is complete. The build side has the spec drafted, the roadmap detailed, and M1 prepped for Code (`CODE_PROMPT_M1-pipeline-plate-d.md` ready, `work/pieces.csv` populated for plate D). Quick status:
 
 | Track | State |
 |---|---|
 | Source scans (raw + clean + prepped) | ✅ Complete; 13 plates pre-processed |
 | Transcriptions (5 markdown files) | ✅ Complete; full audit pass done 2026-04-29 |
 | Auto-trace test v1 + v2 | ✅ Complete; v2 confirms pre-processing eliminates bleed-through |
-| 3D viewer spec (`work/SPEC-3D-VIEWER.md`) | ✅ Drafted; 5 open product decisions flagged inline |
-| M1 — pipeline end-to-end on plate D | ⏳ Pending Code session |
-| M2 — all pieces traced + sidecared | ⏳ Pending |
-| M3 — flat viewer with hover/click/inspect | ⏳ Pending |
+| 3D viewer spec (`work/SPEC-3D-VIEWER.md`) | ✅ Drafted; 5 product decisions resolved 2026-04-30 |
+| Build roadmap (`ROADMAP.md`) | ✅ Drafted 2026-04-30 with M1–M6 + Post-M5 mobile detail |
+| M1 — pipeline end-to-end on plate D | ⏳ Cowork prep complete (pieces.csv + CODE_PROMPT); pending Code session |
+| M2 — all pieces traced + gear-ratio validation | ⏳ Pending |
+| M3 — flat viewer (illustrative aesthetic) | ⏳ Pending; ships v0.1.0 |
 | M4 — assembly transforms | ⏳ Pending |
 | M5 — polish + figure cross-references | ⏳ Pending |
 | M6 — mechanism animation (stretch) | 📋 Aspirational |
+| Post-M5 — mobile interactivity | 📋 Deferred per resolved decision #3 |
 
 Update the relevant row whenever a milestone closes or a new state is reached.
 
