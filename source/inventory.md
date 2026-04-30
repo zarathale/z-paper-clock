@@ -77,4 +77,4 @@ The book's middle is filled with single-sided plates of numbered paper pieces (1
 
 ## Status
 
-All source material captured and cleaned. `scans-clean/` contains all 27 dewarped, perspective-corrected versions at uniform 10:13 portrait (2400×3120) or 20:13 landscape (4800×3120) for the two flat spreads (panels G and H). Filenames mirror `scans-raw/`. Next phase: transcriptions of the introduction, author's note, instructions, and embedded labels.
+All source material captured, cleaned, and transcribed. `scans-clean/` contains all 27 dewarped, perspective-corrected versions at uniform 10:13 portrait (2400×3120) or 20:13 landscape (4800×3120) for the two flat spreads (panels G and H); filenames mirror `scans-raw/`. `transcriptions/` contains five markdown files covering the covers and front-matter (front cover, title page, copyright page, back cover), the Asimov introduction, the author's note, the assembly instructions (pp. 34–40), and the embedded labels and figure captions printed on plates A–M. Reference documentation of the source is complete; subsequent work belongs in `work/`.
