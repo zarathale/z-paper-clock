@@ -7,7 +7,9 @@
 
 Through most of history, people hardly felt the need of clocks. It seemed sufficient to consult one's own physiology to tell when one was hungry or sleepy, or to observe the general position of the sun in the sky during the day or that of the Big Dipper at night.
 
-Those who were meticulous enough to want something better searched for some regular motion that existed in nature or that could be contrived. In ancient times, the sundial was invented so that the passage of the shadow of a rod could be followed as the sun crossed the sky. Or else one could observe the extent to which a candle burned downward, or wait till a certain amount of sand had sifted through a small opening. Such devices could be used on cloudy days or at night, when the sun could not be seen and shadows were not observed.
+Those who were meticulous enough to want something better searched for some regular motion that existed in nature or that could be contrived. In ancient times, the sundial was invented so that the passage of the shadow of a rod could be followed as the sun crossed the sky.
+
+Or else one could observe the extent to which a candle burned downward, or wait till a certain amount of sand had sifted through a small opening. Such devices could be used on cloudy days or at night, when the sun could not be seen and shadows were not observed.
 
 In ancient times, the best timepiece was the clepsydra, or water clock, which measured time by the regular dripping of water through a narrow opening. As water accumulated in the lower reservoir, a float carrying a pointer rose and marked the hours.
 
