@@ -55,7 +55,7 @@ lxml, potracer.
 ## Branch / commit
 
 Branch: `claude/M1-fix-pipeline-trace`
-Commit SHA: TBD (added after push)
+Commit SHA: 409eddd7a646e28ebe0eb5dcc5f23c0ce5b83714
 
 ## Open questions
 
