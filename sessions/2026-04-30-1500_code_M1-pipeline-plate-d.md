@@ -46,7 +46,8 @@ The 5% area threshold for distinguishing cutouts from labels works well for disc
 ## Branch / commit
 
 Branch: `claude/vigorous-rhodes-06b447`
-Commit SHA: TBD (see below)
+Commit SHA: 60a9fb6
+PR: https://github.com/Zarathale/z-paper-clock/pull/1
 
 ## Open questions
 
