@@ -1,0 +1,9 @@
+# Author's Note
+
+*Page 33 of* Make Your Own Working Paper Clock *by James Smith Rudolph (HarperCollins / Perennial 2003 reprint of Harper & Row 1983).*
+
+---
+
+In 1947 when I was a graduate student in Paris, I found a dusty old paperback in a dusty old bookstore. I bought it, took it back to my dusty old room, cut the pages into 160 pieces, folded them carefully, and glued them together to produce a clock that was made of practically nothing but paper and glue. I was astonished to find that the thing actually kept time — even tick-tocked. Completely captivated, I ran back to the bookstore to buy copies of this very inexpensive book to give to practically everybody I knew, whether they were interested or not, but the bookseller only had three left. He said he'd found them long before World War II, and that the person responsible seemed to have disappeared.
+
+I bought the three, and suddenly couldn't think of a person in the world whose character, morals, and wit were so peerless that they deserved to own one of the last three extant examples of the best toy I'd ever seen in my life. For the next thirty-six years, I refused to let anyone have one of my paper clock books — until recently, when I thought it might be possible to publish this wonderful book for today's readers. While once again creating this paper clock by hand, I translated the instructions (making them considerably more lucid than the original), corrected the errors, and had the pieces redrawn, to make things easier for today's clockmaker. And now that there are thousands of copies instead of just three, I can indeed give one to everybody I know — and hope that they, as well as you who have bought this book, will now have as much pleasure with this wonderful ticking paper clock as I did so many years ago in that dusty old Paris room.
