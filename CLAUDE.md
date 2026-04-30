@@ -69,7 +69,7 @@ The study side is complete. The build side has the spec drafted, the roadmap det
 | Auto-trace test v1 + v2 | ✅ Complete; v2 confirms pre-processing eliminates bleed-through |
 | 3D viewer spec (`work/SPEC-3D-VIEWER.md`) | ✅ Drafted; 5 product decisions resolved 2026-04-30 |
 | Build roadmap (`ROADMAP.md`) | ✅ Drafted 2026-04-30 with M1–M6 + Post-M5 mobile detail |
-| M1 — pipeline end-to-end on plate D | ✅ Pipeline shipped (01-crop, 02-trace, 03-layer-split, 04-validate, Makefile; 11 plate-D pieces); tasks 1.5 + 1.6 (Inkscape edit + sidecars) pending Cowork follow-up |
+| M1 — pipeline end-to-end on plate D | ✅ Pipeline shipped (01-crop, 02-trace, 03-layer-split, 04-validate, Makefile; 11 plate-D pieces); ✅ 11 sidecars drafted (lint-clean); only task 1.5 (Inkscape hand-edit pass) outstanding |
 | M2 — all pieces traced + gear-ratio validation | ⏳ Pending |
 | M3 — flat viewer (illustrative aesthetic) | ⏳ Pending; ships v0.1.0 |
 | M4 — assembly transforms | ⏳ Pending |
@@ -224,7 +224,7 @@ Three agents touch this repo. Keep them in their lanes.
 
 **Code branch / commit / PR rules:**
 
-- Branch name: `claude/M<n>-<short>` for milestone work; `claude/v<x.y.z>` for version ships; otherwise `claude/<descriptive-slug>`.
+- **Branch name (strict).** `claude/M<n>-<short>` for milestone work (e.g. `claude/M1-pipeline-plate-d`); `claude/v<x.y.z>` for version ships (e.g. `claude/v0.1.0`); otherwise `claude/<descriptive-slug>` (e.g. `claude/fix-trace-threshold`). **Do NOT use Claude Code's auto-generated random-name branches** like `claude/vigorous-rhodes-06b447` — those make the branch list illegible and obscure what the work was for. If Claude Code starts on an auto-generated branch, rename it before the first commit: `git branch -m claude/<correct-name>`.
 - Commit message subject: imperative, lowercase, ≤70 chars. For version ships, prefix with the version: `v0.1.0: bring up flat viewer with hover and inspect panel`.
 - Bump version (if applicable) **before** the commit, not after.
 - Push the branch; do not merge.
@@ -337,6 +337,31 @@ git branch --merged main | grep -E '^\s+claude/' | xargs -r git branch -d
 If a branch refuses to delete cleanly because it was force-rebased on the remote, swap `-d` for `-D`. The `--merged main` filter keeps that safe — only branches already merged to `main` are eligible.
 
 If stale `claude/*` branches are spotted at the start of a Cowork session (i.e., cleanup was missed after a previous merge), flag them and run the cleanup before building on top of the repo.
+
+---
+
+## Dev environment (mac)
+
+This is what Code can assume is installed and configured on Zarathale's mac without re-probing at session start. If any of these break, fix them once and update this section; do not turn each session into a probe-and-install scavenger hunt.
+
+**Toolchain.**
+
+- macOS with Apple Silicon, case-insensitive filesystem (so lowercase filenames everywhere — see "File Naming Conventions" above).
+- `python3.12` on PATH (Homebrew install: `brew install python@3.12`). The repo's virtualenv lives at `.venv/` at repo root, created via `python3.12 -m venv .venv`. The `Makefile` invokes `../../.venv/bin/python` directly; Code can use that path without activating the venv first.
+- Native `potrace` on PATH (`brew install potrace`). The pipeline's `02-trace.py` prefers it (50–100× faster); pure-Python `potracer` is the fallback for sandbox-only use.
+- `gh` (GitHub CLI) installed and authenticated under Zarathale's GitHub account. Use `gh pr create` directly without probing for auth state — if it fails, surface the real error.
+- Inkscape installed at `/Applications/Inkscape.app` for the hand-edit pass on auto-traced SVGs.
+
+**Python packages already in `.venv`** (reinstall via `pip install <name>` only if a script imports something missing):
+
+Pillow, scipy, scikit-image, numpy, lxml, potracer.
+
+**What's NOT installed by default.**
+
+- Node.js / pnpm — needed once the viewer (`work/viewer/`) lands in M3. Install with `brew install pnpm` at that point.
+- A Vite dev server has nowhere to run inside the Cowork sandbox. Run viewer dev servers locally on the mac via Code (`cd work/viewer && pnpm dev`).
+
+**Pre-approved tool patterns.** `.claude/settings.json` (committed) pre-approves the common Bash patterns Code reaches for in this repo: `git`, `make`, `python` and `python3`/`python3.12`, the venv binaries under `.venv/bin/`, `pip`/`pip3`, `brew`, `potrace`, `gh`, `node`/`npm`/`pnpm`/`npx`, plus read-only inspection (`ls`, `cat`, `rg`, `find`, `grep`, `head`, `tail`, `wc`, `diff`, `awk`, `sed`, `jq`, `tree`). Destructive ops (`rm`, `mv`, `cp`) and WebFetch are intentionally NOT pre-approved — they continue to prompt. Per-machine overrides go in `.claude/settings.local.json` (gitignored).
 
 ---
 

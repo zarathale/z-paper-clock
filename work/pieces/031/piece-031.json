@@ -1,0 +1,19 @@
+{
+  "id": 31,
+  "plate": "D",
+  "name": "Hand-wheel tongue (front)",
+  "role": "framework / hand-wheel-tongue",
+  "material": "paper",
+  "extrudeMm": 0.2,
+  "axles": [],
+  "connections": [
+    { "tab": "back", "to": 32, "atTab": "back" }
+  ],
+  "folds": {
+    "valley": [],
+    "mountain": []
+  },
+  "introducedInStep": "II.A The Framework",
+  "figureRefs": ["K/Fig 1", "K/Fig 4", "L/Fig 12"],
+  "notes": "Flat oval/leaf tongue. Glue note on Panel D: 'Glue back to back to 32.' The 31+32 stack is then 'inserted *without* glue into the slot between pieces 29 and 30' (§II.A and Fig. 4); §II.D adds that this tongue 'holds the three hand wheels in place.' The 'back-to-back' connection to piece 32 is encoded as a non-lettered tab pair ('back' ↔ 'back') so the linter's reciprocity check passes; this is a faithful representation of a glued-face pairing rather than a tabbed glue zone."
+}

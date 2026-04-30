@@ -1,0 +1,20 @@
+{
+  "id": 18,
+  "plate": "D",
+  "name": "Pendulum-support bracket (left)",
+  "role": "framework / pendulum-support-bracket",
+  "material": "paper",
+  "extrudeMm": 0.2,
+  "axles": [],
+  "connections": [],
+  "folds": {
+    "valley": [
+      { "id": "fold-valley-flap-1", "hingedSubpieceIds": ["main", "flap-1"], "notes": "--- on flap (Panel D)" },
+      { "id": "fold-valley-flap-2", "hingedSubpieceIds": ["main", "flap-2"], "notes": "--- on flap (Panel D)" }
+    ],
+    "mountain": []
+  },
+  "introducedInStep": "II.A The Framework",
+  "figureRefs": ["K/Fig 1", "K/Fig 2", "L/Fig 13"],
+  "notes": "Small back-of-frame L-bracket. Pinches the pendulum blade (piece 72) between itself and piece 19, per §II.C. Plain a/b/d tab labels on this piece are receivers for matching subscripted labels on pieces 27, 28 (plate C), and possibly piece 72 (plate H) — those connections will be wired during M2's cross-plate sidecar pass. Also visible from §II.A's pin-hole-prep list (27, 28, ...) but not piece 18 itself. Fig. 2 shows the assembled pendulum-support detail."
+}

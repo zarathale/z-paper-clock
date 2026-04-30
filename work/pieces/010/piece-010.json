@@ -1,0 +1,26 @@
+{
+  "id": 10,
+  "plate": "D",
+  "name": "Back center column",
+  "role": "framework / back-center-column",
+  "material": "paper",
+  "extrudeMm": 0.2,
+  "axles": [],
+  "connections": [
+    { "tab": "e₂₉", "to": 29, "atTab": "e" },
+    { "tab": "f₂₉", "to": 29, "atTab": "f" },
+    { "tab": "g₂₉", "to": 29, "atTab": "g" },
+    { "tab": "h₂₉", "to": 29, "atTab": "h" },
+    { "tab": "f₂₅", "to": 25, "atTab": "f" },
+    { "tab": "g₂₅", "to": 25, "atTab": "g" }
+  ],
+  "folds": {
+    "valley": [],
+    "mountain": [
+      { "id": "fold-mountain-1", "hingedSubpieceIds": ["main", "tab-bottom"], "notes": "+++ at the bottom-end tabs (Panel D)" }
+    ]
+  },
+  "introducedInStep": "II.A The Framework",
+  "figureRefs": ["K/Fig 1", "K/Fig 4", "L/Fig 13"],
+  "notes": "Back main frame column, paired with piece 4 (front). Same axle-hole pattern as piece 4. Connection split (e–h here, a–d on piece 4) is an assumption from the ambiguous 'each carries a₂₉ … h₂₉' phrasing in Panel D — to be confirmed during the Inkscape hand-edit pass (M1 task 1.5). f₂₅/g₂₅ connections will WARN until piece 25 (plate C) has a sidecar."
+}

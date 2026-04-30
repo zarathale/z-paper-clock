@@ -1,0 +1,20 @@
+{
+  "id": 19,
+  "plate": "D",
+  "name": "Pendulum-support bracket (right)",
+  "role": "framework / pendulum-support-bracket",
+  "material": "paper",
+  "extrudeMm": 0.2,
+  "axles": [],
+  "connections": [],
+  "folds": {
+    "valley": [
+      { "id": "fold-valley-flap-1", "hingedSubpieceIds": ["main", "flap-1"], "notes": "--- on flap (Panel D)" },
+      { "id": "fold-valley-flap-2", "hingedSubpieceIds": ["main", "flap-2"], "notes": "--- on flap (Panel D)" }
+    ],
+    "mountain": []
+  },
+  "introducedInStep": "II.A The Framework",
+  "figureRefs": ["K/Fig 1", "K/Fig 2", "L/Fig 13"],
+  "notes": "Mirror of piece 18 — pinches the pendulum blade (piece 72) between itself and piece 18, per §II.C. Plain a/b/d tab labels on this piece are receivers; their counterparts live on pieces 27, 28 (plate C) and possibly the blade. Connections to be wired during M2's cross-plate sidecar pass."
+}

@@ -29,7 +29,7 @@ Plain-text labels alongside the M-numbers. Use the long form on first reference 
 
 | ID | Name | Status | Est. h | Actual h | Depends on | Notes |
 |---|---|---|---|---|---|---|
-| M1 | Pipeline end-to-end on plate D | in-progress | 6.5 | — | none (SPEC + scans-prepped exist) | Pipeline shipped 2026-04-30; tasks 1.5 + 1.6 (Inkscape edit + sidecars) pending Cowork follow-up. |
+| M1 | Pipeline end-to-end on plate D | in-progress | 6.5 | — | none (SPEC + scans-prepped exist) | Pipeline shipped 2026-04-30; sidecars drafted 2026-04-30 (11/11 lint-clean); only task 1.5 (Inkscape hand-edit pass) outstanding. |
 | M2 | All pieces traced + gear-ratio validation | not-started | 27 | — | M1 | Bulk authoring; per-piece rows below. Gear-ratio validation added per resolved decision #5. |
 | M3 | Flat viewer (illustrative aesthetic) | not-started | 30 | — | M2 | First runnable viewer. Tag v0.1.0 at completion. |
 | M4 | Assemblies (clock takes its real shape) | not-started | 30 | — | M3 | Long pole — per-group transform authoring, ~8 groups. |
@@ -111,7 +111,7 @@ When in doubt, start one tier lower than feels safe and let the output tell you 
 | 1.3 | Code `work/pipeline/02-trace.py` (native potrace if available; potracer fallback) | done | 1.0 | — | Code | `02-trace.py`, single-layer SVG × 11 | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
 | 1.4 | Code `work/pipeline/03-layer-split.py` (path → canonical layer by stroke style + area) | done | 1.5 | — | Code | `03-layer-split.py`, layered SVG × 11 | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
 | 1.5 | Light hand-edit in Inkscape on auto-trace+edit bucket pieces | not-started | 1.0 | — | Cowork | Refined SVGs | 30–60 sec per piece per SPEC. Plate D bucket distribution TBD until 1.4 ships. |
-| 1.6 | Author 11 sidecars (`piece-NNN.json`) by hand from `embedded-labels.md` Panel D + `instructions.md` | not-started | 0.5 | — | Cowork | 11 JSON sidecars | ~2–3 min per sidecar. Connections, axles, figure refs from transcriptions. |
+| 1.6 | Author 11 sidecars (`piece-NNN.json`) by hand from `embedded-labels.md` Panel D + `instructions.md` | done | 0.5 | — | Cowork | 11 JSON sidecars | see sessions/2026-04-30-1600_cowork_M1-sidecars-and-codesession-improvements.md — 11/11 pass linter; 4 expected WARNs for cross-plate connections to pieces 25 (plate C, 2× from 4/10 + 2× from 26) and 41 (plate F, 2× from 92, flagged as suspicious in piece-92.json notes). |
 | 1.7 | Code `work/pipeline/04-validate-sidecars.py` (linter: silhouette closed, folds open, tab/axle cross-refs) | done | 1.0 | — | Code | `04-validate-sidecars.py`, lint pass | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
 | 1.8 | Run linter on plate D's 11 sidecars; iterate until clean | done | 0.5 | — | Code | Clean lint output (no sidecars yet — expected) | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
 | 1.9 | Add `work/pipeline/Makefile` with crop / trace / layer-split / validate targets | done | 0.5 | — | Code | `Makefile` | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |

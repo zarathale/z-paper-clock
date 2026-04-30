@@ -1,0 +1,26 @@
+{
+  "id": 4,
+  "plate": "D",
+  "name": "Front center column",
+  "role": "framework / front-center-column",
+  "material": "paper",
+  "extrudeMm": 0.2,
+  "axles": [],
+  "connections": [
+    { "tab": "a₂₉", "to": 29, "atTab": "a" },
+    { "tab": "b₂₉", "to": 29, "atTab": "b" },
+    { "tab": "c₂₉", "to": 29, "atTab": "c" },
+    { "tab": "d₂₉", "to": 29, "atTab": "d" },
+    { "tab": "f₂₅", "to": 25, "atTab": "f" },
+    { "tab": "g₂₅", "to": 25, "atTab": "g" }
+  ],
+  "folds": {
+    "valley": [],
+    "mountain": [
+      { "id": "fold-mountain-1", "hingedSubpieceIds": ["main", "tab-bottom"], "notes": "+++ at the bottom-end tabs (Panel D)" }
+    ]
+  },
+  "introducedInStep": "II.A The Framework",
+  "figureRefs": ["K/Fig 1", "K/Fig 4", "L/Fig 12", "L/Fig 13"],
+  "notes": "Front main frame column, paired with piece 10 (back). Carries a row of '+' axle-hole markers at regular intervals (axle ids deferred to M2 cross-plate sidecar pass; the ones piercing pieces 4 and 10 include the motor-wheel, middle-wheel, escapement-wheel, minute-hand, and hour-hand axles). Per Panel D, pieces 4 and 10 collectively carry a₂₉–h₂₉ connection labels; the a–d split to piece 4 and e–h split to piece 10 is an assumption, to be confirmed during the Inkscape hand-edit pass (M1 task 1.5). Both columns also carry f₂₅/g₂₅ — piece 25 is on plate C and that sidecar does not exist yet (linter will WARN). §II.D notes pieces 91 and 92 glue to piece 4 to separate it from the minute hand wheel; that connection is captured on piece 91/92's side rather than here (no subscripted label on piece 4 documented in Panel D)."
+}

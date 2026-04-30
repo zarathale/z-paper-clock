@@ -1,0 +1,22 @@
+{
+  "id": 92,
+  "plate": "D",
+  "name": "Hand-mechanism spacer (disc)",
+  "role": "hands-mechanism / spacer",
+  "material": "cardboard-1mm",
+  "extrudeMm": 1.0,
+  "axles": [
+    { "id": "minute-hand-axle", "type": "wire", "centerMarker": "+" }
+  ],
+  "connections": [
+    { "tab": "a₄₁", "to": 41, "atTab": "a" },
+    { "tab": "b₄₁", "to": 41, "atTab": "b" }
+  ],
+  "folds": {
+    "valley": [],
+    "mountain": []
+  },
+  "introducedInStep": "II.D Mechanism of the Hands",
+  "figureRefs": ["L/Fig 12"],
+  "notes": "Disc spacer. Glue note on Panel D: 'Glue to cardboard 1mm thick' — represented as material=cardboard-1mm. Per §II.D: pieces 91, 92, and 92a stack along the minute-hand axle to separate piece 4 from the minute-hand wheel. The same axle (id 'minute-hand-axle') is shared with piece 91, which satisfies the linter's axle-cross-reference check inside plate D. Connection encoding: Panel D records labels 'a₄₁' and 'b₄₁' on this piece — interpreted literally as receiver zones for piece 41's a/b tabs. This is suspicious: piece 41 is a motor-wheel pulley strip (§II.B.1), with no obvious physical relationship to a hand-mechanism spacer. The labels may be a transcription artifact (cf. the 'inconsistent piece-number references' caveat at the end of instructions.md); flagged for re-verification during M1 task 1.5 or against the cleaned scan. If wrong, the more likely target is piece 4 (a₄ / b₄), since 92 sits directly against piece 4."
+}

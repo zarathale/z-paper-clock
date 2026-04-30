@@ -1,0 +1,20 @@
+{
+  "id": 26,
+  "plate": "D",
+  "name": "Wall-bracket wedge",
+  "role": "wall-bracket / wedge",
+  "material": "cardboard-1mm",
+  "extrudeMm": 1.0,
+  "axles": [],
+  "connections": [
+    { "tab": "f₂₅", "to": 25, "atTab": "f" },
+    { "tab": "g₂₅", "to": 25, "atTab": "g" }
+  ],
+  "folds": {
+    "valley": [],
+    "mountain": []
+  },
+  "introducedInStep": "II.A The Framework",
+  "figureRefs": ["K/Fig 3"],
+  "notes": "Wall-bracket wedge piece. Glue note on Panel D: 'Glue this piece to strong cardboard' — represented here as material=cardboard-1mm with extrudeMm=1.0; the SPEC's group-table puts 23, 24, 25, 26 in the wall-bracket subgroup of §II.A. Connections to piece 25 (plate C) will WARN until that sidecar exists."
+}

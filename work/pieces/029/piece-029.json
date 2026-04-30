@@ -1,0 +1,33 @@
+{
+  "id": 29,
+  "plate": "D",
+  "name": "Cross-box (front), connecting frame columns 4 and 10",
+  "role": "framework / cross-box",
+  "material": "paper",
+  "extrudeMm": 0.2,
+  "axles": [],
+  "connections": [
+    { "tab": "a", "to": 4, "atTab": "a₂₉" },
+    { "tab": "b", "to": 4, "atTab": "b₂₉" },
+    { "tab": "c", "to": 4, "atTab": "c₂₉" },
+    { "tab": "d", "to": 4, "atTab": "d₂₉" },
+    { "tab": "e", "to": 10, "atTab": "e₂₉" },
+    { "tab": "f", "to": 10, "atTab": "f₂₉" },
+    { "tab": "g", "to": 10, "atTab": "g₂₉" },
+    { "tab": "h", "to": 10, "atTab": "h₂₉" },
+    { "tab": "b₃₀", "to": 30, "atTab": "b" },
+    { "tab": "c₃₀", "to": 30, "atTab": "c" }
+  ],
+  "folds": {
+    "valley": [
+      { "id": "fold-valley-flange-1", "hingedSubpieceIds": ["main", "flange-1"], "notes": "--- on all flanges (Panel D)" },
+      { "id": "fold-valley-flange-2", "hingedSubpieceIds": ["main", "flange-2"], "notes": "--- on all flanges (Panel D)" },
+      { "id": "fold-valley-flange-3", "hingedSubpieceIds": ["main", "flange-3"], "notes": "--- on all flanges (Panel D)" },
+      { "id": "fold-valley-flange-4", "hingedSubpieceIds": ["main", "flange-4"], "notes": "--- on all flanges (Panel D)" }
+    ],
+    "mountain": []
+  },
+  "introducedInStep": "II.A The Framework",
+  "figureRefs": ["K/Fig 1", "K/Fig 4"],
+  "notes": "Flat development of the cross-box that pinches together the front and back center columns (pieces 4 and 10). Internal labels per Panel D are: g, h, e, f, c, d, b, b₃₀, a, c₃₀. Tabs a–h are split between piece 4 (a–d) and piece 10 (e–h) here; that split is an assumption from the ambiguous Panel D phrasing and should be confirmed during the Inkscape hand-edit pass (M1 task 1.5). The flange-fold count (4) is also an assumption from the 'on all flanges' note — actual count is whatever the auto-trace surfaces. Per §II.A and Fig. 4, pieces 31 and 32 are inserted (back-to-back, without glue) into the slot between pieces 29 and 30."
+}

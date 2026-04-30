@@ -1,0 +1,24 @@
+{
+  "id": 30,
+  "plate": "D",
+  "name": "Cross-box (back), small box development",
+  "role": "framework / cross-box",
+  "material": "paper",
+  "extrudeMm": 0.2,
+  "axles": [],
+  "connections": [
+    { "tab": "b", "to": 29, "atTab": "b₃₀" },
+    { "tab": "c", "to": 29, "atTab": "c₃₀" }
+  ],
+  "folds": {
+    "valley": [
+      { "id": "fold-valley-flange-1", "hingedSubpieceIds": ["main", "flange-1"], "notes": "--- on all flanges (Panel D)" },
+      { "id": "fold-valley-flange-2", "hingedSubpieceIds": ["main", "flange-2"], "notes": "--- on all flanges (Panel D)" },
+      { "id": "fold-valley-flange-3", "hingedSubpieceIds": ["main", "flange-3"], "notes": "--- on all flanges (Panel D)" }
+    ],
+    "mountain": []
+  },
+  "introducedInStep": "II.A The Framework",
+  "figureRefs": ["K/Fig 1", "K/Fig 4"],
+  "notes": "Small box development that completes the slot-and-tongue assembly with piece 29; together they hold the hand wheels in place via the inserted tongue 31+32 (Fig. 4). Plain a/b/c labels on Panel D; b and c reciprocate to piece 29's b₃₀/c₃₀. The plain 'a' tab's counterpart is not documented in Panel D — it likely connects to piece 4 (the front center column) but no a₃₀ subscripted label was transcribed there. Left out of connections pending confirmation in M1 task 1.5. Flange-fold count is approximate."
+}

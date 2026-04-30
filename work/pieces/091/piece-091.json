@@ -1,0 +1,19 @@
+{
+  "id": 91,
+  "plate": "D",
+  "name": "Hand-mechanism spacer (square)",
+  "role": "hands-mechanism / spacer",
+  "material": "cardboard-1mm",
+  "extrudeMm": 1.0,
+  "axles": [
+    { "id": "minute-hand-axle", "type": "wire", "centerMarker": "+" }
+  ],
+  "connections": [],
+  "folds": {
+    "valley": [],
+    "mountain": []
+  },
+  "introducedInStep": "II.D Mechanism of the Hands",
+  "figureRefs": ["L/Fig 12"],
+  "notes": "Small square. Glue note on Panel D: 'Glue piece 91 to cardboard 1mm thick' — represented here as material=cardboard-1mm. Per §II.D: pieces 91 and 92 'separate piece 4, the front center column, from the minute hand wheel and the reduction gear,' and piece 92a is then glued on top of 92+91 with axle holes coincident. The plain 'b' tab label on piece 91 (Panel D) presumably reciprocates with a 'b₉₁' subscripted zone on piece 4 or piece 92a — neither subscripted label is documented in Panel D's pieces 4/10/92 entries, so the connection is left empty pending M1 task 1.5 (Inkscape inspection) or M2 cross-plate sidecar work. The '+' center mark is the minute-hand axle — the same axle threads through pieces 92, 92a, and the minute-hand wheel (piece 75) per §II.D; that axle is shared with piece 92."
+}

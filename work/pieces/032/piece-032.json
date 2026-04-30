@@ -1,0 +1,19 @@
+{
+  "id": 32,
+  "plate": "D",
+  "name": "Hand-wheel tongue (back)",
+  "role": "framework / hand-wheel-tongue",
+  "material": "paper",
+  "extrudeMm": 0.2,
+  "axles": [],
+  "connections": [
+    { "tab": "back", "to": 31, "atTab": "back" }
+  ],
+  "folds": {
+    "valley": [],
+    "mountain": []
+  },
+  "introducedInStep": "II.A The Framework",
+  "figureRefs": ["K/Fig 4"],
+  "notes": "Flat elongated oval. Pairs with piece 31 — glued back-to-back per Panel D and §II.A. Together the 31+32 stack slips into the slot between pieces 29 and 30; in Fig. 4 piece 32 is shown by dotted lines (it sits behind 31). No fold lines."
+}
