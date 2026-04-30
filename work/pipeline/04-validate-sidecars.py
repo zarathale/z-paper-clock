@@ -148,7 +148,9 @@ def main():
                 tab = conn.get("tab")
                 if to_id is None:
                     continue
-                if to_id not in all_data:
+                if conn.get("reciprocal") is False:
+                    pass  # intentionally one-directional; no reciprocation expected
+                elif to_id not in all_data:
                     piece_warns.append(
                         f"connection to piece {to_id} not reciprocable "
                         f"(piece {to_id:03d} sidecar not found)"
