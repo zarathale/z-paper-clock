@@ -85,6 +85,17 @@ def split_piece(piece_dir: Path) -> None:
     tree = ET.parse(raw_svg)
     root = tree.getroot()
 
+    # Read the transform written by 02-trace.py onto the potrace-paths group
+    potrace_transform = ""
+    for el in root.iter():
+        if el.get("id") == "potrace-paths" and el.get("transform"):
+            potrace_transform = el.get("transform", "")
+            break
+        tag = el.tag.split("}")[-1] if "}" in el.tag else el.tag
+        if tag == "g" and el.get("transform"):
+            potrace_transform = el.get("transform", "")
+            break
+
     # Collect all <path> elements from any group
     all_paths: list[ET.Element] = root.findall(f".//{{{SVG_NS}}}path")
     if not all_paths:
@@ -152,16 +163,25 @@ def split_piece(piece_dir: Path) -> None:
         '  <rect x="0" y="0" width="100%" height="100%" fill="#fffaf0"/>',
     ]
 
+    if potrace_transform:
+        out_lines.append(f'  <g transform="{potrace_transform}">')
+        indent = "  "
+    else:
+        indent = ""
+
     for layer_name in CANONICAL_LAYERS:
         out_lines.append(
-            f'  <g inkscape:groupmode="layer" inkscape:label="{layer_name}"'
+            f'  {indent}<g inkscape:groupmode="layer" inkscape:label="{layer_name}"'
             f' fill="none" stroke="#2a2a2a" stroke-width="1.4"'
             f' stroke-linejoin="round" stroke-linecap="round">'
         )
         for el in layers[layer_name]:
             d = el.get("d", "")
-            out_lines.append(f'    <path d="{d}"/>')
-        out_lines.append("  </g>")
+            out_lines.append(f'    {indent}<path d="{d}"/>')
+        out_lines.append(f'  {indent}</g>')
+
+    if potrace_transform:
+        out_lines.append('  </g>')
 
     out_lines.append("</svg>")
 

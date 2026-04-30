@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 1622" width="576" height="1622">
   <rect x="0" y="0" width="100%" height="100%" fill="#fffaf0"/>
-  <g fill="none" stroke="#2a2a2a" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+  <g id="potrace-paths" transform="translate(0.000000,1622.000000) scale(0.100000,-0.100000)" fill="none" stroke="#2a2a2a" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
     <path d="M3284 16069 c-9 -17 -23 -55 -31 -83 -8 -28 -37 -103 -63 -166 -49
 -115 -110 -265 -135 -330 -8 -19 -125 -312 -261 -650 -135 -338 -268 -671
 -295 -740 -26 -69 -71 -183 -99 -255 -29 -71 -71 -179 -94 -240 -24 -60 -84
