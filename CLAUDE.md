@@ -68,7 +68,7 @@ The study side is complete. The build side hit a pause on 2026-04-30 over gutter
 | Source scans — gen-1 (phone) | 📦 Archived 2026-04-30 to `source/_archive/phone-scans-2025/` |
 | Source scans — gen-2 chunks (`source/scans-chunks/`) | 🔄 In progress; flat-bed multi-piece chunks; 8 chunks (most of plate D + parts of E/F/G/H) landed 2026-04-30 |
 | Source pieces — gen-2 per-piece archive (`source/pieces/`) | 🔄 New folder, populating; cropped from chunks in editing software, lossless PNG, NNN[a].png |
-| Master piece list (`work/pieces.csv`) | ✅ Expanded 2026-04-30 from 11 plate-D rows to full 123-row master index (1–122 + 92a + 112a). Schema: id, plate, section, bucket, status, notes. Bbox columns dropped — pipeline reads `source/pieces/` directly. |
+| Master piece list (`work/pieces.csv`) | ✅ Expanded 2026-04-30 to a 123-row master index: **121 numbered pieces (1–121, contiguous) + 092a + 112a**. The clock face was renumbered from 122 → 121 in the consolidation pass (face is not numbered in print; the book's piece numbering is non-contiguous and 121 is the only available slot — closes the gap). Schema: id, plate, section, bucket, status, notes. Bbox columns dropped — pipeline reads `source/pieces/` directly. |
 | Transcriptions (5 markdown files) | ✅ Complete; audited 2026-04-29; scan-independent |
 | Auto-trace test v1 + v2 | 📦 Archived (gen-1 era) |
 | 3D viewer spec (`work/SPEC-3D-VIEWER.md`) | ✅ Drafted; 5 product decisions resolved 2026-04-30 |
@@ -118,7 +118,7 @@ shipped_version: 0.1.0                 # if version-numbered
 7. **What NOT to Change** — named exclusions. Stops Code from drifting into out-of-scope refactors.
 8. **Manual tests** (optional) — small table or list of pre-/post-conditions Zarathale runs after merge against the local checkout. Include when the change is observable end-to-end.
 
-**After ship:** don't delete the prompt. Flip its front-matter `status` to `shipped`, add `shipped:` and (if applicable) `shipped_version:`, and leave the file in repo root as the decision record. The session note should reference the prompt by filename.
+**After ship:** don't delete the prompt. Flip its front-matter `status` to `shipped`, add `shipped:` and (if applicable) `shipped_version:`, and leave the file in repo root as the decision record. The session note should reference the prompt by filename. **Add a one-line italic header below the front matter:** `_Shipped YYYY-MM-DD; paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / ROADMAP.md for current state._` This stops a fresh session from misreading a stale orchestration prompt as a current task list — the prompt body stays as it shipped (decision record), but the header makes the time-of-write framing explicit.
 
 ---
 
@@ -192,7 +192,6 @@ z-paper-clock/                              ← repo root
 │   ├── SCAN-INTAKE-CHECKLIST.md            chunk-and-crop capture + QC standard (gen-2)
 │   ├── pieces/                             per-piece source archive: NNN[a].png, lossless (NEW, populating M0.5)
 │   ├── scans-chunks/                       multi-piece chunk captures kept as recovery references (NEW, populating M0.5)
-│   ├── scans-intake/                       legacy plate-oriented intake (kept; mostly unused under chunk-and-crop)
 │   ├── scans-raw/                          legacy plate-oriented raw (kept; mostly unused)
 │   ├── scans-clean/                        legacy plate-oriented clean (kept; mostly unused)
 │   ├── scans-prepped/                      legacy plate-oriented prepped (kept; mostly unused)
@@ -205,7 +204,7 @@ z-paper-clock/                              ← repo root
 │   ├── assemblies/                         per-group transforms (NEW, populated in M4)
 │   ├── pipeline/                           Python pipeline scripts; 01-crop.py being archived in M0.5 (chunk-and-crop replaces plate slicing)
 │   ├── viewer/                             TS + three.js viewer (NEW, populated in M3)
-│   ├── pieces.csv                          master index of all 123 pieces (1–122 + 92a + 112a). Schema: id, plate, section, bucket, status, notes
+│   ├── pieces.csv                          master index of all 123 pieces (1–121 contiguous + 092a + 112a). Schema: id, plate, section, bucket, status, notes
 │   ├── scripts/
 │   │   ├── build_master_list.py            generator for pieces.csv from embedded-labels.md (run to regenerate)
 │   │   └── preprocess_scans.py             flat-field + chroma-aware bleed suppression (gen-1 era; per-piece re-tuning if needed)
@@ -215,7 +214,7 @@ z-paper-clock/                              ← repo root
 └── CODE_PROMPT_*.md                        per-task orchestration prompts (NEW, root-level)
 ```
 
-The (NEW) entries don't exist yet but are reserved by name in the SPEC. Don't create them speculatively — let the active milestone populate them. The legacy `scans-intake/`, `scans-raw/`, `scans-clean/`, `scans-prepped/` folders carry forward as empty-but-reserved; they're not part of the active chunk-and-crop loop, but the structure stays in case a non-plate page ever benefits from a whole-page capture path.
+The (NEW) entries don't exist yet but are reserved by name in the SPEC. Don't create them speculatively — let the active milestone populate them. The legacy `scans-raw/`, `scans-clean/`, `scans-prepped/` folders carry forward as empty-but-reserved; they're not part of the active chunk-and-crop loop, but the structure stays in case a non-plate page ever benefits from a whole-page capture path. (The original `scans-intake/` folder was deleted in the chunk-and-crop consolidation pass; intake now lives at the repo-root `inbox/`.)
 
 ---
 
@@ -274,8 +273,9 @@ At the end of any Cowork session that made design decisions or touched repo file
 
 1. Add a session note to `sessions/` using the filename pattern above.
 2. If a `CODE_PROMPT_*.md` was produced or updated, confirm its front-matter `status` is current (`ready-for-code` if it's ready to ship, `in-development` if not).
-3. **Hand the commit to Zarathale.** Cowork does not run `git commit` / `git push` from the sandbox. Generate a copy-paste-ready commit message at end-of-session and display it. Zarathale commits and pushes via GitHub Desktop.
-4. Cowork does **not** open PRs. PRs are a Code-mode step (or Zarathale opens via GitHub web).
+3. **Doc-sweep before drafting the commit message.** If the session renamed, retired, or replaced anything (a folder, a piece ID, a workflow stage, a script, a status), grep the repo for the old names and confirm the downstream docs still hang together: `README.md`, `work/SPEC-3D-VIEWER.md`, `source/inventory.md`, `source/transcriptions/`, `ROADMAP.md`, CLAUDE.md itself, and any READMEs in `source/_archive/` / `work/_archive/`. Update each downstream reference, or annotate the stale claim as legacy/historical with a date. The 2026-04-30 repo audit (`sessions/2026-04-30-2100_cowork_repo-audit.md`) exists because this step had been skipped over a high-velocity day.
+4. **Hand the commit to Zarathale.** Cowork does not run `git commit` / `git push` from the sandbox. Generate a copy-paste-ready commit message at end-of-session and display it. Zarathale commits and pushes via GitHub Desktop.
+5. Cowork does **not** open PRs. PRs are a Code-mode step (or Zarathale opens via GitHub web).
 
 No version bump for design-only Cowork sessions.
 
@@ -394,7 +394,7 @@ Do not reopen these without Zarathale.
 | Source scope | `source/` is personal-reference. The deployed viewer ships per-piece crops (derivative work) and SVGs/JSONs, not the source plate JPGs themselves. |
 | Rescans (gen-1 → gen-2) | **Reversed 2026-04-30.** Originally "not required to start; cosmetic only, deferred." Now: full re-scan on a flat-bed home scanner is required. Gutter warp from gen-1 phone scans survived pre-processing and showed up as bowed silhouettes in M1 outputs. Gen-1 archived; gen-2 capture standard in `source/SCAN-INTAKE-CHECKLIST.md`. Filenames preserved where applicable; chunk-and-crop introduces new filename conventions (see below). |
 | Chunk-and-crop onboarding | **Settled 2026-04-30 (later same day).** The home scanner can't fit a whole plate. Workflow: capture multi-piece chunks (filename = NN_NN_NN.{jpeg,png} listing the COMPLETE pieces inside) → archive chunks to `source/scans-chunks/` as recovery references → hand-crop each piece in editor → save as `source/pieces/NNN.png` (lossless, three-digit zero-padded; letter variants `NNNa.png`). Pipeline reads `source/pieces/` directly. Replaces the plate-based `01-crop.py` slicing model. |
-| pieces.csv schema | **Reshaped 2026-04-30.** Was `id, plate, bucket, bbox_x, bbox_y, bbox_w, bbox_h` (11 plate-D rows from M1). Now `id, plate, section, bucket, status, notes` (123 rows: all 1–122 + 92a + 112a). Bbox columns dropped because `source/pieces/` is the pipeline input and there's no plate to slice from. `bucket` retained for tracing-strategy hints; populated for plate D (M1), blank elsewhere until each plate's tracing pass assigns. `status` flips from `pending` → `captured` → `traced` as pieces flow through the pipeline; the future ingest skill flips `pending` → `captured`. |
+| pieces.csv schema | **Reshaped 2026-04-30.** Was `id, plate, bucket, bbox_x, bbox_y, bbox_w, bbox_h` (11 plate-D rows from M1). Now `id, plate, section, bucket, status, notes` (123 rows: 1–121 contiguous + 092a + 112a). Bbox columns dropped because `source/pieces/` is the pipeline input and there's no plate to slice from. The clock face was renumbered from 122 → 121 in the consolidation pass (the face is not numbered in print; piece 121 is assigned for build authoring, closing the gap in the book's non-contiguous numbering). `bucket` retained for tracing-strategy hints; populated for plate D (M1), blank elsewhere until each plate's tracing pass assigns. `status` flips from `pending` → `captured` → `traced` as pieces flow through the pipeline; the future ingest skill flips `pending` → `captured`. |
 | Per-piece archive format | **Settled 2026-04-30.** Lossless PNG (`NNN.png`). Chunks stay JPG (q=92+) since they're intermediate; stitched composites are PNG to preserve seam fidelity; per-piece archive is PNG to keep auto-trace input clean. |
 | Piece-scan ingest skill (deferred) | Workflow design settled this session: skill audits `source/pieces/` against `work/pieces.csv` master list; runs filename + image-health checks (DPI, dimensions, color mode); reports captured-vs-pending status; flags anomalies. Implementation deferred to a follow-up session — `SKILL.md` plus a Python helper, repo-local at `.claude/skills/piece-scan-ingest/`. |
 
@@ -426,7 +426,7 @@ Do not reopen these without Zarathale.
 
 ## File Naming Conventions
 
-- **Session notes:** `YYYY-MM-DD-HHMM_mode_short-topic.md` in `sessions/`. Datetime, not date-only.
+- **Session notes:** `YYYY-MM-DD-HHMM_mode_short-topic.md` in `sessions/`. Datetime, not date-only. **HHMM collision rule:** if a previous session note already exists for the same `YYYY-MM-DD-HHMM`, bump the new note to a non-colliding HHMM (15:00 + 15:30, not 15:00 + 15:00). Front-matter `start_time` should match the filename's HHMM, even if it's a small fudge from the actual clock — filename and front matter agree, and the HHMM is just a unique-key, not a time log.
 - **Orchestration prompts:** `CODE_PROMPT_<target>.md` at repo root. `<target>` is either `M<n>-<short>` for milestone work or `v<x.y.z>` for version ships.
 - **Per-piece source archive:** `source/pieces/NNN.png` (lossless PNG). Three-digit zero-padded. Letter variants suffix lowercase: `092a.png`, `112a.png`.
 - **Per-piece derivative files:** `piece-NNN.svg` + `piece-NNN.json` + `crop.png` inside `work/pieces/NNN/`. Three-digit zero-padded piece number. Letter variants are appended: `piece-092a.svg`. (The `piece-` prefix here is intentional self-documentation in flat tooling output; the source archive in `source/pieces/` skips it because the folder name already provides context.)

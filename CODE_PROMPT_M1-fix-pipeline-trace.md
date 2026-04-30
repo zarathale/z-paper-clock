@@ -6,6 +6,8 @@ owner: Zarathale (Alan)
 target: M1-fix-pipeline-trace
 ---
 
+_Shipped 2026-04-30; paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / ROADMAP.md for current state._
+
 ## What You Are Doing and Why
 
 Two bugs were discovered during the M1 Inkscape review pass. All eleven plate-D piece SVGs are broken: the paths have coordinates far outside the declared viewBox, so every piece renders as a tiny speck in Inkscape. A second bug causes piece 32's crop to cut off the bottom of the piece. Both must be fixed and the pipeline re-run for plate D before the Inkscape hand-edit pass (task 1.5) can proceed.

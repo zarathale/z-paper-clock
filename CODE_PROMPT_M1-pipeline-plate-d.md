@@ -6,6 +6,8 @@ owner: Zarathale (Alan)
 target: M1-pipeline-plate-d
 ---
 
+_Shipped 2026-04-30; paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / ROADMAP.md for current state._
+
 # CODE_PROMPT — M1: Pipeline end-to-end on plate D
 
 ## What You Are Doing and Why

@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(make:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(python3.12:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(.venv/bin/python3:*)",
+      "Bash(.venv/bin/python3.12:*)",
+      "Bash(.venv/bin/pip:*)",
+      "Bash(.venv/bin/pip3:*)",
+      "Bash(.venv/bin/pytest:*)",
+      "Bash(pip:*)",
+      "Bash(pip3:*)",
+      "Bash(brew:*)",
+      "Bash(potrace:*)",
+      "Bash(gh:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(pnpm:*)",
+      "Bash(npx:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(diff:*)",
+      "Bash(awk:*)",
+      "Bash(sed:*)",
+      "Bash(jq:*)",
+      "Bash(tree:*)"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 ---
 date: 2026-04-30
-start_time: "15:00"
+start_time: "17:00"
 end_time: "TBD"
 mode: code
 participant: Zarathale (Alan)

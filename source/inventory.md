@@ -6,26 +6,31 @@ This material is held here strictly for personal reference. Anything published f
 
 ## Scan generations
 
-The repo is on **gen-2** scans: flat-bed home-scanner captures of the same 27 pages, captured starting 2026-04-30 to address gutter warp in the original phone scans. Capture standards and intake QC live in [`SCAN-INTAKE-CHECKLIST.md`](SCAN-INTAKE-CHECKLIST.md).
+The repo is on **gen-2** scans: flat-bed home-scanner captures, started 2026-04-30 to address gutter warp in the original phone scans. The gen-2 workflow pivoted same-day to **chunk-and-crop** after the home scanner couldn't fit a whole plate. Capture standards and intake QC live in [`SCAN-INTAKE-CHECKLIST.md`](SCAN-INTAKE-CHECKLIST.md).
 
-- **gen-1** (handheld phone, 2025–2026) — archived at [`_archive/phone-scans-2025/`](_archive/phone-scans-2025/). Reference-only.
-- **gen-2** (flat-bed home scanner, 2026-04-30 onward) — populates the canonical paths below as scans come in.
+- **gen-1** (handheld phone, 2025–2026) — archived at [`_archive/phone-scans-2025/`](_archive/phone-scans-2025/). Reference-only. The 27-page plate-by-plate inventory below documents this generation.
+- **gen-2** (flat-bed home scanner, chunk-and-crop, 2026-04-30 onward) — multi-piece chunks captured to [`scans-chunks/`](scans-chunks/) as recovery references; each piece hand-cropped in editing software and saved as a lossless `pieces/NNN.png`. Populating in M0.5.
 
-Filenames are reused across generations so downstream paths (`pieces.csv`, the pipeline scripts, the spec) don't need to change.
+The pipeline reads `pieces/` directly. Plate-based downstream paths from gen-1 (`scans-raw/`, `scans-clean/`, `scans-prepped/`) are kept-but-empty under chunk-and-crop.
 
 ## Folder layout
 
-- `scans-intake/` — drop folder for in-flight scanner output before it passes the per-file QC checks. See [`scans-intake/README.md`](scans-intake/README.md).
-- `scans-raw/` — promoted scans, renamed by page reference. Filenames sort in reading order.
-- `scans-clean/` — cleaned versions: rotated to a single normalized orientation, perspective-corrected, deskewed, cropped to 10:13. (For gen-2, well-aligned raw scans may need only a copy across; gen-1 needed a manual dewarp pass.)
-- `scans-prepped/` — flat-fielded + bleed-suppressed plates, output of `work/scripts/preprocess_scans.py`. Auto-trace input.
+- [`../inbox/`](../inbox/) (repo root) — transient drop for in-flight chunk scans before they pass per-file QC and get promoted.
+- `pieces/` — per-piece source archive. Lossless PNG, three-digit zero-padded `NNN.png`; letter variants `092a.png`, `112a.png`. Pipeline input.
+- `scans-chunks/` — multi-piece chunk captures kept as recovery references. Filename lists the COMPLETE pieces inside, ascending (e.g., `33_37_40_41_50.jpeg`).
+- `scans-raw/`, `scans-clean/`, `scans-prepped/` — legacy plate-oriented processing folders. Empty under chunk-and-crop; reserved in case a non-plate page (front matter, instructions, back cover) is ever captured as a whole-page image. (The original `scans-intake/` folder was deleted in the chunk-and-crop consolidation pass; intake now lives at the repo-root [`inbox/`](../inbox/).)
 - `transcriptions/` — plain-text/markdown transcriptions of the introduction, author's note, instructions, and ancillary embedded labels. **Scan-independent**; carries forward unchanged across generations.
+- [`_archive/phone-scans-2025/`](_archive/phone-scans-2025/) — gen-1 raw + clean + prepped, archived 2026-04-30.
 
 ## File-naming convention
 
-Format: `pNNN-short-description.jpg`, where `NNN` is the printed page number when known. For unnumbered pages the prefix encodes the section: `p000-` front cover; `p00x-plate-X-` for the cut-out plates A–M; `p099-` back cover.
+- **Per-piece archive (gen-2):** `pieces/NNN.png`. Three-digit zero-padded; letter variants suffix lowercase (`092a.png`, `112a.png`). Lossless PNG.
+- **Chunk scans (gen-2):** `scans-chunks/NN_NN_NN.{jpeg,png}` listing the COMPLETE pieces inside, ascending. Single-piece chunks: `NN.{jpeg,png}`. Stitched composites: `NN_NN_stitched.png`. L+R partials: `NN_NN_l.jpeg`, `NN_NN_r.jpeg`. Chunks stay JPG (q≥92) since they're intermediate; stitched composites and per-piece archive are PNG to preserve fidelity.
+- **Legacy plate scans (gen-1):** `pNNN-short-description.jpg`, where `NNN` is the printed page number when known. For unnumbered pages the prefix encodes the section: `p000-` front cover; `p00x-plate-X-` for the cut-out plates A–M; `p099-` back cover. Under chunk-and-crop, this naming applies only to whole-page captures of non-plate pages (front matter, instructions, back cover) if those are ever re-scanned.
 
-## Page inventory (27 photos)
+## Page inventory (gen-1 era, 27 photos — archived)
+
+The table below documents the gen-1 phone-scan inventory, archived to `_archive/phone-scans-2025/` on 2026-04-30. The plate descriptions remain a useful reference for what each plate contains; the canonical gen-2 material lives per-piece in `pieces/` (and as chunk recovery references in `scans-chunks/`).
 
 ### Front matter
 
@@ -60,7 +65,7 @@ The book's middle is filled with single-sided plates of numbered paper pieces (1
 | J | `p00x-plate-J-pieces-101-102-108-109-117.jpg` | IMG_4424 | 101, 102, 108, 109, 117 — clock hands (108, 109), face frame backing (117) |
 | K | `p00x-plate-K-figures-1-9-overview.jpg` | IMG_4425 | Reference page — Fig 1 (frame assembly), Fig 2 (pendulum support), Fig 3 (wall bracket), Fig 4 (hand wheels), Fig 5 (motor wheel), Fig 6 (motor-wheel teeth), Fig 7 (pulley), Fig 8 (escapement detail), Fig 9 (anchor / pendulum). |
 | L | `p00x-plate-L-figures-10-16-assembled.jpg` | IMG_4426 | Reference page — Fig 10–16, including a fully assembled view ("ASSEMBLED") and the schematic diagram (Fig 13). |
-| M | `p00x-plate-M-clock-face.jpg` | IMG_4435 | The printed clock face — rectangular tan/brown border, numbers 1–12, minute marks, center hole. Identified as **piece 122** in Fig. 15. |
+| M | `p00x-plate-M-clock-face.jpg` | IMG_4435 | The printed clock face — rectangular tan/brown border, numbers 1–12, minute marks, center hole. Tracked as **piece 121** in `work/pieces.csv`. The face is not numbered in print; piece 121 is assigned for build authoring (closes the gap in the book's non-contiguous numbering). |
 
 ### Author's Note
 
@@ -90,4 +95,4 @@ The book's middle is filled with single-sided plates of numbered paper pieces (1
 
 **Transcriptions: complete.** `transcriptions/` contains five markdown files covering the covers and front-matter (front cover, title page, copyright page, back cover), the Asimov introduction, the author's note, the assembly instructions (pp. 34–40), and the embedded labels and figure captions printed on plates A–M. Audited 2026-04-29; carries forward unchanged across scan generations.
 
-**Scans: gen-2 in progress.** Gen-1 (phone) archived at `_archive/phone-scans-2025/` as of 2026-04-30. Gen-2 (flat-bed home scanner) capture is underway; `scans-raw/`, `scans-clean/`, and `scans-prepped/` will repopulate as plates come in. See `SCAN-INTAKE-CHECKLIST.md` for capture standard and QC procedure, and `sessions/2026-04-30-1800_cowork_rescan-restructure.md` for the restructure decision.
+**Scans: gen-2 chunk-and-crop in progress.** Gen-1 (phone) archived at `_archive/phone-scans-2025/` as of 2026-04-30. Gen-2 capture pivoted same-day from a plate-by-plate plan to **chunk-and-crop**: multi-piece chunks captured on a flat-bed home scanner (the bed can't fit a whole plate), archived to `scans-chunks/` as recovery references, then hand-cropped in editing software to a per-piece archive at `pieces/`. The pipeline reads `pieces/` directly. See `SCAN-INTAKE-CHECKLIST.md` for capture standard and QC procedure, `sessions/2026-04-30-1800_cowork_rescan-restructure.md` for the original rescan-restructure decision, and `sessions/2026-04-30-1900_cowork_chunk-and-crop-pivot.md` for the same-day pivot to chunk-and-crop.

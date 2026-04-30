@@ -11,7 +11,7 @@ source: retroactive — assembled from commit 1047271 + the parent session note'
 
 ## Goal
 
-Resolve the 4 validator ERRs that the parent fix-pipeline-trace Code session (`sessions/2026-04-30-1500_code_M1-fix-pipeline-trace.md`) deferred. Those ERRs came from `piece-004.json`'s 4 positioning-guide connections to pieces 91/92 — the connections are one-directional (the printed labels live only on piece 4's surface), but `04-validate-sidecars.py` required reciprocity for any connection where the target sidecar exists. Fix shipped on the same branch (`claude/M1-fix-pipeline-trace`) as a follow-on commit before PR #2 merged.
+Resolve the 4 validator ERRs that the parent fix-pipeline-trace Code session (`sessions/2026-04-30-1700_code_M1-fix-pipeline-trace.md`) deferred. Those ERRs came from `piece-004.json`'s 4 positioning-guide connections to pieces 91/92 — the connections are one-directional (the printed labels live only on piece 4's surface), but `04-validate-sidecars.py` required reciprocity for any connection where the target sidecar exists. Fix shipped on the same branch (`claude/M1-fix-pipeline-trace`) as a follow-on commit before PR #2 merged.
 
 ## Context
 

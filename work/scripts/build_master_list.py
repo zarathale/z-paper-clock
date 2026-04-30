@@ -169,7 +169,9 @@ PIECES = [
     ("117", "J", "face-case", "", "Case top with chamfered corners; central 'front' tab"),
 
     # ---- Plate M: 1 piece ----
-    ("122", "M", "face-case", "", "Clock face: tan/brown border, off-white field, numbers 1-12, minute marks"),
+    # The clock face is not numbered in print. Assigned ID 121 for build authoring;
+    # the assignment closes the gap in the book's non-contiguous numbering.
+    ("121", "M", "face-case", "", "Clock face: tan/brown border, off-white field, numbers 1-12, minute marks. Not numbered in print; assigned ID 121 for build authoring (closes the gap in non-contiguous source numbering)."),
 ]
 
 HEADER = (
@@ -178,7 +180,7 @@ HEADER = (
     "# Schema: id, plate, section, bucket, status, notes\n"
     "#\n"
     "# id      Three-digit zero-padded piece number; letter variants append a-z\n"
-    "#         (e.g., 004, 092a, 112a, 122). Matches source/pieces/<id>.png.\n"
+    "#         (e.g., 004, 092a, 112a, 121). Matches source/pieces/<id>.png.\n"
     "# plate   Letter A-M of the printed plate where the piece primarily appears.\n"
     "#         Some pieces appear on multiple plates as duplicate copies; this\n"
     "#         column records the primary detailed-description plate from\n"

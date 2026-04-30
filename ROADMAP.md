@@ -68,7 +68,7 @@ Available models:
 
 ### Where Haiku 4.5 is a clear win
 
-- **M2 (all pieces traced) per-piece sidecar authoring — ~119 pieces, ~4 hours of work.** Each sidecar is a small structured JSON with a fixed schema, sourced from `embedded-labels.md` and `instructions.md` (both already structured). Each piece is independent. This is the **highest-leverage downshift in the whole project** — likely a 5–10× speed/cost improvement with no quality loss if the prompt template is solid. Recommend running them in batches by plate, with a Sonnet pass to spot-check a sample from each plate.
+- **M2 (all pieces traced) per-piece sidecar authoring — 123 pieces, ~4 hours of work.** Each sidecar is a small structured JSON with a fixed schema, sourced from `embedded-labels.md` and `instructions.md` (both already structured). Each piece is independent. This is the **highest-leverage downshift in the whole project** — likely a 5–10× speed/cost improvement with no quality loss if the prompt template is solid. Recommend running them in batches by plate, with a Sonnet pass to spot-check a sample from each plate.
 - **Version-bump and CHANGELOG-entry tasks (M3 task 3.10, M4 task 4.14, M5 task 5.8, M6 task 6.6, Post-M5 task 7.5).** Mechanical edits with a clear pattern.
 - **`Makefile` authoring (M1 task 1.9).** Boilerplate driven by pre-existing scripts.
 - **Glue/run-and-check loops (M2 tasks 2.2–2.4).** When the work is "run this script, eyeball the output, move on," Haiku is fine.
@@ -137,7 +137,7 @@ When in doubt, start one tier lower than feels safe and let the output tell you 
 
 | # | Task | Status | Est. h | Actual h | Owner | Output | Notes |
 |---|---|---|---|---|---|---|---|
-| 1.1 | Author bbox-by-hand for plate D's 11 pieces; populate `work/pieces.csv` (plate-D rows) | not-started | 1.0 | — | Cowork | `pieces.csv` (partial) | One-time hand pass per piece. Schema: `id,plate,bucket,bbox_x,bbox_y,bbox_w,bbox_h`. |
+| 1.1 | Author bbox-by-hand for plate D's 11 pieces; populate `work/pieces.csv` (plate-D rows) | done | 1.0 | ~1.0 | Cowork | `pieces.csv` (partial, 11 rows) | One-time hand pass per piece. Schema at ship time: `id,plate,bucket,bbox_x,bbox_y,bbox_w,bbox_h`. Bbox columns dropped in the chunk-and-crop pivot (see M0.5 row above); plate-D rows carried forward into the 123-row master. |
 | 1.2 | Code `work/pipeline/01-crop.py` (reads pieces.csv, crops from prepped scan) | done | 0.5 | — | Code | `01-crop.py`, `crop.png` × 11 | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
 | 1.3 | Code `work/pipeline/02-trace.py` (native potrace if available; potracer fallback) | done | 1.0 | — | Code | `02-trace.py`, single-layer SVG × 11 | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
 | 1.4 | Code `work/pipeline/03-layer-split.py` (path → canonical layer by stroke style + area) | done | 1.5 | — | Code | `03-layer-split.py`, layered SVG × 11 | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
@@ -155,13 +155,11 @@ When in doubt, start one tier lower than feels safe and let the output tell you 
 
 ## M2 — All pieces traced + gear-ratio validation
 
-**Goal.** Run the M1 pipeline across plates A, B, C, E, F, G, H, I, J, M (plates K and L are figure references, not pieces). All ~119 pieces have a directory under `work/pieces/` with crop, layered SVG, and validated sidecar. The full `pieces.csv` is canonical. A new gear-ratio validation script confirms the tooth-count math in `embedded-labels.md` is internally consistent. `manifest.json` builds cleanly.
+**Goal.** Run the M1 pipeline across plates A, B, C, E, F, G, H, I, J, M (plates K and L are figure references, not pieces). All 123 pieces have a directory under `work/pieces/` with crop, layered SVG, and validated sidecar. The full `pieces.csv` is canonical. A new gear-ratio validation script confirms the tooth-count math in `embedded-labels.md` is internally consistent. `manifest.json` builds cleanly.
 
 **Dependencies.** M1 (pipeline scripts must exist).
 
-**Per-piece authoring.** One row per piece, grouped by plate. Bucket assignments (auto-trace clean / auto-trace + light edit / hand-trace) are not yet known per piece — a M2 sub-task (2.1) is to populate the bucket column in `pieces.csv` after a quick visual triage. Effort estimates per row are placeholder until bucket is known.
-
-**Per-piece status columns:** `Status | Bucket | Est. h | Actual h | Notes`. Letter variants (e.g., 92a, 112a) get their own row.
+**Per-piece authoring.** Tracked per row in `work/pieces.csv`. Bucket assignments (auto-trace-clean / auto-trace-edit / hand-trace) are populated only for plate D's 11 pieces (carried forward from M1); blank elsewhere until the M2 task 2.1 visual triage. Effort estimates per piece are placeholder until bucket is known. Letter variants (092a, 112a) get their own rows in `pieces.csv`. The summary table below records plate-level counts only.
 
 ### M2 setup tasks (do once, before per-piece work)
 
@@ -175,188 +173,30 @@ When in doubt, start one tier lower than feels safe and let the output tell you 
 | 2.6 | Code `work/pipeline/06-validate-gear-ratios.py` (resolved decision #5) | not-started | 1.5 | — | Code | Reads sidecar tooth counts; confirms motor-wheel × middle-wheel × escapement-wheel = expected escapement frequency given pendulum period. Surfaces inconsistencies. |
 | 2.7 | Run gear-ratio validation; reconcile any inconsistencies with `embedded-labels.md` | not-started | 1.0 | — | Cowork | Could surface a transcription error that needs an audit-style fix. |
 
-### M2 per-plate piece tables
+### M2 per-plate piece distribution
 
-Each plate is its own sub-section. Pieces are listed under the panel that *first* documents them in `embedded-labels.md` to avoid double-counting; cross-panel references go in Notes. Estimates per piece are blank until bucket triage (2.1) finalizes them.
+The canonical per-piece list (with status, plate, section, bucket, and notes) lives in [`work/pieces.csv`](work/pieces.csv); the generator is [`work/scripts/build_master_list.py`](work/scripts/build_master_list.py). All updates flow through `pieces.csv` first — this section is an executive summary, not a second source of truth.
 
-#### Plate A (5 pieces — long horizontal frame strips)
+| Plate | Numbered pieces | Letter variants | Notes |
+|---|---|---|---|
+| A | 5 | — | Long horizontal frame strips |
+| B | 14 | — | Frame and bracket pieces |
+| C | 10 | — | Frame pieces, small triangles |
+| D | 11 | — | Re-runs through pipeline in M0.5 against gen-2 (M1 ran on gen-1; archived) |
+| E | 14 | 112a | Gears, axles, weight wire reference; 112a face-frame mirror partner |
+| F | 28 | — | Escapement-related toothed wheels and stars |
+| G | 18 | — | Main wheels (motor, middle, escapement) and long bottom strips |
+| H | 13 | 092a | Anchor, pendulum, weight, directional disc; 092a anchor-and-pendulum hands tongue |
+| I | 2 | — | Case sides |
+| J | 5 | — | Clock hands, face frame backing |
+| M | 1 | — | Clock face. Tracked as piece **121** (assigned for build authoring; not numbered in print) |
+| **Total** | **121** | **2** | **123 unique pieces** |
 
-| Piece | Status | Bucket | Est. h | Actual h | Notes |
-|---|---|---|---|---|---|
-| 1 | not-started | TBD | — | — | Frame strip, thin and porous; SPEC flags for hand-trace bucket. |
-| 2 | not-started | TBD | — | — | |
-| 6 | not-started | TBD | — | — | |
-| 7 | not-started | TBD | — | — | |
-| 110 | not-started | TBD | — | — | |
+Cross-plate references (pieces appearing physically on more than one plate as duplicate copies) are recorded in the Notes column of `pieces.csv`. The plate column records the primary detailed-description plate from `embedded-labels.md`.
 
-#### Plate B (15 pieces — frame and bracket pieces)
+Bucket assignments (auto-trace-clean / auto-trace-edit / hand-trace) are populated for plate D (carried forward from M1); blank elsewhere pending the M2 task 2.1 visual triage. Status flips `pending` → `captured` (chunk-and-crop ingest, M0.5) → `traced` (pipeline, M2) per piece.
 
-| Piece | Status | Bucket | Est. h | Actual h | Notes |
-|---|---|---|---|---|---|
-| 3 | not-started | TBD | — | — | |
-| 5 | not-started | TBD | — | — | |
-| 8 | not-started | TBD | — | — | |
-| 12 | not-started | TBD | — | — | |
-| 13 | not-started | TBD | — | — | |
-| 14 | not-started | TBD | — | — | |
-| 15 | not-started | TBD | — | — | |
-| 16 | not-started | TBD | — | — | |
-| 17 | not-started | TBD | — | — | |
-| 93 | not-started | TBD | — | — | |
-| 112 | not-started | TBD | — | — | Also referenced in Panel E listing — confirm primary plate in M1's pieces.csv. |
-| 113 | not-started | TBD | — | — | |
-| 114 | not-started | TBD | — | — | |
-| 115 | not-started | TBD | — | — | |
-| 116 | not-started | TBD | — | — | |
-
-#### Plate C (10 pieces — frame pieces, small triangles)
-
-| Piece | Status | Bucket | Est. h | Actual h | Notes |
-|---|---|---|---|---|---|
-| 9 | not-started | TBD | — | — | |
-| 11 | not-started | TBD | — | — | |
-| 20 | not-started | TBD | — | — | |
-| 21 | not-started | TBD | — | — | |
-| 22 | not-started | TBD | — | — | |
-| 23 | not-started | TBD | — | — | |
-| 24 | not-started | TBD | — | — | |
-| 25 | not-started | TBD | — | — | |
-| 27 | not-started | TBD | — | — | Also referenced in Panel G listing — confirm primary plate in M1's pieces.csv. |
-| 28 | not-started | TBD | — | — | |
-
-#### Plate D (11 pieces — completed in M1)
-
-| Piece | Status | Bucket | Est. h | Actual h | Notes |
-|---|---|---|---|---|---|
-| 4 | not-started | TBD | — | — | M1 deliverable. |
-| 10 | not-started | TBD | — | — | M1 deliverable. |
-| 18 | not-started | TBD | — | — | M1 deliverable. |
-| 19 | not-started | TBD | — | — | M1 deliverable. |
-| 26 | not-started | TBD | — | — | M1 deliverable. |
-| 29 | not-started | TBD | — | — | M1 deliverable. |
-| 30 | not-started | TBD | — | — | M1 deliverable. |
-| 31 | not-started | TBD | — | — | M1 deliverable. |
-| 32 | not-started | TBD | — | — | M1 deliverable. Also referenced in Panel G listing — confirm primary plate in M1's pieces.csv. |
-| 91 | not-started | TBD | — | — | M1 deliverable. Accordion / cylinder piece. |
-| 92 | not-started | TBD | — | — | M1 deliverable. Round, auto-trace-clean per v2 test. |
-
-(Letter variant 92a — referenced in SPEC's anchor-and-pendulum group — needs a row once its primary plate is resolved. Likely D or H.)
-
-#### Plate E (14 pieces — gears, axles, weight wire reference)
-
-| Piece | Status | Bucket | Est. h | Actual h | Notes |
-|---|---|---|---|---|---|
-| 39 | not-started | TBD | — | — | |
-| 60 | not-started | TBD | — | — | |
-| 74 | not-started | TBD | — | — | Also referenced in Panel F and Panel H listings — confirm primary plate in M1's pieces.csv. |
-| 78 | not-started | TBD | — | — | |
-| 79 | not-started | TBD | — | — | |
-| 82 | not-started | TBD | — | — | |
-| 83 | not-started | TBD | — | — | |
-| 103 | not-started | TBD | — | — | |
-| 104 | not-started | TBD | — | — | |
-| 105 | not-started | TBD | — | — | |
-| 106 | not-started | TBD | — | — | |
-| 107 | not-started | TBD | — | — | |
-| 111 | not-started | TBD | — | — | |
-| 112a | not-started | TBD | — | — | Letter variant. Face-and-case group per SPEC. |
-
-#### Plate F (28 pieces — escapement-related toothed wheels and stars)
-
-| Piece | Status | Bucket | Est. h | Actual h | Notes |
-|---|---|---|---|---|---|
-| 38 | not-started | TBD | — | — | |
-| 46 | not-started | TBD | — | — | |
-| 47 | not-started | TBD | — | — | |
-| 48 | not-started | TBD | — | — | |
-| 49 | not-started | TBD | — | — | Also referenced in Panel G listing — confirm primary plate in M1's pieces.csv. |
-| 58 | not-started | TBD | — | — | |
-| 59 | not-started | TBD | — | — | |
-| 61 | not-started | TBD | — | — | |
-| 62 | not-started | TBD | — | — | |
-| 63 | not-started | TBD | — | — | |
-| 64 | not-started | TBD | — | — | |
-| 65 | not-started | TBD | — | — | |
-| 66 | not-started | TBD | — | — | |
-| 67 | not-started | TBD | — | — | Also referenced in Panel H listing — confirm primary plate in M1's pieces.csv. |
-| 73 | not-started | TBD | — | — | |
-| 75 | not-started | TBD | — | — | |
-| 76 | not-started | TBD | — | — | |
-| 77 | not-started | TBD | — | — | |
-| 80 | not-started | TBD | — | — | |
-| 81 | not-started | TBD | — | — | |
-| 84 | not-started | TBD | — | — | |
-| 85 | not-started | TBD | — | — | |
-| 86 | not-started | TBD | — | — | |
-| 87 | not-started | TBD | — | — | |
-| 88 | not-started | TBD | — | — | |
-| 89 | not-started | TBD | — | — | Also referenced in Panel H listing — confirm primary plate in M1's pieces.csv. |
-| 90 | not-started | TBD | — | — | |
-| 120 | not-started | TBD | — | — | |
-
-#### Plate G (15 pieces — main wheels: motor, middle, escapement; long bottom strips)
-
-| Piece | Status | Bucket | Est. h | Actual h | Notes |
-|---|---|---|---|---|---|
-| 33 | not-started | TBD | — | — | Motor-wheel gear ring, front. Auto-trace-clean per v2 test. |
-| 34 | not-started | TBD | — | — | |
-| 35 | not-started | TBD | — | — | |
-| 36 | not-started | TBD | — | — | |
-| 37 | not-started | TBD | — | — | Motor-wheel tooth strip. |
-| 44 | not-started | TBD | — | — | |
-| 45 | not-started | TBD | — | — | |
-| 50 | not-started | TBD | — | — | |
-| 51 | not-started | TBD | — | — | |
-| 52 | not-started | TBD | — | — | |
-| 53 | not-started | TBD | — | — | Also referenced in Panel H listing — confirm primary plate in M1's pieces.csv. |
-| 54 | not-started | TBD | — | — | |
-| 55 | not-started | TBD | — | — | |
-| 56 | not-started | TBD | — | — | |
-| 57 | not-started | TBD | — | — | |
-
-#### Plate H (12 pieces — anchor, pendulum, weight, directional disc)
-
-| Piece | Status | Bucket | Est. h | Actual h | Notes |
-|---|---|---|---|---|---|
-| 68 | not-started | TBD | — | — | |
-| 69 | not-started | TBD | — | — | |
-| 70 | not-started | TBD | — | — | |
-| 71 | not-started | TBD | — | — | Center cell with cutout per SPEC. |
-| 72 | not-started | TBD | — | — | |
-| 94 | not-started | TBD | — | — | |
-| 95 | not-started | TBD | — | — | |
-| 96 | not-started | TBD | — | — | |
-| 97 | not-started | TBD | — | — | Weight piece. |
-| 98 | not-started | TBD | — | — | |
-| 99 | not-started | TBD | — | — | Sawtooth piece; auto-trace-clean per v2 test (multi-shape merge needed). |
-| 100 | not-started | TBD | — | — | Directional disc with N/E/S/W. |
-
-#### Plate I (2 pieces — case sides)
-
-| Piece | Status | Bucket | Est. h | Actual h | Notes |
-|---|---|---|---|---|---|
-| 118 | not-started | TBD | — | — | Also referenced in Panel B inventory — confirm primary plate in M1's pieces.csv. |
-| 119 | not-started | TBD | — | — | |
-
-#### Plate J (5 pieces — clock hands, face frame backing)
-
-| Piece | Status | Bucket | Est. h | Actual h | Notes |
-|---|---|---|---|---|---|
-| 101 | not-started | TBD | — | — | |
-| 102 | not-started | TBD | — | — | |
-| 108 | not-started | TBD | — | — | Hand. |
-| 109 | not-started | TBD | — | — | Hand. |
-| 117 | not-started | TBD | — | — | Face frame backing. |
-
-#### Plate M (1 piece — clock face)
-
-| Piece | Status | Bucket | Est. h | Actual h | Notes |
-|---|---|---|---|---|---|
-| 122 | not-started | TBD | — | — | Auto-trace-clean per v2 test (bleed-through eliminated by pre-processing). |
-
-**M2 row count:** 107 piece rows above + 11 plate-D rows already counted = 118 unique pieces, plus 92a once added = 119. Final count confirmed when `pieces.csv` ships in M1.
-
-**M2 verification (after merge).** `make pieces` runs cleanly across all plates. `04-validate-sidecars.py` passes for all ~119 sidecars. `06-validate-gear-ratios.py` reports consistent ratios (or surfaces a documented inconsistency for follow-up). `manifest.json` builds.
+**M2 verification (after merge).** `make pieces` runs cleanly across all plates. `04-validate-sidecars.py` passes for all 123 sidecars. `06-validate-gear-ratios.py` reports consistent ratios (or surfaces a documented inconsistency for follow-up). `manifest.json` builds.
 
 ---
 
@@ -379,7 +219,7 @@ Each plate is its own sub-section. Pieces are listed under the panel that *first
 | 3.9 | Set up GitHub Pages deploy (`gh-pages` branch or `/docs` from `main`); first deployment | not-started | 2.0 | — | Code | Live URL | Repo is public per resolved decision #4. Deploy artifact = `work/viewer/dist/`. |
 | 3.10 | Bump version to `0.1.0` in `work/viewer/package.json` and `manifest.json`'s `viewerVersion`; smoke test live URL | not-started | 0.5 | — | Code | v0.1.0 tag, CHANGELOG entry | First viewer ship. |
 
-**M3 verification (after merge).** Live URL renders all ~119 pieces flat. Hover highlights any piece. Click opens inspect panel with the piece's number, label text, fold counts, and connection chips. Layer toggles fade groups to translucent; settings switch flips them to fully hidden. Keyboard shortcuts work. No console errors.
+**M3 verification (after merge).** Live URL renders all 123 pieces flat. Hover highlights any piece. Click opens inspect panel with the piece's number, label text, fold counts, and connection chips. Layer toggles fade groups to translucent; settings switch flips them to fully hidden. Keyboard shortcuts work. No console errors.
 
 **Out of scope for M3.** Assembly transforms (M4). Photographic aesthetic (M5). Mobile responsiveness (Post-M5). Mechanism animation (M6).
 

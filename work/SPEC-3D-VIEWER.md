@@ -2,17 +2,17 @@
 
 **Status:** draft, ready for review
 **Predecessor docs:** `work/_archive/m1-plate-d-phone/auto-trace-test/RESULTS.md`, `work/_archive/m1-plate-d-phone/RESCAN_FINDINGS.md` (both archived 2026-04-30 with the gen-1 phone scans they document; conclusions still hold)
-**Source materials:** `source/scans-prepped/` (13 plates — gen-2 capture in progress per `source/SCAN-INTAKE-CHECKLIST.md`), `source/transcriptions/` (5 markdown files, scan-independent)
+**Source materials:** `source/pieces/` (per-piece archive, lossless PNG, populating from chunk-and-crop capture per `source/SCAN-INTAKE-CHECKLIST.md`), `source/scans-chunks/` (multi-piece chunk captures kept as recovery references), `source/transcriptions/` (5 markdown files, scan-independent)
 
 This spec locks in the production pipeline for turning the cleaned scans of *Make Your Own Working Paper Clock* into an interactive 3D viewer of the assembled clock, with each cut-out piece individually inspectable and cross-referenced to the book's own labels and figures.
 
 The decisions feeding into this spec are settled:
 
 1. The production trace pipeline is **auto-trace + light hand-edit + hand-trace for gutter strips and rectangles** (per `RESULTS.md` and the v2 verification on the pre-processed scans).
-2. The pre-processing pass (LAB-luminance flat-field + levels stretch + chroma-aware bleed-through suppression) has been run against all 13 plates, with output in `source/scans-prepped/`. The v2 auto-trace test confirms the four bright-region test pieces (33, 92, 99, 122) now trace cleanly; piece 1 — a thin frame strip — remains in the hand-trace bucket as planned.
+2. The pre-processing pass (LAB-luminance flat-field + levels stretch + chroma-aware bleed-through suppression) was developed against gen-1 (handheld phone) scans and is now archived. Under chunk-and-crop, pre-processing becomes per-piece if/when needed — flat-bed gen-2 captures are cleaner and the gen-1 parameters likely over-correct. The gen-1 v2 auto-trace test confirmed bright-region pieces traced cleanly; piece 1 — a thin frame strip — remains in the hand-trace bucket as planned. (Original gen-1 results live in `work/_archive/m1-plate-d-phone/auto-trace-test-v2/RESULTS.md`.)
 3. Per piece, the SVG is split into separate layers: silhouette (the only thing that extrudes), fold lines (valley vs. mountain), letters and labels, and other instructional marks (axle centers, glue-zone hatching, construction dotted lines).
 
-**Note (2026-04-30):** the original "no rescans required" stance was reversed after M1 plate-D output revealed gutter warp from the gen-1 phone scans. Full rescan on a flat-bed home scanner is now in progress as **M0.5** (see `ROADMAP.md`); gen-1 sources archived to `source/_archive/phone-scans-2025/`. The two earlier "cosmetic rescans" (plate L thumb, plate A higher-resolution) are subsumed by the gen-2 capture standard in `source/SCAN-INTAKE-CHECKLIST.md`.
+**Note (2026-04-30):** the original "no rescans required" stance was reversed twice in the same day. First reversal: after M1 plate-D output revealed gutter warp from the gen-1 phone scans, a full plate-by-plate rescan on a flat-bed home scanner was queued as **M0.5**. Second reversal (later that day): the home scanner can't fit a whole plate. The plate-rescan plan was retired and replaced with **chunk-and-crop** — capture multi-piece chunks (filename listing the COMPLETE pieces inside, ascending), archive the chunks to `source/scans-chunks/` as recovery references, and hand-crop each piece in editing software to a lossless `source/pieces/NNN.png`. The pipeline reads `source/pieces/` directly. Gen-1 sources are archived to `source/_archive/phone-scans-2025/`. The two earlier "cosmetic rescans" (plate L thumb, plate A higher-resolution) are subsumed by the gen-2 capture standard in `source/SCAN-INTAKE-CHECKLIST.md`. M0.5 is the active onboarding milestone (see `ROADMAP.md`).
 
 ## Goals and non-goals
 
@@ -74,18 +74,18 @@ For each piece N, a sibling `piece-N.json` carrying the data the SVG can't:
 
 The `connections` array is the spine of the assembly graph; it's compiled from `embedded-labels.md` by hand (one-time pass — the labels are already transcribed). The `figureRefs` are used by the inspect panel to cross-link to the K/L figure plates.
 
-## Authoring pipeline (scan → piece)
+## Authoring pipeline (chunk → piece)
 
 For each piece, the steps, roughly in order of automation:
 
-1. **Locate.** A `pieces.csv` index lists every piece with its plate, source-image bbox, and the bucket from `RESULTS.md` (auto-trace clean / auto-trace + edit / hand-trace). The bbox is set once, by hand, from the prepped scan.
-2. **Crop.** A short Python script reads `pieces.csv` and produces `work/pieces/NNN/crop.png` from the prepped plate. Implementation: `work/pipeline/01-crop.py` (shipped in M1; predecessor at `work/_archive/m1-plate-d-phone/auto-trace-test-v2/01_crop.py`).
-3. **Trace.** For pieces in the auto-trace buckets, run `potrace` on the binarized crop. Implementation: `work/pipeline/02-trace.py` (shipped in M1; predecessor at `work/_archive/m1-plate-d-phone/auto-trace-test-v2/02_trace.py`). Production uses the native `potrace` binary (50–100× faster than the pure-Python `potracer` fallback). Output is a single-layer SVG with all printed marks as one undifferentiated set of paths.
-4. **Layer-split.** A second pass classifies each path into one of the canonical layers above by stroke style (dashed → valley fold; plus-sign → mountain fold; etc.) and by area threshold (largest closed path → silhouette; small text-shape paths grouped → labels). Pieces in the "auto-trace + light edit" bucket land in Inkscape at this point for a 30–60 second cleanup; pieces in the "hand-trace" bucket are drawn from scratch over the crop image.
+1. **Capture.** Multi-piece chunks scanned on a flat-bed home scanner; chunk filename lists the COMPLETE pieces inside, ascending (e.g., `33_37_40_41_50.jpeg`). Chunks land in `source/scans-chunks/` as recovery references. See `source/SCAN-INTAKE-CHECKLIST.md`.
+2. **Crop (manual).** Each piece is hand-cropped from its chunk in editing software (Affinity / Photoshop / equivalent) and saved as a lossless `source/pieces/NNN.png` (three-digit zero-padded; letter variants `092a.png`, `112a.png`). The per-piece archive is the pipeline's input — there is no programmatic crop stage. The future piece-scan ingest skill (deferred, see `ROADMAP.md` M0.5.2) will validate the per-piece archive against `pieces.csv` and surface filename or image-health issues.
+3. **Trace.** For pieces in the auto-trace buckets, run `potrace` on the binarized per-piece PNG. Implementation: `work/pipeline/02-trace.py` (shipped in M1, slated for repoint in M0.5.6 to read `source/pieces/NNN.png` directly). Production uses the native `potrace` binary (50–100× faster than the pure-Python `potracer` fallback). Output is a single-layer SVG with all printed marks as one undifferentiated set of paths.
+4. **Layer-split.** A second pass classifies each path into one of the canonical layers above by stroke style (dashed → valley fold; plus-sign → mountain fold; etc.) and by area threshold (largest closed path → silhouette; small text-shape paths grouped → labels). Pieces in the "auto-trace + light edit" bucket land in Inkscape at this point for a 30–60 second cleanup; pieces in the "hand-trace" bucket are drawn from scratch over the per-piece PNG.
 5. **Sidecar.** The JSON is authored once per piece by hand, by reading off `embedded-labels.md` and `instructions.md`. We expect ~120 sidecars; estimate 1–3 minutes each, ≈ 4 hours total.
-6. **Validate.** A linter checks: silhouette is one closed path; folds are open paths; every `tab` in `connections` is referenced by some other piece's `atTab`; every `axle.id` referenced is also referenced from at least one other piece (so axles aren't orphaned).
+6. **Validate.** A linter checks: silhouette is one closed path; folds are open paths; every `tab` in `connections` is referenced by some other piece's `atTab` (one-directional connections opt out via `reciprocal: false`); every `axle.id` referenced is also referenced from at least one other piece (so axles aren't orphaned).
 
-The pipeline is deterministic and re-runnable. If the prepped scan is regenerated (e.g., a rescan is added later), only steps 1–4 need to re-run; the JSON sidecars are stable.
+The pipeline is deterministic and re-runnable from the per-piece archive onward. Re-cropping a piece (e.g., to fix a tight border) only needs steps 3–4 to re-run; the JSON sidecars are stable. **Historical note:** under the gen-1 (phone-scan) era, step 2 was a programmatic crop driven by per-piece bbox fractions in `pieces.csv` (`work/pipeline/01-crop.py`). Bbox columns were dropped from `pieces.csv` in the chunk-and-crop pivot (2026-04-30) and `01-crop.py` is slated for archival. The `pieces.csv` schema is now `id, plate, section, bucket, status, notes`.
 
 ## SVG-to-3D conversion
 
@@ -114,7 +114,7 @@ The clock's assembly graph is a tree of nested `Object3D` groups, with leaves be
 | `anchor-and-pendulum` | §II.C | 67, 68, 69, 70, 71, 72, 92, 92a, 94, 95, 96, 97, 98, 99, 100 |
 | `hands-mechanism` | §II.D | 4, 75, 76, 77, 81, 84, 89, 91, 108, 109 |
 | `weight` | §II.E | 101, 102 |
-| `face-and-case` | §II.F | 110, 111, 112, 112a, 113–116, 117, 118, 119, 122 |
+| `face-and-case` | §II.F | 110, 111, 112, 112a, 113–116, 117, 118, 119, 121 |
 
 Each group lives in its own `assemblies/<group>.json` listing the pieces it contains, the local transform of each piece (translation in mm, rotation in radians, fold-angle for hinged pieces), and any axles passing through the group. The viewer composes groups via a top-level `assembly.json` that places each group in clock-coordinate space.
 
@@ -164,30 +164,36 @@ Native `potrace` will be added to the build environment (the v2 test used pure-P
 Continuing the existing repo conventions:
 
 ```
-source/                          (read-only; already populated)
-  scans-prepped/                 13 cleaned plate JPGs
-  scans-clean/                   pre-prep version, retained as audit trail
-  transcriptions/                5 markdown files
+inbox/                           transient; in-flight chunk scans before promotion
+source/                          (read-only after intake; reference archive)
+  pieces/                        per-piece source archive (NEW): NNN.png, lossless, NNN[a].png; pipeline input
+  scans-chunks/                  multi-piece chunk captures kept as recovery references (NEW)
+  scans-raw/                     legacy plate-oriented raw (kept; mostly unused)
+  scans-clean/                   legacy plate-oriented clean (kept; mostly unused)
+  scans-prepped/                 legacy plate-oriented prepped (kept; mostly unused)
+  transcriptions/                5 markdown files (scan-independent)
   inventory.md
+  SCAN-INTAKE-CHECKLIST.md       chunk-and-crop capture + QC standard
+  _archive/
+    phone-scans-2025/            gen-1 (handheld phone) raw + clean + prepped, archived 2026-04-30
 work/
-  pieces/                        per-piece authoring (NEW)
+  pieces/                        per-piece authoring (NEW; populates in M2+)
     NNN/
-      crop.png
       piece-NNN.svg              layered, hand-finalized
       piece-NNN.json             sidecar
-  assemblies/                    (NEW)
+  assemblies/                    (NEW; populates in M4)
     framework.json
     motor-wheel.json
     ... (one per group)
     assembly.json                top-level composition
-  pipeline/                      (NEW; replaces ad-hoc scripts)
-    01-crop.py
-    02-trace.py
-    03-layer-split.py
+  pipeline/                      Python pipeline (M1 era; M0.5.6 reshape pending)
+    01-crop.py                   ARCHIVED — bbox-driven plate-slicing stage, retired in chunk-and-crop pivot
+    02-trace.py                  M0.5.6: repoint to read source/pieces/NNN.png directly
+    03-layer-split.py            M0.5.6: align with new trace input
     04-validate-sidecars.py
     05-build-manifest.py
     Makefile
-  viewer/                        (NEW; the web app)
+  viewer/                        (NEW; populates in M3)
     index.html
     src/
       main.ts
@@ -199,12 +205,13 @@ work/
     public/
       manifest.json              build artifact
       pieces/                    per-piece SVG + JSON, copied from work/pieces
-      crops/                     per-piece reference PNG
+      crops/                     per-piece reference PNG (sourced from source/pieces/)
     package.json
     vite.config.ts
-  pieces.csv                     master index: piece → plate → bucket → bbox
+  pieces.csv                     master index of all 123 pieces; schema id, plate, section, bucket, status, notes
   scripts/
-    preprocess_scans.py          (existing; re-tune in M0.5 if gen-2 prepped output looks washed-out)
+    build_master_list.py         generator for pieces.csv from embedded-labels.md
+    preprocess_scans.py          gen-1-era pre-processing; per-piece re-tuning if needed under chunk-and-crop
   _archive/
     m1-plate-d-phone/            (archived 2026-04-30) gen-1 M1 outputs: pieces/, auto-trace-test/, auto-trace-test-v2/, RESCAN_FINDINGS.md, RESULTS.md
   SPEC-3D-VIEWER.md              this document
@@ -214,9 +221,9 @@ work/
 
 The build is organized so each milestone produces something usable on its own; the work doesn't have to land all at once.
 
-**M1 — Authoring pipeline end-to-end on plate D.** Plate D is the simplest and the cleanest. Trace all 11 pieces (4, 10, 18, 19, 26, 29–32, 91, 92 per the post-audit `embedded-labels.md` Panel D listing), write all 11 sidecars, get the linter passing. Output: 11 piece directories under `work/pieces/`. Cost: ~6.5 hours including pipeline coding. Demonstrates the spec is buildable.
+**M1 — Authoring pipeline end-to-end on plate D.** *Shipped against gen-1 (phone) scans 2026-04-30; outputs archived to `work/_archive/m1-plate-d-phone/`.* Traced 11 plate-D pieces (4, 10, 18, 19, 26, 29–32, 91, 92), wrote 11 sidecars, validator passing (with a `reciprocal: false` flag added for one-directional connections). Cost: ~6.5 hours including pipeline coding. Demonstrated the spec is buildable. The pipeline stages built in M1 will be re-run against the gen-2 per-piece archive once M0.5 (chunk-and-crop onboarding + pipeline reshape) closes.
 
-**M2 — All pieces traced.** Run the pipeline across plates A–J. Plates K and L are figure references — those go in as plate-image assets, not pieces. Plate M is one piece (122). Estimate: ~25–35 hours of trace + edit + sidecar work. Output: ~120 piece directories under `work/pieces/`, manifest.json builds cleanly.
+**M2 — All pieces traced.** Run the pipeline across plates A–J on the gen-2 per-piece archive. Plates K and L are figure references — those go in as plate-image assets, not pieces. Plate M is one piece (121). Estimate: ~25–35 hours of trace + edit + sidecar work. Output: ~120 piece directories under `work/pieces/`, manifest.json builds cleanly. Includes a gear-ratio validation sub-task per resolved decision #5.
 
 **M3 — Flat viewer.** Bring up the three.js scene with all pieces rendered flat, in a grid laid out by plate. Hover, click, and inspect-panel work. No assembly transforms yet. Output: viewer is browsable, every piece can be inspected. This is the gut-check that the spec works in 3D before committing to the assembly authoring effort.
 
@@ -238,4 +245,4 @@ All five product decisions called out in the original draft are now resolved. Se
 
 ## Sequence
 
-The next concrete step is M1: pick plate D, build the pipeline scripts (`01-crop.py` through `04-validate-sidecars.py`), and trace + sidecar all 11 of its pieces. That's the smallest deliverable that proves the spec. See `ROADMAP.md` for the M1 task breakdown.
+M1 shipped against gen-1 phone scans on 2026-04-30 and is archived. The next concrete step is **M0.5** — chunk-and-crop onboarding (populating `source/pieces/`) and a small pipeline reshape (archive `01-crop.py`, repoint `02-trace.py` at `source/pieces/`, update the Makefile target chain). After that, **M2** runs the pipeline across all plates against the gen-2 per-piece archive. See `ROADMAP.md` for the milestone breakdown.
