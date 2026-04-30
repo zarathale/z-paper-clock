@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     viewBox="0 0 384 811" width="384" height="811">
+  <rect x="0" y="0" width="100%" height="100%" fill="#fffaf0"/>
+  <g inkscape:groupmode="layer" inkscape:label="silhouette" fill="none" stroke="#2a2a2a" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M3189 6835 c-2 -2 -121 -6 -264 -10 -143 -3 -393 -10 -555 -16 -162 -5 -377 -9 -477 -9 -100 0 -184 -3 -187 -8 -4 -7 -8 -60 -26 -367 -26 -455 -31 -553 -45 -860 -8 -181 -20 -420 -25 -530 -12 -230 -16 -312 -30 -630 -6 -126 -15 -300 -20 -385 -12 -176 -26 -422 -40 -685 -5 -99 -14 -261 -19 -360 -6 -99 -15 -286 -21 -415 -6 -129 -15 -307 -21 -395 -5 -88 -14 -261 -19 -385 -19 -429 -30 -606 -48 -770 -39 -373 -11 -585 109 -825 61 -121 106 -178 138 -173 20 3 19 6 -22 61 -93 124 -165 299 -192 465 -17 104 -18 159 -5 306 6 61 17 251 26 421 8 171 22 436 30 590 7 154 21 422 29 595 29 632 36 771 55 1080 28 459 62 1101 80 1520 14 307 58 1202 65 1305 3 44 9 147 15 229 6 97 14 154 22 162 13 13 935 42 1453 47 l240 2 -2 -140 c0 -77 -6 -241 -13 -365 -11 -225 -16 -344 -44 -1120 -8 -228 -20 -518 -26 -645 -5 -126 -15 -354 -20 -505 -6 -151 -15 -363 -20 -470 -6 -107 -17 -382 -25 -610 -9 -228 -22 -575 -31 -770 -8 -195 -17 -438 -20 -540 -14 -570 -50 -999 -95 -1147 -46 -152 -145 -335 -230 -428 -40 -43 -40 -45 -17 -45 74 0 233 275 297 515 18 66 49 389 56 575 3 96 10 306 15 465 5 160 14 378 20 485 5 107 17 389 25 625 16 466 18 510 40 1001 16 362 49 1166 65 1564 5 140 12 307 15 370 6 120 10 222 20 480 3 85 13 283 22 439 16 274 16 284 -2 297 -13 10 -54 14 -146 13 -70 0 -128 -2 -130 -4z"/>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="cutouts" fill="none" stroke="#2a2a2a" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="folds-valley" fill="none" stroke="#2a2a2a" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="folds-mountain" fill="none" stroke="#2a2a2a" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="axles" fill="none" stroke="#2a2a2a" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="glue-zones" fill="none" stroke="#2a2a2a" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="labels" fill="none" stroke="#2a2a2a" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M1870 8075 c0 -17 7 -28 23 -34 12 -4 184 -2 382 4 198 7 587 18 865 25 296 8 509 17 515 22 12 12 -1317 2 -1570 -11 -129 -6 -163 -5 -176 6 -24 20 -39 16 -39 -12z"/>
+    <path d="M2359 7655 c-26 -14 -59 -78 -59 -113 0 -22 37 -82 50 -82 22 0 22 31 0 48 -27 22 -23 56 13 98 56 64 80 -32 33 -132 -32 -69 -103 -181 -143 -227 -36 -41 -46 -84 -15 -72 33 13 164 35 207 35 24 0 47 5 50 10 3 6 9 39 12 75 6 75 -4 82 -44 35 -29 -35 -63 -54 -110 -63 -44 -9 -48 5 -11 39 82 78 148 192 148 258 0 36 -6 50 -31 75 -33 34 -60 38 -100 16z"/>
+    <path d="M1990 7651 c-51 -6 -55 -8 -58 -34 -6 -47 13 -59 78 -51 77 9 82 -4 27 -69 -67 -79 -87 -122 -42 -93 57 38 95 5 95 -82 0 -50 -3 -58 -40 -94 -27 -28 -46 -39 -62 -36 -21 3 -23 8 -20 49 4 52 -8 68 -32 43 -16 -16 -22 -80 -8 -100 41 -62 172 -30 227 55 52 83 42 158 -31 217 -24 20 -44 40 -44 43 0 4 20 31 45 60 82 96 58 112 -135 92z"/>
+    <path d="M3695 255 c-251 -268 -231 -245 -202 -245 19 0 40 17 83 65 32 36 61 62 65 58 4 -5 9 -33 11 -63 2 -41 7 -55 18 -55 12 0 16 16 18 70 2 38 7 74 12 80 6 7 33 10 70 7 50 -4 60 -2 60 12 0 13 -11 16 -50 16 -74 0 -75 19 -6 89 43 43 57 64 54 81 -3 20 -22 3 -133 -115z"/>
+  </g>
+  <g inkscape:groupmode="layer" inkscape:label="marks-other" fill="none" stroke="#2a2a2a" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+  </g>
+</svg>

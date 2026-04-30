@@ -29,7 +29,7 @@ Plain-text labels alongside the M-numbers. Use the long form on first reference 
 
 | ID | Name | Status | Est. h | Actual h | Depends on | Notes |
 |---|---|---|---|---|---|---|
-| M1 | Pipeline end-to-end on plate D | not-started | 6.5 | — | none (SPEC + scans-prepped exist) | Smallest deliverable that proves the spec is buildable. |
+| M1 | Pipeline end-to-end on plate D | in-progress | 6.5 | — | none (SPEC + scans-prepped exist) | Pipeline shipped 2026-04-30; tasks 1.5 + 1.6 (Inkscape edit + sidecars) pending Cowork follow-up. |
 | M2 | All pieces traced + gear-ratio validation | not-started | 27 | — | M1 | Bulk authoring; per-piece rows below. Gear-ratio validation added per resolved decision #5. |
 | M3 | Flat viewer (illustrative aesthetic) | not-started | 30 | — | M2 | First runnable viewer. Tag v0.1.0 at completion. |
 | M4 | Assemblies (clock takes its real shape) | not-started | 30 | — | M3 | Long pole — per-group transform authoring, ~8 groups. |
@@ -107,14 +107,14 @@ When in doubt, start one tier lower than feels safe and let the output tell you 
 | # | Task | Status | Est. h | Actual h | Owner | Output | Notes |
 |---|---|---|---|---|---|---|---|
 | 1.1 | Author bbox-by-hand for plate D's 11 pieces; populate `work/pieces.csv` (plate-D rows) | not-started | 1.0 | — | Cowork | `pieces.csv` (partial) | One-time hand pass per piece. Schema: `id,plate,bucket,bbox_x,bbox_y,bbox_w,bbox_h`. |
-| 1.2 | Code `work/pipeline/01-crop.py` (reads pieces.csv, crops from prepped scan) | not-started | 0.5 | — | Code | `01-crop.py`, `crop.png` × 11 | Carry over logic from `auto-trace-test-v2/01_crop.py`. |
-| 1.3 | Code `work/pipeline/02-trace.py` (native potrace if available; potracer fallback) | not-started | 1.0 | — | Code | `02-trace.py`, single-layer SVG × 11 | Add native potrace to build env (apt or brew); document in CODE_PROMPT prereqs. |
-| 1.4 | Code `work/pipeline/03-layer-split.py` (path → canonical layer by stroke style + area) | not-started | 1.5 | — | Code | `03-layer-split.py`, layered SVG × 11 | Heuristics: dashed→folds-valley; plus-sign→folds-mountain; largest closed→silhouette; small text-shape→labels; etc. |
+| 1.2 | Code `work/pipeline/01-crop.py` (reads pieces.csv, crops from prepped scan) | done | 0.5 | — | Code | `01-crop.py`, `crop.png` × 11 | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
+| 1.3 | Code `work/pipeline/02-trace.py` (native potrace if available; potracer fallback) | done | 1.0 | — | Code | `02-trace.py`, single-layer SVG × 11 | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
+| 1.4 | Code `work/pipeline/03-layer-split.py` (path → canonical layer by stroke style + area) | done | 1.5 | — | Code | `03-layer-split.py`, layered SVG × 11 | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
 | 1.5 | Light hand-edit in Inkscape on auto-trace+edit bucket pieces | not-started | 1.0 | — | Cowork | Refined SVGs | 30–60 sec per piece per SPEC. Plate D bucket distribution TBD until 1.4 ships. |
 | 1.6 | Author 11 sidecars (`piece-NNN.json`) by hand from `embedded-labels.md` Panel D + `instructions.md` | not-started | 0.5 | — | Cowork | 11 JSON sidecars | ~2–3 min per sidecar. Connections, axles, figure refs from transcriptions. |
-| 1.7 | Code `work/pipeline/04-validate-sidecars.py` (linter: silhouette closed, folds open, tab/axle cross-refs) | not-started | 1.0 | — | Code | `04-validate-sidecars.py`, lint pass | Plain Python; runs in CI before manifest build. |
-| 1.8 | Run linter on plate D's 11 sidecars; iterate until clean | not-started | 0.5 | — | Code | Clean lint output | Surfaces sidecar-author errors and SVG-layer naming mistakes. |
-| 1.9 | Add `work/pipeline/Makefile` with crop / trace / layer-split / validate targets | not-started | 0.5 | — | Code | `Makefile` | Enables `make pieces` for full pipeline; per-stage cacheable. |
+| 1.7 | Code `work/pipeline/04-validate-sidecars.py` (linter: silhouette closed, folds open, tab/axle cross-refs) | done | 1.0 | — | Code | `04-validate-sidecars.py`, lint pass | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
+| 1.8 | Run linter on plate D's 11 sidecars; iterate until clean | done | 0.5 | — | Code | Clean lint output (no sidecars yet — expected) | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
+| 1.9 | Add `work/pipeline/Makefile` with crop / trace / layer-split / validate targets | done | 0.5 | — | Code | `Makefile` | see sessions/2026-04-30-1500_code_M1-pipeline-plate-d.md |
 
 **M1 verification (after merge).** `make pieces` from `work/pipeline/` produces 11 piece directories; linter passes; spot-check piece 92 (a known-clean auto-trace) and piece 91 (an accordion piece) in Inkscape and confirm layers are correctly classified.
 

@@ -1,6 +1,7 @@
 ---
-status: ready-for-code
+status: shipped
 started: 2026-04-30
+shipped: 2026-04-30
 owner: Zarathale (Alan)
 target: M1-pipeline-plate-d
 ---

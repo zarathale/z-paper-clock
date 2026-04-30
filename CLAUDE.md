@@ -69,7 +69,7 @@ The study side is complete. The build side has the spec drafted, the roadmap det
 | Auto-trace test v1 + v2 | ✅ Complete; v2 confirms pre-processing eliminates bleed-through |
 | 3D viewer spec (`work/SPEC-3D-VIEWER.md`) | ✅ Drafted; 5 product decisions resolved 2026-04-30 |
 | Build roadmap (`ROADMAP.md`) | ✅ Drafted 2026-04-30 with M1–M6 + Post-M5 mobile detail |
-| M1 — pipeline end-to-end on plate D | ⏳ Cowork prep complete (pieces.csv + CODE_PROMPT); pending Code session |
+| M1 — pipeline end-to-end on plate D | ✅ Pipeline shipped (01-crop, 02-trace, 03-layer-split, 04-validate, Makefile; 11 plate-D pieces); tasks 1.5 + 1.6 (Inkscape edit + sidecars) pending Cowork follow-up |
 | M2 — all pieces traced + gear-ratio validation | ⏳ Pending |
 | M3 — flat viewer (illustrative aesthetic) | ⏳ Pending; ships v0.1.0 |
 | M4 — assembly transforms | ⏳ Pending |
