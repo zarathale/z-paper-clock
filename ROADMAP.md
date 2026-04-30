@@ -110,7 +110,7 @@ When in doubt, start one tier lower than feels safe and let the output tell you 
 | # | Task | Status | Est. h | Actual h | Owner | Output | Notes |
 |---|---|---|---|---|---|---|---|
 | 0.5.1 | Settle chunk-and-crop design; expand `pieces.csv` to 123-row master index | done | 1.0 | ~1.0 | Cowork | `pieces.csv` (123 rows), `build_master_list.py`, `SCAN-INTAKE-CHECKLIST.md` rewritten, CLAUDE.md + ROADMAP.md updated | See `sessions/2026-04-30-1900_cowork_chunk-and-crop-pivot.md`. |
-| 0.5.2 | Author piece-scan ingest skill (`SKILL.md` + Python helper at `.claude/skills/piece-scan-ingest/`) | not-started | 1.5 | — | Cowork (SKILL.md draft) + Code (helper) | Skill validates filenames against `pieces.csv`; runs image-health checks (DPI, dims, color mode); reports captured-vs-pending status; flags anomalies. | Needs a `CODE_PROMPT_*.md` handoff once SKILL.md is drafted. |
+| 0.5.2 | Author piece-scan ingest skill (`SKILL.md` + Python helper at `.claude/skills/piece-scan-ingest/`) | in-progress | 1.5 | — | Cowork (SKILL.md draft) + Code (helper) | Skill validates filenames against `pieces.csv`; runs image-health checks (DPI, dims, color mode); reports captured-vs-pending status; flags anomalies. Read-only by contract. | SKILL.md drafted 2026-04-30 (see `sessions/2026-04-30-2300_cowork_M0.5.2-ingest-skill-draft.md`); helper queued via `CODE_PROMPT_M0.5.2-piece-scan-ingest.md`. |
 | 0.5.3 | Capture remaining chunks on flat-bed home scanner; promote inbox → `source/scans-chunks/` | in-progress | 3.0 | — | Cowork (Zarathale at the scanner) | Coverage of all 13 plates as multi-piece chunks. | 8 chunks landed 2026-04-30 (most of plate D + parts of E/F/G/H). Per `SCAN-INTAKE-CHECKLIST.md`. |
 | 0.5.4 | Hand-crop pieces in editor → `source/pieces/NNN.png` (lossless, three-digit zero-padded) | not-started | 2.5 | — | Cowork (Zarathale in Affinity/Photoshop/Preview) | Up to 123 PNG files in `source/pieces/`. | Letter variants `092a.png`, `112a.png`. Per `SCAN-INTAKE-CHECKLIST.md` "Per-piece crop" section. |
 | 0.5.5 | Run ingest skill audit; iterate on captures/crops until master list is satisfied | not-started | 0.5 | — | Cowork | Clean ingest report; `pieces.csv` `status` column reflects `captured` for all pieces. | Skill reports surface gaps; address by re-capturing or re-cropping. |
@@ -170,7 +170,7 @@ When in doubt, start one tier lower than feels safe and let the output tell you 
 | 2.3 | Run `02-trace.py` across auto-trace bucket pieces | not-started | 1.0 | — | Code | Native potrace; batch run. |
 | 2.4 | Run `03-layer-split.py` across auto-trace bucket pieces | not-started | 0.5 | — | Code | Batch. |
 | 2.5 | Code `work/pipeline/05-build-manifest.py` (union per-piece JSON + assembly JSON + transcription refs into `manifest.json`) | not-started | 1.5 | — | Code | One-time; runs after all sidecars exist. Adds `viewerVersion` field. |
-| 2.6 | Code `work/pipeline/06-validate-gear-ratios.py` (resolved decision #5) | not-started | 1.5 | — | Code | Reads sidecar tooth counts; confirms motor-wheel × middle-wheel × escapement-wheel = expected escapement frequency given pendulum period. Surfaces inconsistencies. |
+| 2.6 | Code `work/pipeline/06-validate-gear-ratios.py` (resolved decision #5) | not-started | 1.5 | — | Code | Reads the optional `function` block from §II.B + §II.C sidecars (per the *Faithful trace + functional sidecar* decision in CLAUDE.md). Anchor unit: escape-wheel advance per tick (one tick = 2π/N rad, N = `toothCount` on the escape-wheel `function` block). Walks the `drives` chain from escape wheel back through middle wheel and motor wheel, confirming each tooth-count ratio resolves to an internally consistent rotation per tick. Cross-checks the book's stated pendulum period from `instructions.md` as a sanity check, not a primary input. Surfaces inconsistencies. |
 | 2.7 | Run gear-ratio validation; reconcile any inconsistencies with `embedded-labels.md` | not-started | 1.0 | — | Cowork | Could surface a transcription error that needs an audit-style fix. |
 
 ### M2 per-plate piece distribution
@@ -344,6 +344,8 @@ These aren't milestones — they're things to flag so they don't get lost.
 
 ---
 
-*Last updated: 2026-04-30 (later same day) — reshaped M0.5 from "gen-2 rescan + pipeline re-bring-up" to "chunk-and-crop onboarding + pipeline reshape" after confirming the home scanner can't fit a whole plate. See `sessions/2026-04-30-1900_cowork_chunk-and-crop-pivot.md`. Earlier 2026-04-30 entry (gen-2 rescan + M1 archived) at `sessions/2026-04-30-1800_cowork_rescan-restructure.md`.*
+*Last updated: 2026-04-30 (evening pass) — refined M2 task 2.6 description to align with the *Faithful trace + functional sidecar* decision (CLAUDE.md): validator reads the optional `function` block; anchor unit is escape-wheel advance per tick; book's pendulum period is a sanity check, not a primary input. See `sessions/2026-04-30-2330_cowork_faithful-trace-decision.md`.*
+
+*Earlier 2026-04-30 (later same day) — reshaped M0.5 from "gen-2 rescan + pipeline re-bring-up" to "chunk-and-crop onboarding + pipeline reshape" after confirming the home scanner can't fit a whole plate. See `sessions/2026-04-30-1900_cowork_chunk-and-crop-pivot.md`. Earlier 2026-04-30 entry (gen-2 rescan + M1 archived) at `sessions/2026-04-30-1800_cowork_rescan-restructure.md`.*
 
 *Earlier: 2026-04-30 — initial authoring; see `sessions/2026-04-30-1300_cowork_roadmap.md`.*

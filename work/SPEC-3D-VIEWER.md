@@ -66,6 +66,13 @@ For each piece N, a sibling `piece-N.json` carrying the data the SVG can't:
     "valley":   [{ "id": "fold-1", "hingedSubpieceIds": ["main", "tab-a"] }],
     "mountain": []
   },
+  "function": {                            // OPTIONAL; populated only on §II.B + §II.C pieces (see below)
+    "type": "gear",                        // "gear" | "compound" | "escape_wheel" | "anchor" | "pendulum" | "hand_arbor"
+    "toothCount": 60,                      // rim tooth count; required for gear / compound / escape_wheel
+    "pinionToothCount": null,              // pinion tooth count on same arbor for compound gears; null otherwise
+    "axleCentroidSvg": [123.4, 78.9],      // SVG coordinates of the axle hole, registered against `axles` markers
+    "drives": 39                           // piece id this gear drives next; null for terminal pieces (escape wheel, anchor, pendulum)
+  },
   "introducedInStep": "II.B.1 Motor Wheel",   // section in instructions.md
   "figureRefs": ["K/Fig 5", "K/Fig 6", "L/Fig 12"],
   "notes": "Paired with piece 34 (back) and piece 37 (tooth strip). See embedded-labels.md panel G."
@@ -74,12 +81,14 @@ For each piece N, a sibling `piece-N.json` carrying the data the SVG can't:
 
 The `connections` array is the spine of the assembly graph; it's compiled from `embedded-labels.md` by hand (one-time pass — the labels are already transcribed). The `figureRefs` are used by the inspect panel to cross-link to the K/L figure plates.
 
+The `function` block is **optional and only present on §II.B (gear train) + §II.C (anchor / pendulum / escapement) pieces** — the ~25–30 mechanism pieces whose geometry has to satisfy the ticking constraint. It captures the *intended* mechanism values without modifying the SVG: the trace stays artifact-faithful with all its human-drawn, human-scanned imperfections; the `function` block records what the page meant. The anchor unit is **escape-wheel advance per tick** — one tick = the escape wheel rotates `2π/toothCount` rad, and every other gear's rotation per tick is derived from the chain via the `drives` references. The book's stated period in `instructions.md` is a sanity check on the chain, not a primary input. Per resolved product decision #5, the M2 gear-ratio validation script reads `function` blocks (see Phasing). Pieces outside §II.B + §II.C have no `function` block — framework, hands, weight, face, and case sidecars stay purely artifact-faithful. Hand rotation rates inherit from the gear chain at animation time and don't need their own block. (See CLAUDE.md "Architectural Decisions" → *Faithful trace + functional sidecar* for the full statement.)
+
 ## Authoring pipeline (chunk → piece)
 
 For each piece, the steps, roughly in order of automation:
 
 1. **Capture.** Multi-piece chunks scanned on a flat-bed home scanner; chunk filename lists the COMPLETE pieces inside, ascending (e.g., `33_37_40_41_50.jpeg`). Chunks land in `source/scans-chunks/` as recovery references. See `source/SCAN-INTAKE-CHECKLIST.md`.
-2. **Crop (manual).** Each piece is hand-cropped from its chunk in editing software (Affinity / Photoshop / equivalent) and saved as a lossless `source/pieces/NNN.png` (three-digit zero-padded; letter variants `092a.png`, `112a.png`). The per-piece archive is the pipeline's input — there is no programmatic crop stage. The future piece-scan ingest skill (deferred, see `ROADMAP.md` M0.5.2) will validate the per-piece archive against `pieces.csv` and surface filename or image-health issues.
+2. **Crop (manual).** Each piece is hand-cropped from its chunk in editing software (Affinity / Photoshop / equivalent) and saved as a lossless `source/pieces/NNN.png` (three-digit zero-padded; letter variants `092a.png`, `112a.png`). The per-piece archive is the pipeline's input — there is no programmatic crop stage. The piece-scan ingest skill (in progress at `.claude/skills/piece-scan-ingest/`; see `ROADMAP.md` M0.5.2) validates the per-piece archive against `pieces.csv` and surfaces filename or image-health issues. Read-only — never modifies `pieces.csv`.
 3. **Trace.** For pieces in the auto-trace buckets, run `potrace` on the binarized per-piece PNG. Implementation: `work/pipeline/02-trace.py` (shipped in M1, slated for repoint in M0.5.6 to read `source/pieces/NNN.png` directly). Production uses the native `potrace` binary (50–100× faster than the pure-Python `potracer` fallback). Output is a single-layer SVG with all printed marks as one undifferentiated set of paths.
 4. **Layer-split.** A second pass classifies each path into one of the canonical layers above by stroke style (dashed → valley fold; plus-sign → mountain fold; etc.) and by area threshold (largest closed path → silhouette; small text-shape paths grouped → labels). Pieces in the "auto-trace + light edit" bucket land in Inkscape at this point for a 30–60 second cleanup; pieces in the "hand-trace" bucket are drawn from scratch over the per-piece PNG.
 5. **Sidecar.** The JSON is authored once per piece by hand, by reading off `embedded-labels.md` and `instructions.md`. We expect ~120 sidecars; estimate 1–3 minutes each, ≈ 4 hours total.
