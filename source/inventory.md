@@ -49,7 +49,7 @@ The book's middle is filled with single-sided plates of numbered paper pieces (1
 | J | `p00x-plate-J-pieces-101-102-108-109-117.jpg` | IMG_4424 | 101, 102, 108, 109, 117 — clock hands (108, 109), face frame backing (117) |
 | K | `p00x-plate-K-figures-1-9-overview.jpg` | IMG_4425 | Reference page — Fig 1 (frame assembly), Fig 2 (pendulum support), Fig 3 (wall bracket), Fig 4 (hand wheels), Fig 5 (motor wheel), Fig 6 (motor-wheel teeth), Fig 7 (pulley), Fig 8 (escapement detail), Fig 9 (anchor / pendulum). |
 | L | `p00x-plate-L-figures-10-16-assembled.jpg` | IMG_4426 | Reference page — Fig 10–16, including a fully assembled view ("ASSEMBLED") and the schematic diagram (Fig 13). |
-| M | `p00x-plate-M-clock-face.jpg` | IMG_4435 | The printed clock face — rectangular tan/brown border, numbers 1–12, minute marks, center hole. |
+| M | `p00x-plate-M-clock-face.jpg` | IMG_4435 | The printed clock face — rectangular tan/brown border, numbers 1–12, minute marks, center hole. Identified as **piece 122** in Fig. 15. |
 
 ### Author's Note
 
@@ -73,7 +73,7 @@ The book's middle is filled with single-sided plates of numbered paper pieces (1
 
 | File | Source | Description |
 |---|---|---|
-| `p099-cover-back.jpg` | IMG_4429 | Back cover. ISBN, "GAMES" category, $12.95, harpercollins.com. Photo of a child holding the assembled paper clock. |
+| `p099-cover-back.jpg` | IMG_4429 | Back cover. ISBN-13 978-0-06-091066-2, "GAMES" category label, USD $18.99 / CAN $23.99, harpercollins.com. Photo of a boy with the partially assembled paper-clock parts on a table. |
 
 ## Status
 

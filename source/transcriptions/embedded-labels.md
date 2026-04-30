@@ -167,12 +167,12 @@ This is a reference sheet of perspective drawings showing how subassemblies look
 | Fig. 12 | Motor wheel detail (front) | 4, 78, 87, 31, 84 |
 | Fig. 13 | **Schematic diagram** (full cross-section of the clock mechanism, side view) | Labels: `face` (front, two locations), `weight` (bottom-right), with extensive piece-number annotation: 19, 24, 28, 32, 50, 55, 56, 58, 70, 84, 36, 35, 39, 94, etc. This is the most valuable single drawing for understanding how everything fits together. |
 | Fig. 14 | "ASSEMBLED" — small whole-clock illustration | Shows the finished clock face, decorative case, pendulum hanging below, pulley weight to the side |
-| Fig. 15 | Face mounting (rear view) | Labels: `face`. Pieces 110, 111, 112, 122, 113, 114, 115, 116 forming the face frame |
+| Fig. 15 | Face mounting (rear view) | Labels: `face`. Frame pieces: 110, 111, 112, 112a, 113, 114, 115, 116 (per prose §II.F). The central rectangle in this figure — the printed clock face itself — is labeled `122`, identifying the Panel M sheet as piece 122 of the build. |
 | Fig. 16 | Case detail | Pieces 117, 118, 119 — case top + sides assembly |
 
-## Panel M — clock face
+## Panel M — clock face (piece 122)
 
-The printed face of the clock. Rectangular tan/brown outer border, off-white inner field. Numbers 1–12 in stylized outline-only typeface, positioned around the perimeter (12 at top center, 6 at bottom center; 1, 2, 3, 4, 5 down the right; 11, 10, 9, 8, 7 down the left). Minute marks form a hatched border around the inner field. Center hole for the hand axles. No textual labels.
+The printed face of the clock. Rectangular tan/brown outer border, off-white inner field. Numbers 1–12 in stylized outline-only typeface, positioned around the perimeter (12 at top center, 6 at bottom center; 1, 2, 3, 4, 5 down the right; 11, 10, 9, 8, 7 down the left). Minute marks form a hatched border around the inner field. Center hole for the hand axles. No textual labels on the face itself, but Fig. 15 (Panel L) identifies the face as piece 122.
 
 ---
 
