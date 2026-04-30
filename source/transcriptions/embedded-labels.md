@@ -59,7 +59,7 @@ Long vertical frame strips forming the horizontal run of the clock frame. No emb
 - On the small leaf-shaped piece between 26 and 31: *"cut out"*
 - Next to piece 92: *"Glue to cardboard 1mm thick"*
 
-**Pieces 4, 10** — Long main frame columns (front and back center columns). Each carries a row of `+` axle hole markers at regular intervals, and connection labels (`a₂₉, b₂₉, c₂₉, d₂₉, e₂₉, f₂₉, g₂₉, h₂₉` etc.) showing where cross-pieces from group 29 attach. Also carries `f₂₅`/`g₂₅` connection labels. `+++`: at the bottom-end tabs. No `---` fold lines on the main body.
+**Pieces 4, 10** — Long main frame columns (front and back center columns). Each carries a row of `+` axle hole markers at regular intervals, and connection labels (`a₂₉, b₂₉, c₂₉, d₂₉, e₂₉, f₂₉, g₂₉, h₂₉` etc.) showing where cross-pieces from group 29 attach. Also carries `f₂₅`/`g₂₅` connection labels. `+++`: at the bottom-end tabs. No `---` fold lines on the main body. Piece 4 additionally carries dotted positioning guides for the spacer stack: `91a`/`91b` (square footprint for piece 91) and `92a`/`92b` (circular footprint with dotted curved lines for piece 92).
 
 **Pieces 18, 19** — Small back-of-frame L-bracket pieces that pinch the pendulum blade. Labels: `a`, `b`, `d`. `---`: fold lines on each flap.
 
@@ -73,9 +73,9 @@ Long vertical frame strips forming the horizontal run of the clock frame. No emb
 
 **Piece 32** — Flat elongated oval shape (pairs with 31). No fold lines.
 
-**Piece 91** — Small square, glued to 1mm cardboard. Labels: `+` center mark, `b` (right). Glue note: *"Glue piece 91 to cardboard 1mm thick."* No fold lines.
+**Piece 91** — Small square, glued to 1mm cardboard. Labels: `+` center mark, `a`, `b`. Glue note: *"Glue piece 91 to cardboard 1mm thick."* No fold lines. Piece 4 carries corresponding dotted positioning guides labeled `91a` and `91b` showing where the square aligns.
 
-**Piece 92** — Disc, glued to 1mm cardboard. Labels: `a₄₁`, `b₄₁` (connection labels inside). Glue note: *"Glue to cardboard 1mm thick."* No fold lines.
+**Piece 92** — Disc, glued to 1mm cardboard. Labels: `a` (12 o'clock), `b` (6 o'clock). Glue note: *"Glue to cardboard 1mm thick."* No fold lines. Piece 4 carries corresponding dotted curved positioning guides labeled `92a` and `92b` showing where the disc aligns. (Earlier transcription error recorded these as `a₄₁`/`b₄₁` — corrected after scan verification.)
 
 ## Panel E (pieces 39, 60, 74, 78, 79, 82, 83, 103–107, 111, 112, 112a)
 
