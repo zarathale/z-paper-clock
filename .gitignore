@@ -3,6 +3,9 @@ __pycache__/
 *.pyc
 .DS_Store
 
+# Set-aside zone for scans that need a re-do; never committed
+inbox/_pending-rescan/
+
 # Claude Code internals — keep settings.json (committed), ignore worktree state and per-machine overrides
 .claude/worktrees/
 .claude/settings.local.json

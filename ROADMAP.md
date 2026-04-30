@@ -29,7 +29,7 @@ Plain-text labels alongside the M-numbers. Use the long form on first reference 
 
 | ID | Name | Status | Est. h | Actual h | Depends on | Notes |
 |---|---|---|---|---|---|---|
-| M0.5 | Gen-2 rescan + pipeline re-bring-up | in-progress | 8 | — | none | Added 2026-04-30 after gutter warp surfaced in M1 output (piece 31 in Inkscape). Gen-1 phone scans archived; flat-bed home-scanner capture underway per `source/SCAN-INTAKE-CHECKLIST.md`. M1's pipeline scripts carry forward unchanged; only inputs and SVG outputs are regenerated. |
+| M0.5 | Chunk-and-crop onboarding + pipeline reshape | in-progress | 12 | — | none | **Reshaped 2026-04-30** (later same day) from "rescan + re-bring-up" to "chunk-and-crop" after confirming the home scanner can't fit a whole plate. Workflow: capture multi-piece chunks → archive to `source/scans-chunks/` → hand-crop pieces in editor → save to `source/pieces/NNN.png`. Pipeline starts at `02-trace.py` reading `source/pieces/` directly. `01-crop.py` archived. `pieces.csv` expanded to 123-row master index (bbox columns dropped). Includes authoring the piece-scan ingest skill. See `sessions/2026-04-30-1900_cowork_chunk-and-crop-pivot.md`. |
 | M1 | Pipeline end-to-end on plate D (gen-1) | archived | 6.5 | ~6 | none | **Shipped against gen-1 phone scans 2026-04-30; archived to `work/_archive/m1-plate-d-phone/` same day.** Pipeline (`01-crop` through `04-validate` + Makefile) shipped clean and 11 sidecars passed lint, but underlying SVG silhouettes inherit the gen-1 gutter warp. To be re-run against gen-2 input as part of M0.5. |
 | M2 | All pieces traced + gear-ratio validation | not-started | 27 | — | M0.5 | Bulk authoring; per-piece rows below. Gear-ratio validation added per resolved decision #5. |
 | M3 | Flat viewer (illustrative aesthetic) | not-started | 30 | — | M2 | First runnable viewer. Tag v0.1.0 at completion. |
@@ -97,31 +97,31 @@ When in doubt, start one tier lower than feels safe and let the output tell you 
 
 ---
 
-## M0.5 — Gen-2 rescan + pipeline re-bring-up
+## M0.5 — Chunk-and-crop onboarding + pipeline reshape
 
-**Goal.** Re-capture all 27 source pages on a flat-bed home scanner per `source/SCAN-INTAKE-CHECKLIST.md`, run the existing pipeline against gen-2 plate D, and confirm the silhouette geometry is rectilinear (top edges run east–west, no gutter bow). Outputs: gen-2 `scans-raw/`, `scans-clean/`, `scans-prepped/` populated; new plate-D piece directories under `work/pieces/`; updated `pieces.csv` if bbox fractions need adjustment; gen-2 `RESCAN_FINDINGS.md`.
+**Goal.** Establish the chunk-and-crop source-archive workflow, populate `source/pieces/` with a complete per-piece PNG archive, and reshape the pipeline so it reads from `source/pieces/` directly (no more plate slicing). Then re-run the M1 trace pass on gen-2 plate D and confirm rectilinear silhouettes (no gutter bow). Outputs: `source/scans-chunks/` and `source/pieces/` populated; expanded `pieces.csv` (123-row master index, bbox columns dropped); piece-scan ingest skill authored; pipeline `02-trace.py` repointed at `source/pieces/`; `01-crop.py` archived; gen-2 plate-D pieces re-traced under `work/pieces/`.
 
-**Why this milestone exists.** M1 pipeline shipped on 2026-04-30 against gen-1 phone scans. Visible in Inkscape post-merge (piece 31): top edge bows from gutter warp that survived pre-processing. Decision: source-quality fix beats any tracing-pass refinement. See `sessions/2026-04-30-1800_cowork_rescan-restructure.md`.
+**Why this milestone exists.** M1 pipeline shipped on 2026-04-30 against gen-1 phone scans. Visible in Inkscape post-merge (piece 31): top edge bows from gutter warp that survived pre-processing. First-pass response was a whole-plate gen-2 rescan (see `sessions/2026-04-30-1800_cowork_rescan-restructure.md`). Same-day refinement: the home flat-bed scanner can't fit a whole plate — captures arrive as multi-piece chunks instead. The chunk-and-crop loop replaces plate-scan-then-bbox-slice as the source-of-pieces path. See `sessions/2026-04-30-1900_cowork_chunk-and-crop-pivot.md`.
 
 **Dependencies.** None upstream. Blocks M2.
 
-**Strategy.** Pipeline scripts are scan-version-agnostic — re-running them on gen-2 should "just work" for the well-aligned auto-trace-clean pieces. Only changes that should be needed: possibly re-tune `preprocess_scans.py` parameters (gen-1 was tuned for handheld phone bleed-through; flat-bed scans are cleaner and may not need as aggressive flat-fielding); possibly nudge bbox fractions in `pieces.csv` if scanner framing differs from phone framing.
+**Strategy.** The big shift is conceptual: `source/pieces/NNN.png` becomes the canonical pipeline input, not `source/scans-prepped/p00x-plate-X.jpg`. That collapses two pipeline stages (whole-plate prepping + bbox-driven cropping) into a single hand-cropping step in Zarathale's image editor. The trade is one-time tedium (cropping ~123 pieces by hand) for stable downstream behavior (`02-trace.py` onward stays unchanged). Pre-processing becomes per-piece if/when needed — flat-bed home scans are typically clean enough that it may be a no-op on most pieces. The piece-scan ingest skill closes the loop by auditing `source/pieces/` against the master `pieces.csv` and surfacing what's still pending.
 
 | # | Task | Status | Est. h | Actual h | Owner | Output | Notes |
 |---|---|---|---|---|---|---|---|
-| 0.5.1 | Capture all 13 plates + 14 text/cover pages on flat-bed home scanner | in-progress | 3.0 | — | Cowork (Zarathale at the scanner) | 27 raw scans in `source/scans-intake/` | Per `SCAN-INTAKE-CHECKLIST.md`. Plates first; QC each before moving on. |
-| 0.5.2 | Promote intake → `scans-raw/` with canonical filenames | not-started | 0.5 | — | Cowork | 27 files in `source/scans-raw/` | Filenames per `inventory.md`. |
-| 0.5.3 | Produce `scans-clean/` (dewarp/perspective-correct only if needed; well-aligned raws can copy across) | not-started | 1.0 | — | Cowork | 27 files in `source/scans-clean/` | Likely much lighter than gen-1 because flat-bed output is already rectilinear. |
-| 0.5.4 | Re-tune `preprocess_scans.py` against gen-2 sample plates if needed | not-started | 0.5 | — | Cowork | Updated script + new `work/scripts/RESCAN_FINDINGS.md` | Skip if gen-2 prepped output looks good with current parameters. |
-| 0.5.5 | Run `preprocess_scans.py` across all 13 plates | not-started | 0.25 | — | Cowork | 13 files in `source/scans-prepped/` | Single command. |
-| 0.5.6 | Re-validate `work/pieces.csv` bbox fractions against gen-2 plate D | not-started | 0.5 | — | Cowork | Possibly-updated `pieces.csv` | Spot-check with `01-crop.py` output; nudge fractions if needed. |
-| 0.5.7 | Re-run M1 pipeline (`make pieces`) on gen-2 plate D | not-started | 0.5 | — | Code | 11 fresh piece directories in `work/pieces/` | Sidecars copy forward verbatim from `work/_archive/m1-plate-d-phone/` (scan-independent). |
+| 0.5.1 | Settle chunk-and-crop design; expand `pieces.csv` to 123-row master index | done | 1.0 | ~1.0 | Cowork | `pieces.csv` (123 rows), `build_master_list.py`, `SCAN-INTAKE-CHECKLIST.md` rewritten, CLAUDE.md + ROADMAP.md updated | See `sessions/2026-04-30-1900_cowork_chunk-and-crop-pivot.md`. |
+| 0.5.2 | Author piece-scan ingest skill (`SKILL.md` + Python helper at `.claude/skills/piece-scan-ingest/`) | not-started | 1.5 | — | Cowork (SKILL.md draft) + Code (helper) | Skill validates filenames against `pieces.csv`; runs image-health checks (DPI, dims, color mode); reports captured-vs-pending status; flags anomalies. | Needs a `CODE_PROMPT_*.md` handoff once SKILL.md is drafted. |
+| 0.5.3 | Capture remaining chunks on flat-bed home scanner; promote inbox → `source/scans-chunks/` | in-progress | 3.0 | — | Cowork (Zarathale at the scanner) | Coverage of all 13 plates as multi-piece chunks. | 8 chunks landed 2026-04-30 (most of plate D + parts of E/F/G/H). Per `SCAN-INTAKE-CHECKLIST.md`. |
+| 0.5.4 | Hand-crop pieces in editor → `source/pieces/NNN.png` (lossless, three-digit zero-padded) | not-started | 2.5 | — | Cowork (Zarathale in Affinity/Photoshop/Preview) | Up to 123 PNG files in `source/pieces/`. | Letter variants `092a.png`, `112a.png`. Per `SCAN-INTAKE-CHECKLIST.md` "Per-piece crop" section. |
+| 0.5.5 | Run ingest skill audit; iterate on captures/crops until master list is satisfied | not-started | 0.5 | — | Cowork | Clean ingest report; `pieces.csv` `status` column reflects `captured` for all pieces. | Skill reports surface gaps; address by re-capturing or re-cropping. |
+| 0.5.6 | Reshape pipeline: archive `01-crop.py`, repoint `02-trace.py` at `source/pieces/`, update `Makefile` | not-started | 1.0 | — | Code | `01-crop.py` → `work/_archive/`; `02-trace.py` reads `source/pieces/NNN.png`; `Makefile` targets adjusted | Needs a `CODE_PROMPT_*.md` handoff. |
+| 0.5.7 | Re-run trace + layer-split on gen-2 plate D's 11 pieces | not-started | 0.5 | — | Code | 11 fresh piece directories in `work/pieces/` | Sidecars copy forward verbatim from `work/_archive/m1-plate-d-phone/pieces/0NN/piece-0NN.json` (scan-independent). |
 | 0.5.8 | Open piece 031 (and 1–2 others) in Inkscape; confirm rectilinear silhouettes | not-started | 0.5 | — | Cowork | Visual confirmation | Pass criterion for M0.5. |
 | 0.5.9 | Session note + commit; flip M1 row in this roadmap to `superseded`; flip M0.5 row to `done` | not-started | 0.25 | — | Cowork | sessions note | M2 unblocks once this row closes. |
 
-**M0.5 verification.** Piece 031's silhouette top edge runs east–west in Inkscape; no visible bow on any plate-D piece. `04-validate-sidecars.py` passes. The other plates are pre-processed and ready for M2's bulk authoring run.
+**M0.5 verification.** `source/pieces/` contains a PNG for every row in `pieces.csv`; the ingest skill reports zero anomalies; piece 031's silhouette top edge runs east–west in Inkscape; no visible bow on any plate-D piece; `04-validate-sidecars.py` passes against the gen-2 plate-D outputs.
 
-**What NOT to do in M0.5.** Don't re-author sidecars from scratch — the gen-1 sidecars are scan-independent and copy forward. Don't extend `pieces.csv` beyond plate D — that's M2's first task. Don't touch the viewer.
+**What NOT to do in M0.5.** Don't re-author sidecars from scratch — the gen-1 sidecars are scan-independent and copy forward. Don't pre-trace pieces beyond plate D — that's M2's bulk authoring pass. Don't tackle the viewer. Don't try to scan whole plates — that assumption was retired this milestone.
 
 ---
 
@@ -504,6 +504,6 @@ These aren't milestones — they're things to flag so they don't get lost.
 
 ---
 
-*Last updated: 2026-04-30 — added M0.5 (gen-2 rescan) and archived M1 against gen-1; see `sessions/2026-04-30-1800_cowork_rescan-restructure.md`.*
+*Last updated: 2026-04-30 (later same day) — reshaped M0.5 from "gen-2 rescan + pipeline re-bring-up" to "chunk-and-crop onboarding + pipeline reshape" after confirming the home scanner can't fit a whole plate. See `sessions/2026-04-30-1900_cowork_chunk-and-crop-pivot.md`. Earlier 2026-04-30 entry (gen-2 rescan + M1 archived) at `sessions/2026-04-30-1800_cowork_rescan-restructure.md`.*
 
 *Earlier: 2026-04-30 — initial authoring; see `sessions/2026-04-30-1300_cowork_roadmap.md`.*

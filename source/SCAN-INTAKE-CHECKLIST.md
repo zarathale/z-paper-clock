@@ -1,8 +1,20 @@
-# SCAN-INTAKE-CHECKLIST.md — gen-2 home-scanner intake
+# SCAN-INTAKE-CHECKLIST.md — gen-2 chunk-and-crop intake
 
-This is the standard for capturing, validating, and promoting gen-2 source scans. It supersedes the gen-1 phone-photo workflow that produced `source/_archive/phone-scans-2025/`.
+This is the standard for capturing source material on a flat-bed home scanner that's smaller than the book's plates, and producing a clean per-piece archive. It supersedes the gen-1 phone-photo workflow (archived under `_archive/phone-scans-2025/`) and the earlier gen-2 plate-oriented draft of this document (which assumed whole-plate captures fit the bed — they don't).
 
-The goal is **rectilinear silhouettes**: when piece 31 (or any piece) is auto-traced, the top edge runs east-to-west — not bowed, not keystoned. That's an upstream-of-pipeline problem, fixed at the scanner.
+The deliverable is `source/pieces/NNN.png` for every piece in `work/pieces.csv`, derived by hand-cropping multi-piece chunk scans in your editor of choice. The pipeline reads `source/pieces/` directly; there's no "plate slicing" stage anymore.
+
+---
+
+## The chunk-and-crop loop, end to end
+
+1. **Scan a chunk.** Place the open book on the flat-bed and capture whatever pieces fit cleanly under the lid. Output → `inbox/`.
+2. **Verify which pieces are complete.** Run the per-file QC checks (below). A piece is "complete" if its full silhouette is visible and not edge-clipped.
+3. **Rename to canonical chunk form.** `NN_NN_NN.{jpeg,png}` listing the complete pieces inside, in ascending order. Single-piece chunks → `NN.{jpeg,png}`. Stitched composites → `NN_NN_stitched.png`. (See "Naming" below.)
+4. **(If needed) Stitch L+R captures.** When a piece is too long for the bed, scan as `NN_NN_l.jpeg` + `NN_NN_r.jpeg` and stitch in your editor → `NN_NN_stitched.png` (lossless PNG to preserve seam fidelity).
+5. **Crop each named piece.** Open the chunk in your editor (Affinity / Photoshop / Preview / GIMP), crop tightly around each complete piece, save as `source/pieces/NNN.png` (lossless PNG, three-digit zero-padded). Letter variants → `NNNa.png`.
+6. **Archive the chunk.** Once all named pieces are extracted, move the chunk file (plus L/R partials and any stitched composite) from `inbox/` to `source/scans-chunks/`. The chunk lives there as the recovery path if a piece needs re-cropping later.
+7. **Audit.** Run the ingest skill (forthcoming — see `work/pieces.csv` for the master list it'll validate against). It checks filenames, image health, and reports inventory status.
 
 ---
 
@@ -11,134 +23,136 @@ The goal is **rectilinear silhouettes**: when piece 31 (or any piece) is auto-tr
 | Setting | Value | Why |
 |---|---|---|
 | Resolution | **600 DPI** | Matches gen-1 effective resolution; sufficient for tracing piece detail; manageable file size. |
-| Color mode | **Color** (24-bit RGB) | Bleed-through detection in `preprocess_scans.py` uses chroma. Greyscale would lose that signal. |
+| Color mode | **Color** (24-bit RGB) | Bleed-through detection in any future pre-processing pass uses chroma. |
 | Color profile | **sRGB** | Default for most home scanners; works with Pillow + scikit-image without conversion. |
-| File format | **JPG, quality 92+** | Trade-off chosen 2026-04-30 vs. lossless TIFF. Files are 5–10× smaller; pipeline tolerates it (gen-1 was JPG q=92). Re-evaluate if trace quality regresses. |
-| Bit depth | 8-bit per channel | sRGB JPG is 8-bit. No need for 16-bit. |
-| Flat-bed | **Glass-down, book pressed flat** | The gutter warp in gen-1 was the root cause of the rescan. Press the spine down. Use a light hand to avoid spine cracking. |
-| Orientation | **Cover-up, landscape (long edge against scanner) for 13" tall plates** | Matches gen-1 orientation; reduces post-processing rotation. Confirm against scanner's letter/legal max — 10" × 13" needs the scanner's longest dimension to be ≥13". |
+| File format | **JPG, quality 92+** for chunks; **PNG (lossless)** for stitched composites and per-piece archive | Chunks are intermediate (some redundancy with the per-piece crops); PNG matters where lossiness compounds (stitching seams, archive). |
+| Bit depth | 8-bit per channel | sRGB JPG/PNG are 8-bit. No need for 16-bit. |
+| Flat-bed | **Glass-down, book pressed flat** | Gutter warp was the gen-1 root cause. Press the spine down. Use a light hand to avoid spine cracking. |
+| Orientation | **As long-edge fits the bed** | Don't fight the scanner's geometry. Rotate / re-orient as needed so the chunk fits without cropping a piece. |
 | Background | **Black or dark cardstock** | Reduces page-edge halation. Many home scanners ship with a black scan-lid backing. |
-
-**On scanner choice.** Any flat-bed will outperform a phone for this. If your scanner has a "book mode" that compensates for spine curvature, try with and without — sometimes the auto-correction warps in a different direction than the actual book.
 
 ---
 
 ## Capture order
 
-Follow `source/inventory.md` page order so filenames match. The 13 plates are the highest-stakes scans (they feed the auto-trace pipeline). Front matter, instructions, and back cover are reference-only and tolerate looser standards.
+There's no required global order — capture chunks as you go. Plate-by-plate is convenient because pieces of the same functional group tend to live on the same plate, but isn't required. What matters is that every piece in `work/pieces.csv` ends up complete in *at least one* chunk. The ingest skill will surface any that aren't.
 
-**Plates first** (in order: A, B, C, D, E, F, G, H, I, J, K, L, M). When you finish a plate, run the per-file QC (below) immediately while the book is still on the glass — re-scanning is cheap, re-positioning is cheap, dragging out lurking warp into M2 is expensive.
+For a fresh plate, a useful heuristic:
 
-**Note for spreads (G and H):** the gen-1 scans of these are flat 2-page spreads at 4800×3120 (20:13). Either scan as a spread (if your scanner is wide enough) or scan each page separately and stitch later. Decide before starting; mixing strategies mid-set will create headaches.
+- **Pass 1: pieces that fit comfortably under the lid.** Take wide chunks (4–8 pieces each) covering as much of the plate as possible. Capture each chunk only once it sits flat with no warp.
+- **Pass 2: pieces that hang past the bed edge.** L+R partials, then stitch.
+- **Pass 3: edge-case pieces that wouldn't crop cleanly from pass 1.** Re-scan tight to that piece. Filename these as single-piece chunks (`NN.jpeg`).
 
----
-
-## File naming
-
-Reuse the gen-1 names from `source/inventory.md`. The pipeline (`01-crop.py`, etc.) and `pieces.csv` reference these names exactly; preserving them means zero changes downstream.
-
-```
-p000-cover-front.jpg
-p001-title-page.jpg
-…
-p00x-plate-A-pieces-1-2-6-7-110.jpg
-p00x-plate-B-pieces-3-5-8-12-16-93-113-118.jpg
-…
-p00x-plate-M-clock-face.jpg
-p099-cover-back.jpg
-```
-
-The full 27-file list is in `inventory.md` under "Page inventory."
-
-**Lowercase only** — the macOS filesystem is case-insensitive. `Plate-A.jpg` and `plate-a.jpg` collide.
+Capturing the same piece in multiple chunks is fine — only one chunk feeds the per-piece crop, the others stay in `source/scans-chunks/` as alternate views.
 
 ---
 
-## Per-file QC checks (run before promoting from intake → raw)
+## Naming
 
-These are the eyes-on-it checks. The book is still flat on the scanner glass at this point, so re-capturing is one click away.
+### Chunks (multi-piece captures)
 
-### 1. Top edge runs straight
+```
+NN_NN_NN.{jpeg,png}            chunk listing the COMPLETE pieces inside, in ascending order
+NN.{jpeg,png}                  single-piece chunk (only one piece fully captured)
+NN_NN_l.jpeg / NN_NN_r.jpeg    left/right partial captures pre-stitching
+NN_NN_stitched.png             stitched composite (always PNG, lossless seam preservation)
+```
 
-Open the scan in Preview / Inkscape / any image viewer with grid lines. The **top edge of the printed page** should be parallel to the top edge of the image. If you can see daylight between them at one corner — re-scan with the book repositioned.
+The numeric prefix lists every piece whose silhouette is fully visible and not edge-clipped in the chunk. Partially-visible neighbors are intentionally omitted from the filename — they're cues for which pieces a chunk can be a re-crop source for.
 
-This is the gen-1 failure mode. Catch it here, not in M1.
+Examples (all currently in `source/scans-chunks/`):
 
-### 2. No gutter warp
+- `43_44_45_51.jpeg` — complete pieces 43, 44, 45, 51. Piece 36 may be partially visible but isn't complete, so it doesn't appear in the filename.
+- `34_35_l.jpeg` + `34_35_r.jpeg` + `34_35_stitched.png` — left/right halves and the stitched composite for the long-strip pair pieces 34 and 35.
+- `4_18_19_26_29_30_31_32_91_92.jpeg` — large chunk covering most of plate D except piece 10.
+- `10.jpeg` — single-piece chunk for piece 10 (which extends past the bed in the wide-chunk capture).
 
-The **spine-side margin** should be the same width top-to-bottom. If the inner margin pinches or bows toward the spine, the page wasn't pressed flat. Press harder, scan again.
+### Per-piece archive
 
-### 3. All four corners fully captured
+```
+source/pieces/NNN.png       three-digit zero-padded piece number
+source/pieces/NNNa.png      letter variant (only 092a and 112a in this book)
+```
 
-The image should include the full printed area plus a small border of unprinted page. If a piece runs off the edge, re-position.
+Lowercase only. PNG only. The pipeline reads from this folder directly.
+
+---
+
+## Per-file QC checks (run before promoting a chunk from inbox/ → source/scans-chunks/)
+
+Eyes-on checks. The book is still flat on the scanner glass at this point, so re-capturing is one click away.
+
+### 1. Top edge of every named piece runs straight
+
+Open the chunk in Preview / Inkscape / any image viewer with grid lines. For each piece you'll list in the filename, the printed top edge should be parallel to the image's top edge. If a piece bows or keystones — re-scan that piece's region with the book repositioned, or push it to a different chunk where it sits flatter.
+
+This is the gen-1 failure mode (gutter warp on piece 31). Catching it here is much cheaper than catching it after the auto-trace pass.
+
+### 2. No gutter warp on captured pieces
+
+For pieces near the spine, the spine-side margin should be the same width top-to-bottom. If the inner margin pinches or bows toward the spine, the page wasn't pressed flat. Press harder, scan again.
+
+### 3. Every piece you want to name in the filename is fully captured
+
+The chunk should include the complete printed area of each named piece, plus a small border of unprinted page around it. If a piece runs off the edge — drop it from the filename. Either it's complete in another chunk (fine) or it needs a separate targeted capture.
 
 ### 4. Even illumination
 
-Hold the scan at arm's length. Are there bright streaks, shadow bands, or hot spots? Most flat-beds are even by design — if they aren't, the lid may not be closing fully.
+Hold the scan at arm's length. Bright streaks, shadow bands, or hot spots? The lid may not be closing fully. Most flat-beds are even by design — if yours isn't, re-seat the book.
 
 ### 5. No moiré or aliasing on the printed art
 
-Look closely at the gear-tooth strips on plates F and G. Moiré (false patterning) at 600 DPI is rare on offset-printed books like this one but can show on the gear teeth. If you see it, try 1200 DPI for that plate (and update this doc).
+Look closely at the gear-tooth strips on plates F and G. Moiré at 600 DPI is rare on offset-printed books like this one but can show on the gear teeth. If you see it, try 1200 DPI for that chunk and update this doc.
 
 ### 6. Sane color
 
-Pages should look cream-on-cream, not blue-tinted (cool light) or yellow-tinted (warm light). Most flat-beds calibrate to sRGB; if yours doesn't, run the white-balance step in pre-processing.
+Pages should look cream-on-cream, not blue-tinted (cool light) or yellow-tinted (warm light). Most flat-beds calibrate to sRGB; if yours doesn't, log it and address downstream.
 
-If a scan fails any of 1–4, **re-scan**. If it fails 5 or 6 but 1–4 pass, log it in the intake notes and continue — those are correctable downstream; geometry isn't.
+If a chunk fails any of 1–3 for one or more named pieces: drop those pieces from the filename and either re-capture or accept that another chunk will be the source. If it fails 5 or 6 but 1–3 pass: log it but don't re-scan; those issues are correctable in the per-piece crop or downstream.
 
 ---
 
-## Promotion: intake → raw
+## Per-piece crop
 
-Once a scan passes the QC checks above:
+After a chunk passes QC and is promoted to `source/scans-chunks/`, open it in your editor and:
+
+1. **Crop tightly** around each named piece — typically 50–200 px of unprinted page on each side. Don't crop into the printed silhouette; the auto-trace pipeline needs the complete edge.
+2. **Don't rotate** — leave the piece's orientation as it appears on the plate. The viewer's hierarchical Object3D groups handle rotation at assembly time.
+3. **Don't dewarp or flat-field at this step** — the source archive holds the raw cropped piece. Any pre-processing (flat-field, bleed suppression) happens later if needed, in a separate pipeline stage that reads from `source/pieces/`.
+4. **Save as PNG** with the canonical filename: `source/pieces/NNN.png`. Lossless. RGB or RGBA mode.
+5. **Spot-check** the saved file briefly in an image viewer at 100% — confirm no edges are clipped, no extreme JPG artifacts (your editor shouldn't introduce them, but worth a glance).
+
+For the rare letter-variant pieces (currently `092a` and `112a`), use `NNNa.png`.
+
+If two chunks have the same piece complete, pick the cleaner one for the crop. The other stays in `source/scans-chunks/` as a backup.
+
+---
+
+## Promotion: inbox → source/scans-chunks/ + source/pieces/
+
+Once chunk QC passes and per-piece crops are saved:
 
 ```bash
 cd ~/Documents/GitHub/z-paper-clock
 
-# Rename and promote (example for plate A)
-mv source/scans-intake/Scan_001.jpg \
-   source/scans-raw/p00x-plate-A-pieces-1-2-6-7-110.jpg
+# Rename the chunk to canonical form (example for a 4-piece chunk)
+mv inbox/Scan_001.jpg inbox/43_44_45_51.jpeg
 
-# Verify the canonical filename matches inventory.md
-grep 'p00x-plate-A' source/inventory.md
+# After cropping pieces 43, 44, 45, 51 to source/pieces/043.png etc., archive the chunk:
+mv inbox/43_44_45_51.jpeg source/scans-chunks/
+
+# Sanity check: pieces landed
+ls source/pieces/04[3-5].png
+ls source/pieces/051.png
 ```
-
-Repeat for every plate / page. When all 27 are in `scans-raw/`, the intake folder should be empty (or contain only files that didn't make the cut).
 
 ---
 
-## Pipeline: raw → clean → prepped
+## Pipeline note
 
-After promotion, run the existing scripts to populate the downstream stages:
+Under the chunk-and-crop model, `source/pieces/` is the canonical pipeline input. The historical `01-crop.py` (which sliced plates using `pieces.csv` bbox fractions) is being archived in a follow-on session — there's no plate to slice anymore. The pipeline starts at `02-trace.py` reading `source/pieces/NNN.png` directly.
 
-```bash
-cd ~/Documents/GitHub/z-paper-clock
-
-# 1. Manual: dewarp + perspective-correct + crop to 10:13 if needed.
-#    Gen-1 used a manual GIMP pass to produce scans-clean/.
-#    For gen-2, well-aligned home scans may not need this step at all —
-#    if a raw scan is already rectilinear and at the right aspect ratio,
-#    just copy it across:
-cp source/scans-raw/p00x-plate-A-*.jpg source/scans-clean/
-
-# 2. Pre-processing pipeline (flat-field + bleed suppression)
-.venv/bin/python work/scripts/preprocess_scans.py \
-    --src source/scans-clean \
-    --dst source/scans-prepped
-
-# 3. Spot check: open one prepped plate in an image viewer, confirm
-#    bleed-through is suppressed and silhouettes are crisp.
-```
-
-**Pre-processing tuning note.** `preprocess_scans.py`'s flat-field strength and bleed-suppression chroma threshold were tuned for handheld phone scans with strong vignette and visible bleed-through. Flat-bed scans are much cleaner; the same parameters may over-correct. If gen-2 prepped plates look washed-out or detail-poor, dial back the flat-field strength first. Track findings in a new `work/scripts/RESCAN_FINDINGS.md` (gen-1 version archived under `work/_archive/m1-plate-d-phone/`).
-
----
-
-## After all 27 files are in scans-prepped/
-
-You're ready to re-run M1. The next milestone (provisionally **M0.5 — Re-bring-up pipeline on gen-2 plate D**, see `ROADMAP.md`) will validate the pipeline against the new input and decide whether to copy the gen-1 sidecars forward or re-author them.
-
-The gen-1 sidecars at `work/_archive/m1-plate-d-phone/pieces/0NN/piece-0NN.json` are scan-independent (sourced from `embedded-labels.md` and `instructions.md`); they should copy forward verbatim. Only the SVGs need to be regenerated.
+Pre-processing (flat-field, bleed suppression) becomes a per-piece operation if/when needed. Flat-bed home scans are typically clean enough that pre-processing may be a no-op on most pieces; re-tune `work/scripts/preprocess_scans.py` per-piece if specific captures need it. Capture findings in a fresh `work/scripts/RESCAN_FINDINGS.md`.
 
 ---
 
@@ -148,15 +162,27 @@ The gen-1 sidecars at `work/_archive/m1-plate-d-phone/pieces/0NN/piece-0NN.json`
 # Daily scanning session
 cd ~/Documents/GitHub/z-paper-clock
 
-# 1. Scan a plate; output lands in source/scans-intake/
-# 2. QC the file (the six checks above)
-# 3. Promote with the canonical name:
-mv source/scans-intake/Scan_NNN.jpg source/scans-raw/<canonical-name>.jpg
+# 1. Scan chunk(s); output lands in inbox/
+# 2. QC each chunk (six checks above)
+# 3. Rename to canonical chunk form:
+mv inbox/Scan_NNN.jpg inbox/<NN_NN_NN>.jpeg
 
-# When all 27 are promoted:
-.venv/bin/python work/scripts/preprocess_scans.py \
-    --src source/scans-clean \
-    --dst source/scans-prepped
+# 4. (If stitching needed) merge L+R in editor → inbox/<NN_NN>_stitched.png
+# 5. Crop each named piece in editor → source/pieces/NNN.png (PNG, lossless)
+# 6. Archive the chunk:
+mv inbox/<NN_NN_NN>.jpeg source/scans-chunks/
+# (also move L/R partials + stitched composite if any)
 
-# Then start M0.5: re-run M1 against gen-2 plate D and compare.
+# 7. (Future) run the ingest skill to audit source/pieces/ against work/pieces.csv:
+#    "ingest pieces" or "audit piece archive"
 ```
+
+---
+
+## Notes
+
+- The `inbox/` folder is the working zone for in-flight scans. Once a chunk is processed, it should not stay there. A chunk lingering in `inbox/` for more than a session is a sign that some piece in it needs a follow-up capture — flag it.
+- `inbox/_pending-rescan/` (gitignored) is a place to set aside scans that need a re-do without committing them to the archive.
+- Capturing a piece in *multiple* chunks is normal and useful. The first complete capture becomes the source for `source/pieces/NNN.png`; the rest are backups in `source/scans-chunks/`.
+- Don't re-author transcriptions. `source/transcriptions/*.md` are scan-independent and complete.
+- The master piece list is `work/pieces.csv`. If a piece you're cropping isn't in the master list, either you found a piece the transcriptions missed (rare) or you misread a label (more likely). Pause and verify before adding to `source/pieces/`.

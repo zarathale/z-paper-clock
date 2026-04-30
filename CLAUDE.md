@@ -61,18 +61,21 @@ Most design, transcription, and document work happens in **Cowork** (Claude desk
 
 ## Where We Are
 
-The study side is complete. The build side hit a pause on 2026-04-30: M1 pipeline shipped successfully against gen-1 phone scans, but the gen-1 scans carry gutter warp that survives pre-processing (visible on piece 31 in Inkscape — top edge bows instead of running east–west). Decision: archive gen-1, capture gen-2 on a flat-bed home scanner, re-bring up the pipeline. M1 deliverables are preserved as a decision record under `work/_archive/m1-plate-d-phone/`. Quick status:
+The study side is complete. The build side hit a pause on 2026-04-30 over gutter warp surviving the gen-1 phone-scan pipeline (visible on piece 31 in Inkscape). Initial response: archive gen-1, capture gen-2 on a flat-bed home scanner. Same day, second-pass refinement: the home scanner can't fit a whole plate, so the workflow pivots to **chunk-and-crop** — capture multi-piece chunks that fit the bed, hand-crop to per-piece PNGs in your editor, archive the chunks as recovery references. M1 deliverables remain at `work/_archive/m1-plate-d-phone/`. Quick status:
 
 | Track | State |
 |---|---|
 | Source scans — gen-1 (phone) | 📦 Archived 2026-04-30 to `source/_archive/phone-scans-2025/` |
-| Source scans — gen-2 (flat-bed home scanner) | 🔄 Capture in progress; intake at `source/scans-intake/`, see `source/SCAN-INTAKE-CHECKLIST.md` |
+| Source scans — gen-2 chunks (`source/scans-chunks/`) | 🔄 In progress; flat-bed multi-piece chunks; 8 chunks (most of plate D + parts of E/F/G/H) landed 2026-04-30 |
+| Source pieces — gen-2 per-piece archive (`source/pieces/`) | 🔄 New folder, populating; cropped from chunks in editing software, lossless PNG, NNN[a].png |
+| Master piece list (`work/pieces.csv`) | ✅ Expanded 2026-04-30 from 11 plate-D rows to full 123-row master index (1–122 + 92a + 112a). Schema: id, plate, section, bucket, status, notes. Bbox columns dropped — pipeline reads `source/pieces/` directly. |
 | Transcriptions (5 markdown files) | ✅ Complete; audited 2026-04-29; scan-independent |
 | Auto-trace test v1 + v2 | 📦 Archived (gen-1 era) |
 | 3D viewer spec (`work/SPEC-3D-VIEWER.md`) | ✅ Drafted; 5 product decisions resolved 2026-04-30 |
-| Build roadmap (`ROADMAP.md`) | ✅ Drafted 2026-04-30; M0.5 added 2026-04-30 for rescan |
-| M0.5 — gen-2 rescan + pipeline re-bring-up | 🔄 In progress |
-| M1 — pipeline end-to-end on plate D (gen-1) | 📦 Shipped against gen-1 (archived); to be re-run against gen-2 in M0.5 |
+| Build roadmap (`ROADMAP.md`) | ✅ Drafted 2026-04-30; M0.5 reshaped 2026-04-30 for chunk-and-crop onboarding |
+| M0.5 — Chunk-and-crop onboarding + pipeline reshape | 🔄 In progress; superseded the original "rescan + re-bring-up" plate-based plan |
+| M1 — pipeline end-to-end on plate D (gen-1) | 📦 Shipped against gen-1 (archived); to be re-run against gen-2 per-piece archive in M0.5 |
+| Piece-scan ingest skill | 📋 Deferred; design settled this session, authoring scheduled for follow-up Cowork+Code session |
 | M2 — all pieces traced + gear-ratio validation | ⏳ Pending; blocked on M0.5 |
 | M3 — flat viewer (illustrative aesthetic) | ⏳ Pending; ships v0.1.0 |
 | M4 — assembly transforms | ⏳ Pending |
@@ -182,13 +185,17 @@ For pipeline-only work that doesn't touch the viewer (M1, M2 milestones), no ver
 z-paper-clock/                              ← repo root
 ├── CLAUDE.md                               ← this file
 ├── README.md                               ← public-facing project description
+├── inbox/                                  ← working zone for in-flight chunk scans (transient)
+│   └── _pending-rescan/                    gitignored; scans set aside for re-do
 ├── source/                                 ← reference archive (personal-use only)
 │   ├── inventory.md
-│   ├── SCAN-INTAKE-CHECKLIST.md            gen-2 capture standard + per-file QC
-│   ├── scans-intake/                       drop folder for in-flight scanner output
-│   ├── scans-raw/                          gen-2 promoted scans (post-QC)
-│   ├── scans-clean/                        dewarped + perspective-corrected (lighter pass for gen-2)
-│   ├── scans-prepped/                      flat-fielded + bleed-suppressed (auto-trace input)
+│   ├── SCAN-INTAKE-CHECKLIST.md            chunk-and-crop capture + QC standard (gen-2)
+│   ├── pieces/                             per-piece source archive: NNN[a].png, lossless (NEW, populating M0.5)
+│   ├── scans-chunks/                       multi-piece chunk captures kept as recovery references (NEW, populating M0.5)
+│   ├── scans-intake/                       legacy plate-oriented intake (kept; mostly unused under chunk-and-crop)
+│   ├── scans-raw/                          legacy plate-oriented raw (kept; mostly unused)
+│   ├── scans-clean/                        legacy plate-oriented clean (kept; mostly unused)
+│   ├── scans-prepped/                      legacy plate-oriented prepped (kept; mostly unused)
 │   ├── transcriptions/                     5 markdown files: prose, labels, instructions
 │   └── _archive/
 │       └── phone-scans-2025/               gen-1 (handheld phone) raw + clean + prepped, archived 2026-04-30
@@ -196,18 +203,19 @@ z-paper-clock/                              ← repo root
 │   ├── SPEC-3D-VIEWER.md                   build spec; the source of truth for the viewer
 │   ├── pieces/                             per-piece SVG + JSON + crop (NEW, repopulated in M0.5+)
 │   ├── assemblies/                         per-group transforms (NEW, populated in M4)
-│   ├── pipeline/                           Python pipeline scripts (4 stages + Makefile)
+│   ├── pipeline/                           Python pipeline scripts; 01-crop.py being archived in M0.5 (chunk-and-crop replaces plate slicing)
 │   ├── viewer/                             TS + three.js viewer (NEW, populated in M3)
-│   ├── pieces.csv                          master index: piece → plate → bucket → bbox (gen-1-derived; re-validate in M0.5)
+│   ├── pieces.csv                          master index of all 123 pieces (1–122 + 92a + 112a). Schema: id, plate, section, bucket, status, notes
 │   ├── scripts/
-│   │   └── preprocess_scans.py             flat-field + chroma-aware bleed suppression (re-tune in M0.5 if needed)
+│   │   ├── build_master_list.py            generator for pieces.csv from embedded-labels.md (run to regenerate)
+│   │   └── preprocess_scans.py             flat-field + chroma-aware bleed suppression (gen-1 era; per-piece re-tuning if needed)
 │   └── _archive/
 │       └── m1-plate-d-phone/               M1 gen-1 outputs: pieces/0NN/, auto-trace-test/, auto-trace-test-v2/, RESCAN_FINDINGS.md
 ├── sessions/                               session notes (NEW, this convention)
 └── CODE_PROMPT_*.md                        per-task orchestration prompts (NEW, root-level)
 ```
 
-The (NEW) entries don't exist yet but are reserved by name in the SPEC. Don't create them speculatively — let the active milestone populate them.
+The (NEW) entries don't exist yet but are reserved by name in the SPEC. Don't create them speculatively — let the active milestone populate them. The legacy `scans-intake/`, `scans-raw/`, `scans-clean/`, `scans-prepped/` folders carry forward as empty-but-reserved; they're not part of the active chunk-and-crop loop, but the structure stays in case a non-plate page ever benefits from a whole-page capture path.
 
 ---
 
@@ -384,7 +392,11 @@ Do not reopen these without Zarathale.
 | Assembly model | Hierarchical `Object3D` groups, one per book section (§II.A framework, §II.B mechanism subgroups, §II.C anchor/pendulum, §II.D hands, §II.E weight, §II.F face/case). Per-group JSON of transforms. |
 | Viewer tech stack | TypeScript + Vite + three.js. Vanilla TS, no React. Tailwind for inspect-panel layout. Static-site deploy. |
 | Source scope | `source/` is personal-reference. The deployed viewer ships per-piece crops (derivative work) and SVGs/JSONs, not the source plate JPGs themselves. |
-| Rescans (gen-1 → gen-2) | **Reversed 2026-04-30.** Originally "not required to start; cosmetic only, deferred." Now: full re-scan on a flat-bed home scanner is required. Gutter warp from gen-1 phone scans survived pre-processing and showed up as bowed silhouettes in M1 outputs. Gen-1 archived; gen-2 capture standard in `source/SCAN-INTAKE-CHECKLIST.md` (600 DPI sRGB JPG, glass-down flat-bed). Filenames preserved across generations to avoid downstream churn. |
+| Rescans (gen-1 → gen-2) | **Reversed 2026-04-30.** Originally "not required to start; cosmetic only, deferred." Now: full re-scan on a flat-bed home scanner is required. Gutter warp from gen-1 phone scans survived pre-processing and showed up as bowed silhouettes in M1 outputs. Gen-1 archived; gen-2 capture standard in `source/SCAN-INTAKE-CHECKLIST.md`. Filenames preserved where applicable; chunk-and-crop introduces new filename conventions (see below). |
+| Chunk-and-crop onboarding | **Settled 2026-04-30 (later same day).** The home scanner can't fit a whole plate. Workflow: capture multi-piece chunks (filename = NN_NN_NN.{jpeg,png} listing the COMPLETE pieces inside) → archive chunks to `source/scans-chunks/` as recovery references → hand-crop each piece in editor → save as `source/pieces/NNN.png` (lossless, three-digit zero-padded; letter variants `NNNa.png`). Pipeline reads `source/pieces/` directly. Replaces the plate-based `01-crop.py` slicing model. |
+| pieces.csv schema | **Reshaped 2026-04-30.** Was `id, plate, bucket, bbox_x, bbox_y, bbox_w, bbox_h` (11 plate-D rows from M1). Now `id, plate, section, bucket, status, notes` (123 rows: all 1–122 + 92a + 112a). Bbox columns dropped because `source/pieces/` is the pipeline input and there's no plate to slice from. `bucket` retained for tracing-strategy hints; populated for plate D (M1), blank elsewhere until each plate's tracing pass assigns. `status` flips from `pending` → `captured` → `traced` as pieces flow through the pipeline; the future ingest skill flips `pending` → `captured`. |
+| Per-piece archive format | **Settled 2026-04-30.** Lossless PNG (`NNN.png`). Chunks stay JPG (q=92+) since they're intermediate; stitched composites are PNG to preserve seam fidelity; per-piece archive is PNG to keep auto-trace input clean. |
+| Piece-scan ingest skill (deferred) | Workflow design settled this session: skill audits `source/pieces/` against `work/pieces.csv` master list; runs filename + image-health checks (DPI, dimensions, color mode); reports captured-vs-pending status; flags anomalies. Implementation deferred to a follow-up session — `SKILL.md` plus a Python helper, repo-local at `.claude/skills/piece-scan-ingest/`. |
 
 ---
 
@@ -405,8 +417,10 @@ Do not reopen these without Zarathale.
 - `instructions.md` §II.B Motor Wheel piece-40 assembly text is flagged as scan-unclear. Resolved in audit but tagged for re-verification if it surfaces in M2 sidecaring.
 - Pure-Python `potracer` is ~50–100× slower than native `potrace`. Acceptable for the auto-trace test; will need to swap to native for production tracing across all pieces. Track in M1 prereqs.
 - The mac filesystem is case-insensitive; if pipeline scripts ever produce both `piece-001.svg` and `Piece-001.svg`, they will collide. Convention: lowercase filenames everywhere.
-- `work/scripts/preprocess_scans.py` flat-field strength and bleed-suppression chroma threshold were tuned for handheld phone scans (strong vignette, visible bleed-through). Flat-bed gen-2 scans are cleaner; the same parameters may over-correct. Re-tune in M0.5 if gen-2 prepped plates look washed-out or detail-poor; capture findings in a fresh `work/scripts/RESCAN_FINDINGS.md` (gen-1 version archived under `work/_archive/m1-plate-d-phone/`).
-- `work/pieces.csv` bbox fractions were authored against gen-1 plate D. They should still be in the right neighborhood for gen-2 plate D but need a re-validation pass in M0.5 — small framing differences between the phone scan and the flat-bed scan can shift normalized fractions by a few percent.
+- `work/scripts/preprocess_scans.py` flat-field strength and bleed-suppression chroma threshold were tuned for handheld phone scans (strong vignette, visible bleed-through). Flat-bed gen-2 scans are cleaner; the same parameters likely over-correct on per-piece input. Under chunk-and-crop, pre-processing becomes a per-piece operation if/when needed — re-tune as specific captures surface issues, capturing findings in a fresh `work/scripts/RESCAN_FINDINGS.md`.
+- **Pipeline reshape pending.** `work/pipeline/01-crop.py` was the plate-slicing stage that consumed `pieces.csv` bbox fractions. Under chunk-and-crop those fractions are gone, and `source/pieces/` is the direct pipeline input. `01-crop.py` is now stale and slated for archival to `work/_archive/`; `02-trace.py` needs a small repoint to read from `source/pieces/NNN.png` instead of `work/pieces/NNN/crop.png` (or a rename of the input path inside each piece directory). The Makefile target chain needs a parallel update. Tracked in M0.5; do **not** run `make pieces` in the meantime — it'll fail.
+- **`pieces.csv` bucket coverage.** Buckets (auto-trace-clean / auto-trace-edit / hand-trace) are populated only for plate D's 11 pieces (carried forward from M1). All other pieces have `bucket=` blank pending visual triage in M2 task 2.1.
+- **Letter-variant convention split.** Source archive uses `092a.png` (short form, since the folder name `source/pieces/` provides context). Derivative artifacts in `work/pieces/` use `piece-092a.svg` (long form, kept for filename self-documentation in flat tooling output). Both refer to the same piece. The viewer manifest key is the bare ID `092a`.
 
 ---
 
@@ -414,8 +428,10 @@ Do not reopen these without Zarathale.
 
 - **Session notes:** `YYYY-MM-DD-HHMM_mode_short-topic.md` in `sessions/`. Datetime, not date-only.
 - **Orchestration prompts:** `CODE_PROMPT_<target>.md` at repo root. `<target>` is either `M<n>-<short>` for milestone work or `v<x.y.z>` for version ships.
-- **Per-piece files:** `piece-NNN.svg` + `piece-NNN.json` + `crop.png` inside `work/pieces/NNN/`. Three-digit zero-padded piece number. Letter variants are appended: `piece-092a.svg`.
-- **Scans:** `pNNN-short-description.jpg` (set in `source/inventory.md`). Don't rename existing scans.
+- **Per-piece source archive:** `source/pieces/NNN.png` (lossless PNG). Three-digit zero-padded. Letter variants suffix lowercase: `092a.png`, `112a.png`.
+- **Per-piece derivative files:** `piece-NNN.svg` + `piece-NNN.json` + `crop.png` inside `work/pieces/NNN/`. Three-digit zero-padded piece number. Letter variants are appended: `piece-092a.svg`. (The `piece-` prefix here is intentional self-documentation in flat tooling output; the source archive in `source/pieces/` skips it because the folder name already provides context.)
+- **Chunk scans:** `NN_NN_NN.{jpeg,png}` listing the COMPLETE pieces inside, ascending. Single-piece chunks: `NN.{jpeg,png}`. Stitched composites: `NN_NN_stitched.png`. L+R partials: `NN_NN_l.jpeg`, `NN_NN_r.jpeg`. Live in `source/scans-chunks/` once promoted from `inbox/`.
+- **Legacy plate scans (gen-1 + reserved):** `pNNN-short-description.jpg` (set in `source/inventory.md`). Don't rename existing scans. Under chunk-and-crop, this naming applies only to whole-page captures of non-plate pages (front matter, instructions, back cover) if those are ever scanned.
 - **Layered SVG groups:** Inkscape `inkscape:label` matches the canonical layer names (`silhouette`, `cutouts`, `folds-valley`, `folds-mountain`, `axles`, `glue-zones`, `labels`, `marks-other`) — the viewer keys off these names.
 
 ---
@@ -432,6 +448,8 @@ Do not reopen these without Zarathale.
 
 ---
 
-*Last updated: 2026-04-30 — added gen-1/gen-2 scan archive note; flipped M1 status; revised Rescans decision; expanded Known Issues for pre-processing tuning + bbox re-validation.*
+*Last updated: 2026-04-30 (later same day) — pivoted from plate-based gen-2 rescan to **chunk-and-crop onboarding** after confirming the home scanner can't fit a whole plate. New `source/pieces/` and `source/scans-chunks/` folders; `pieces.csv` expanded from 11 plate-D rows to 123-row master index; bbox columns dropped; `01-crop.py` slated for archival. Architectural Decisions table gained three new rows (chunk-and-crop, pieces.csv schema, per-piece archive format). Known Issues updated. File Naming Conventions split source/derivative/chunk/legacy paths.*
+
+*Earlier 2026-04-30 — added gen-1/gen-2 scan archive note; flipped M1 status; revised Rescans decision; expanded Known Issues for pre-processing tuning + bbox re-validation.*
 
 *Earlier: 2026-04-29 — initial authoring; cross-pollinated from ScaenaShows and arc-qb-sync working conventions.*
