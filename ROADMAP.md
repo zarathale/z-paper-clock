@@ -61,7 +61,7 @@ The roadmap doesn't dictate which Claude model handles which task — that's a p
 
 Available models:
 
-- **Claude Opus 4.6** — most capable. Reach for it when judgment, ambiguity, or cross-file reasoning is the bottleneck.
+- **Claude Opus 4.7** — most capable. Reach for it when judgment, ambiguity, or cross-file reasoning is the bottleneck.
 - **Claude Sonnet 4.6** — strong for most coding and structured authoring. Sensible default for the bulk of this project.
 - **Claude Haiku 4.5** — fast and cheap. Reach for it when each unit of work is small, well-specified, repetitive, and the failure mode is "wrong-then-corrected" rather than "silently broken."
 
@@ -80,7 +80,7 @@ Available models:
 - **M2 setup tasks (2.5 manifest builder, 2.6 gear-ratio validator).**
 - **Per-group assembly authoring in M4 if you want Claude assistance** — but most of M4 is hand-fitting against figures, which is human work and can't be delegated regardless of model.
 
-### Where Opus 4.6 earns its keep
+### Where Opus 4.7 earns its keep
 
 - **`pieces.ts` (M3 task 3.3) — SVG → mesh extrusion + canvas-decal baking + hinge sub-mesh partitioning.** The gnarliest single piece of code in the project. Cross-cutting concerns and a long debugging tail; Opus's reasoning depth pays for itself.
 - **`assembly.ts` engine (M4 task 4.1).** Hierarchical group composition with hinge parenting, transform JSON loading, exploded-slider math. Design-heavy.
@@ -102,7 +102,7 @@ When in doubt, start one tier lower than feels safe and let the output tell you 
 
 **Dependencies.** None — `source/scans-prepped/p00x-plate-D-...jpg` exists, the auto-trace v2 test confirmed the pipeline approach, all five product decisions are resolved.
 
-**Plate D piece count.** 11 pieces (4, 10, 18, 19, 26, 29, 30, 31, 32, 91, 92) per `embedded-labels.md` Panel D. SPEC was corrected from "9" to "11" in the same Cowork session that authored this roadmap (2026-04-30).
+**Plate D piece count.** 11 pieces (4, 10, 18, 19, 26, 29, 30, 31, 32, 91, 92) per `embedded-labels.md` Panel D.
 
 | # | Task | Status | Est. h | Actual h | Owner | Output | Notes |
 |---|---|---|---|---|---|---|---|
