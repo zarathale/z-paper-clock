@@ -216,7 +216,7 @@ work/
 
 The build is organized so each milestone produces something usable on its own; the work doesn't have to land all at once.
 
-**M1 — Authoring pipeline end-to-end on plate D.** Plate D is the simplest and the cleanest. Trace all 9 pieces, write all 9 sidecars, get the linter passing. Output: `work/pieces/004/` through `work/pieces/092/` complete. Cost: ~6 hours including pipeline coding. Demonstrates the spec is buildable.
+**M1 — Authoring pipeline end-to-end on plate D.** Plate D is the simplest and the cleanest. Trace all 11 pieces (4, 10, 18, 19, 26, 29–32, 91, 92 per the post-audit `embedded-labels.md` Panel D listing), write all 11 sidecars, get the linter passing. Output: 11 piece directories under `work/pieces/`. Cost: ~6.5 hours including pipeline coding. Demonstrates the spec is buildable.
 
 **M2 — All pieces traced.** Run the pipeline across plates A–J. Plates K and L are figure references — those go in as plate-image assets, not pieces. Plate M is one piece (122). Estimate: ~25–35 hours of trace + edit + sidecar work. Output: ~120 piece directories under `work/pieces/`, manifest.json builds cleanly.
 
@@ -228,16 +228,16 @@ The build is organized so each milestone produces something usable on its own; t
 
 **M6 (stretch) — Mechanism animation.** Compute gear ratios and angular velocities from tooth counts in `embedded-labels.md`; rotate. Pendulum amplitude/period from rod length. Hands advance on real time. Output: it's a clock.
 
-## Open product decisions
+## Product decisions (resolved 2026-04-30)
 
-Calling these out so they don't ambush us mid-build. None of them block M1 or M2.
+All five product decisions called out in the original draft are now resolved. See `ROADMAP.md` "Resolved product decisions" for the full resolution table; the questions and resolutions are summarized here.
 
-1. **Layer-toggle visual: hide vs. translucent.** When the case is toggled off, does it disappear entirely, or fade to ~20% opacity so the reader still has a spatial reference? Translucent is more informative; "hidden" is faster to read. Recommend translucent with a per-toggle preference.
-2. **Aesthetic target: photographic vs. illustrative.** Two coherent looks are available: photographic (textured cream paper with the actual printed labels visible at scale) or illustrative (clean, slightly diagrammatic, edges emphasized for clarity). Photographic feels truer to the book; illustrative reads better in screenshots. Recommend photographic for the viewer, illustrative as a per-session toggle.
-3. **Mobile support depth.** Read-only inspect panel on small screens, or full orbit/explode interactivity? Recommend full interactivity with a simplified UI; the viewer is small enough that mobile WebGL handles it.
-4. **Hosting.** GitHub Pages off this repo, a separate paper-clock-viewer repo, or self-hosted? GitHub Pages off this repo is simplest and keeps the source close. Need to confirm the public/private split — the source scans stay personal-reference per the README, so the deployed site cannot include `source/scans-prepped/` directly; only the per-piece `crop.png` (which is a derivative work) and the SVGs/JSON ship to production.
-5. **Mechanism animation in v1.** The schedule above puts it in M6 stretch. Would you rather pull it forward — say, after M3 — to validate that the gear ratios from `embedded-labels.md` are consistent before sinking time into the full assembly authoring? It's defensible either way.
+1. **Layer-toggle visual: hide vs. translucent.** **Resolved: translucent (~20% opacity) as the default behavior, with a single global "hide instead" switch in a settings menu.** Per-toggle 3-state UI rejected. Original recommendation was translucent with per-toggle preference; the global-switch model is simpler.
+2. **Aesthetic target: photographic vs. illustrative.** **Resolved: ship illustrative first in M3 (flat viewer); iterate toward photographic in M5 (polish) if time allows. No runtime toggle.** Original recommendation was photographic-with-illustrative-toggle; reversed because M3's job is the geometry gut-check and a runtime toggle doubles material/lighting work.
+3. **Mobile support depth.** **Resolved: defer mobile entirely. Desktop-only for v0.1.0; mobile becomes a Post-M5 milestone.** Original recommendation was full mobile interactivity in v1; reversed because hobby-project audience is desktop-first and shipping sooner is the priority.
+4. **Hosting.** **Resolved: GitHub Pages off this repo (the repo is public). Source-vs-derivative split is enforced by what gets copied into the build artifact, not by repo-splitting.** The deployed site contains only per-piece `crop.png`, SVGs, and JSON — `source/scans-prepped/` stays in-repo as personal reference but is not republished as a deployed asset.
+5. **Mechanism animation in v1.** **Resolved: animation stays in M6 stretch. A gear-ratio validation script is added as a sub-task of M2 (all pieces traced)** so transcription tooth-count inconsistencies surface before M4 (assemblies) work begins. Animation itself depends on M4's transforms anyway, so pulling animation forward wasn't useful; the data validation is the value.
 
 ## Sequence
 
-Once the open decisions above are addressed (or accepted as recommended), the next concrete step is M1: pick plate D, build the pipeline scripts (`01-crop.py` through `04-validate-sidecars.py`), and trace + sidecar all 9 of its pieces. That's the smallest deliverable that proves the spec.
+The next concrete step is M1: pick plate D, build the pipeline scripts (`01-crop.py` through `04-validate-sidecars.py`), and trace + sidecar all 11 of its pieces. That's the smallest deliverable that proves the spec. See `ROADMAP.md` for the M1 task breakdown.

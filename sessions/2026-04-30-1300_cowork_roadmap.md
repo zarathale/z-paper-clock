@@ -28,15 +28,21 @@ Design and write `ROADMAP.md` — the detail-layer build plan that sits between 
 
 **Letter-variant pieces.** 92a (anchor-and-pendulum group, primary plate likely D or H — needs disambiguation in M1) and 112a (face-and-case group, listed under E in the roadmap pending confirmation).
 
+**SPEC correction (second pass in same session).** Per Alan's request after roadmap draft, applied the SPEC follow-up corrections in this session:
+
+- `work/SPEC-3D-VIEWER.md` §M1: "9 pieces" / "9 sidecars" / "9 of its pieces" → "11 pieces" / "11 sidecars" / "11 of its pieces"; output description updated from `004/ through 092/` directory range (misleading because piece numbers aren't contiguous) to "11 piece directories under `work/pieces/`" with the explicit piece list.
+- `work/SPEC-3D-VIEWER.md` "Open product decisions" → renamed to "Product decisions (resolved 2026-04-30)". Original questions preserved under their numbers; each now annotated with the resolution and a one-line note on why the original recommendation was kept or reversed. Cross-references the roadmap.
+- `ROADMAP.md` M1 section: "Discrepancy to resolve" note replaced with a "Plate D piece count" note recording that the SPEC was corrected in the same session.
+
 # Files Changed
 
-- `ROADMAP.md` (NEW) — repo-root build plan; the detail layer for the SPEC's M1–M6 plus Post-M5 mobile.
+- `ROADMAP.md` (NEW) — repo-root build plan; the detail layer for the SPEC's M1–M6 plus Post-M5 mobile. Subsequent in-session edit retired the SPEC-discrepancy note.
+- `work/SPEC-3D-VIEWER.md` (EDITED) — M1 piece count corrected from 9 to 11; "Open product decisions" section reworked to "Product decisions (resolved 2026-04-30)" with each item annotated with its resolution.
 - `sessions/2026-04-30-1300_cowork_roadmap.md` (NEW) — this file.
 
 # Open Questions / Flags
 
-- SPEC §M1 says 9 pieces on plate D; embedded-labels.md says 11. Update SPEC during M1 or in a small Cowork pass.
-- Several pieces appear in multiple panel listings (see "Cross-plate piece-listing overlaps" above). Resolve in M1's pieces.csv build.
+- Several pieces appear in multiple panel listings (27 in C and G; 32 in D and G; 49 in F and G; 53 in G and H; 67 in F and H; 74 in E, F, and H; 89 in F and H; 112 in B and E; 117 in B and J; 118 in B and I). Resolve in M1's pieces.csv build.
 - Piece 92a needs primary-plate confirmation (D or H likely).
 - v1.0.0 target — when does the project graduate to 1.0? Not addressed in this session; defer until after M5 ships.
 - CHANGELOG.md for the viewer — flagged as an Open Items entry; create when M3 first ships.
@@ -44,20 +50,19 @@ Design and write `ROADMAP.md` — the detail-layer build plan that sits between 
 
 # Next Session Handoff
 
-The roadmap is the working source of truth for build sequencing. The previous handoff suggested two next moves; given today's work, those refine to:
+The roadmap is the working source of truth for build sequencing. With today's SPEC corrections in, the only remaining bookkeeping before M1 is the CLAUDE.md status table mirror.
 
 1. **Cowork pass to write `CODE_PROMPT_M1-pipeline-plate-d.md`** — the orchestration prompt for the first Code session. Now grounded in the roadmap's M1 task list (1.1 through 1.9). Should be a focused 30–60 minute Cowork session.
-2. **Quick Cowork pass to update `CLAUDE.md`'s "Where We Are" status table** to mirror the new roadmap status. Five-minute task; can fold into option (1).
-3. **Quick Cowork pass to update SPEC §M1's "9 pieces" → "11 pieces"** and resolve the SPEC's "Open product decisions" section as closed (referencing the roadmap's resolved-decisions table). Five-minute task; can also fold into (1).
+2. **Quick Cowork pass to update `CLAUDE.md`'s "Where We Are" status table** to mirror the new roadmap status (e.g., M1 row: "ready to start" → can stay as ⏳ Pending; no immediate change required, but worth a glance during the next session). Five-minute task; can fold into option (1).
 
-Recommend doing (1) next, with (2) and (3) folded in as small bookkeeping at the start of the same session.
+Recommend doing (1) next, with (2) folded in as small bookkeeping at the start of the same session.
 
 # Commit message (copy/paste)
 
 Subject:
 
 ```
-add ROADMAP.md; resolve five open SPEC product decisions
+add ROADMAP.md; resolve and fold five product decisions into SPEC
 ```
 
 Body:
@@ -74,16 +79,20 @@ plate (with cross-panel overlap flags), a model selection guide
 an Open Items capture, and update conventions. CLAUDE.md status
 table stays as the high-level mirror; this doc is the detail.
 
-Resolves the five open SPEC product decisions: layer-toggle
-visual = translucent default with global hide-instead switch;
-aesthetic = illustrative first in M3, photographic in M5 if time;
-mobile = defer to Post-M5; hosting = GitHub Pages off this repo;
-animation = keep in M6 stretch but add gear-ratio validation to
-M2.
-
-Surfaces a discrepancy: SPEC §M1 says 9 pieces on plate D;
-embedded-labels.md Panel D lists 11. Roadmap defers to
-embedded-labels.md; SPEC text needs a small follow-up correction.
+work/SPEC-3D-VIEWER.md (edited):
+- §M1 plate-D piece count corrected from 9 to 11 per the post-
+  audit embedded-labels.md Panel D listing (4, 10, 18, 19, 26,
+  29-32, 91, 92). Output description tightened — directory range
+  "004/ through 092/" was misleading because piece numbers aren't
+  contiguous.
+- "Open product decisions" → "Product decisions (resolved
+  2026-04-30)". All five resolved: layer-toggle = translucent
+  default with global hide-instead switch; aesthetic = illustrative
+  first in M3, photographic in M5 if time; mobile = defer to
+  Post-M5; hosting = GitHub Pages off this repo (public);
+  animation = keep in M6 stretch but add gear-ratio validation to
+  M2. Each item annotated with the original recommendation kept or
+  reversed.
 
 sessions/2026-04-30-1300_cowork_roadmap.md (new): this session's
 record.

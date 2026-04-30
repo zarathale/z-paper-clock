@@ -102,7 +102,7 @@ When in doubt, start one tier lower than feels safe and let the output tell you 
 
 **Dependencies.** None — `source/scans-prepped/p00x-plate-D-...jpg` exists, the auto-trace v2 test confirmed the pipeline approach, all five product decisions are resolved.
 
-**Discrepancy to resolve.** SPEC §M1 says "all 9 pieces"; `embedded-labels.md` Panel D lists 11 (4, 10, 18, 19, 26, 29, 30, 31, 32, 91, 92). Defer to embedded-labels.md as the post-audit source — plate D has 11 pieces. Update SPEC during M1 if confirmed.
+**Plate D piece count.** 11 pieces (4, 10, 18, 19, 26, 29, 30, 31, 32, 91, 92) per `embedded-labels.md` Panel D. SPEC was corrected from "9" to "11" in the same Cowork session that authored this roadmap (2026-04-30).
 
 | # | Task | Status | Est. h | Actual h | Owner | Output | Notes |
 |---|---|---|---|---|---|---|---|
