@@ -13,10 +13,10 @@
     { "tab": "d₂₉", "to": 29, "atTab": "d" },
     { "tab": "f₂₅", "to": 25, "atTab": "f" },
     { "tab": "g₂₅", "to": 25, "atTab": "g" },
-    { "tab": "91a", "to": 91, "atTab": "a" },
-    { "tab": "91b", "to": 91, "atTab": "b" },
-    { "tab": "92a", "to": 92, "atTab": "a" },
-    { "tab": "92b", "to": 92, "atTab": "b" }
+    { "tab": "91a", "to": 91, "atTab": "a", "reciprocal": false },
+    { "tab": "91b", "to": 91, "atTab": "b", "reciprocal": false },
+    { "tab": "92a", "to": 92, "atTab": "a", "reciprocal": false },
+    { "tab": "92b", "to": 92, "atTab": "b", "reciprocal": false }
   ],
   "folds": {
     "valley": [],

@@ -70,20 +70,23 @@ else:
         sys.exit(1)
 
 
-def _trace_native(ink: np.ndarray, w: int, h: int, cfg: dict) -> list[str]:
-    """Run native potrace on a bool array; return list of SVG <path d=...> strings."""
+def _trace_native(ink: np.ndarray, w: int, h: int, cfg: dict) -> tuple[list[str], str]:
+    """Run native potrace; return (list of SVG <path d=...> strings, transform string).
+
+    potrace outputs paths in a flipped/scaled coordinate space and wraps them in
+    a <g transform="translate(0,H) scale(0.1,-0.1)"> group. We capture that
+    transform and propagate it so the paths render correctly in our pixel-space viewBox.
+    """
+    import re as _re
+    import xml.etree.ElementTree as ET
     from PIL import Image as _Image
 
-    # potrace reads PBM (1-bit); write a temp file
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         bmp_path = tmp / "input.bmp"
         svg_path = tmp / "output.svg"
 
-        # Convert bool array to a 1-bit BMP (black ink on white paper)
-        # potrace treats black pixels as ink
         ink_uint8 = (ink.astype(np.uint8) * 255)
-        # invert: ink=True should be black (0) in the BMP for potrace
         bmp_img = _Image.fromarray(255 - ink_uint8, mode="L")
         bmp_img.save(str(bmp_path))
 
@@ -103,17 +106,47 @@ def _trace_native(ink: np.ndarray, w: int, h: int, cfg: dict) -> list[str]:
 
         svg_text = svg_path.read_text()
 
-    # Extract <path> elements from potrace's SVG output
+    # Parse potrace's SVG to extract paths and the group transform.
+    # Strip XML declaration and DOCTYPE — ElementTree cannot handle DOCTYPE.
+    clean = _re.sub(r'<\?xml[^>]*\?>', '', svg_text)
+    clean = _re.sub(r'<!DOCTYPE[^>]*>', '', clean)
+    root = ET.fromstring(clean.strip())
+
+    # potrace wraps all paths in a single transformed <g>
+    g_el = None
+    for child in root:
+        tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
+        if tag == "g" and child.get("transform"):
+            g_el = child
+            break
+    if g_el is None:
+        for el in root.iter():
+            tag = el.tag.split("}")[-1] if "}" in el.tag else el.tag
+            if tag == "g" and el.get("transform"):
+                g_el = el
+                break
+
+    transform = g_el.get("transform", "") if g_el is not None else ""
+
     import re
     paths = re.findall(r'<path[^/]*/>', svg_text, re.DOTALL)
     if not paths:
-        # potrace sometimes uses <path ...></path>
         paths = re.findall(r'<path[^>]*>(?:</path>)?', svg_text, re.DOTALL)
-    return paths
+
+    stroke_paths = []
+    for el in paths:
+        d_match = re.search(r'\bd="([^"]+)"', el)
+        if d_match:
+            stroke_paths.append(f'    <path d="{d_match.group(1)}"/>')
+
+    return stroke_paths, transform
 
 
-def _trace_potracer(ink: np.ndarray, w: int, h: int, cfg: dict) -> list[str]:
-    """Trace using pure-Python potracer; return list of SVG path d-attribute strings."""
+def _trace_potracer(ink: np.ndarray, w: int, h: int, cfg: dict) -> tuple[list[str], str]:
+    """Trace using pure-Python potracer; return (path strings, empty transform).
+
+    potracer outputs coordinates directly in pixel space, so no transform is needed.
+    """
     import potrace as pt
 
     bmp = pt.Bitmap(ink.astype(bool))
@@ -142,7 +175,7 @@ def _trace_potracer(ink: np.ndarray, w: int, h: int, cfg: dict) -> list[str]:
                 )
         d.append("Z")
         parts.append(f'<path d="{" ".join(d)}"/>')
-    return parts
+    return [f"    {p}" for p in parts], ""
 
 
 def trace_piece(piece_dir: Path) -> None:
@@ -173,24 +206,21 @@ def trace_piece(piece_dir: Path) -> None:
 
     # Trace
     if USE_NATIVE:
-        path_elements = _trace_native(ink, w, h, cfg)
-        # Rebuild as stroke-only, no fill — potrace native outputs filled black paths
-        import re
-        stroke_paths = []
-        for el in path_elements:
-            d_match = re.search(r'\bd="([^"]+)"', el)
-            if d_match:
-                stroke_paths.append(f'    <path d="{d_match.group(1)}"/>')
-        path_strs = stroke_paths
+        path_strs, transform = _trace_native(ink, w, h, cfg)
     else:
-        path_strs = [f"    {p}" for p in _trace_potracer(ink, w, h, cfg)]
+        path_strs, transform = _trace_potracer(ink, w, h, cfg)
+
+    g_attrs = 'fill="none" stroke="#2a2a2a" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"'
+    if transform:
+        g_open = f'  <g id="potrace-paths" transform="{transform}" {g_attrs}>'
+    else:
+        g_open = f'  <g id="potrace-paths" {g_attrs}>'
 
     lines = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" '
         f'width="{w}" height="{h}">',
         '  <rect x="0" y="0" width="100%" height="100%" fill="#fffaf0"/>',
-        '  <g fill="none" stroke="#2a2a2a" stroke-width="1.4" '
-        'stroke-linejoin="round" stroke-linecap="round">',
+        g_open,
     ]
     lines.extend(path_strs)
     lines.append("  </g>")
