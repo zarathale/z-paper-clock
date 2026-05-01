@@ -70,11 +70,11 @@ PIECE_PNG = re.compile(r"^(\d{3})([a-z])?\.png$")
 CHUNK_LIST = re.compile(r"^(\d+(?:_\d+)+)\.(jpe?g|png)$")
 CHUNK_SINGLE = re.compile(r"^(\d+)\.(jpe?g|png)$")
 
-# Stitched composites: NN_NN_stitched.png (always PNG)
-CHUNK_STITCHED = re.compile(r"^(\d+(?:_\d+)+)_stitched\.png$")
+# Stitched composites: NN_stitched.png (single-piece) or NN_NN_stitched.png (multi-piece). Always PNG.
+CHUNK_STITCHED = re.compile(r"^(\d+(?:_\d+)*)_stitched\.png$")
 
-# L/R partials: NN_NN_l.jpeg, NN_NN_r.jpeg (always JPEG per checklist)
-CHUNK_LR = re.compile(r"^(\d+(?:_\d+)+)_(l|r)\.jpeg$")
+# L/R partials: NN_l.jpeg / NN_r.jpeg (single-piece) or NN_NN_l.jpeg / NN_NN_r.jpeg (multi-piece). Always JPEG.
+CHUNK_LR = re.compile(r"^(\d+(?:_\d+)*)_(l|r)\.jpeg$")
 ```
 
 Match order matters when files have ambiguous-looking names. Check `CHUNK_STITCHED` and `CHUNK_LR` **before** `CHUNK_LIST`, since `34_35_l.jpeg` would naively match a permissive list pattern. Use anchored, mutually-exclusive regexes as above; any file that matches none of them is an error.
@@ -369,15 +369,15 @@ Run these from the repo root after the helper exists. Each must pass before merg
    ```
    Before and after running the helper, the working-tree status should be identical. The helper writes nothing.
 
-9. **Chunk parsing covers all eight existing chunks.**
+9. **Chunk parsing covers all existing chunks.**
    Confirm the report's "Chunk inventory" section lists all 8 files currently in `source/scans-chunks/`:
    - `4_18_19_26_29_30_31_32_91_92.jpeg`
    - `10.jpeg`
    - `33_37_40_41_50.jpeg`
    - `34_35_l.jpeg`, `34_35_r.jpeg`, `34_35_stitched.png`
    - `42_52_53_54_55_56_57.jpeg`
-   - `43_44_45_51.jpeg`
-   And that pieces 4, 10, 18, 19, 26, 29, 30, 31, 32, 33, 34, 35, 37, 40, 41, 42, 43, 44, 45, 50, 51, 52, 53, 54, 55, 56, 57, 91, 92 are listed as pending pieces with chunk sources identified.
+   - `43_44_45.jpeg`
+   And that pieces 4, 10, 18, 19, 26, 29, 30, 31, 32, 33, 34, 35, 37, 40, 41, 42, 43, 44, 45, 50, 52, 53, 54, 55, 56, 57, 91, 92 are listed as pending pieces with chunk sources identified. (Piece 51 is no longer in `source/scans-chunks/` — its chunk source `36_51.jpeg` is still in `inbox/_pending-rescan/` awaiting promotion.)
 
 ---
 

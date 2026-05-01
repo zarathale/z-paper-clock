@@ -16,8 +16,10 @@
 #         Populated only for plate D from M1 (gen-1 era); blank for all other
 #         pieces until each plate's tracing pass assigns one.
 # status  pending | captured | traced. 'pending' = not yet in source/pieces/;
-#         flipped to 'captured' by the ingest skill once source/pieces/<id>.png
-#         lands; 'traced' once work/pieces/<id>/piece-<id>.svg ships.
+#         'captured' = source/pieces/<id>.png exists; 'traced' = work/pieces/
+#         <id>/piece-<id>.svg ships. Status flips are deliberate manual edits;
+#         the M0.5.2 ingest skill audits and reports but never writes to this
+#         file (read-only contract per CLAUDE.md "Architectural Decisions").
 # notes   Free text. Cross-references, glue-mate pieces, partner pieces,
 #         duplicate copies on other plates, special instructions.
 #

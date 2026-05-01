@@ -17,11 +17,13 @@ It exists separately from `04-validate-sidecars.py` (which lints SVG sidecars in
 
 1. Reads the master list from `work/pieces.csv`. Expected: 123 piece IDs (1–121 contiguous, plus 092a and 112a).
 2. Walks `source/pieces/` for files matching `^\d{3}[a-z]?\.png$` (e.g., `004.png`, `092a.png`).
-3. Walks `source/scans-chunks/` for files matching the four chunk filename patterns from `source/SCAN-INTAKE-CHECKLIST.md`:
+3. Walks `source/scans-chunks/` for files matching the chunk filename patterns from `source/SCAN-INTAKE-CHECKLIST.md`:
    - `NN_NN_NN.{jpeg,png}` — multi-piece chunks listing complete pieces inside, ascending
    - `NN.{jpeg,png}` — single-piece chunks
-   - `NN_NN_l.jpeg` / `NN_NN_r.jpeg` — left/right partials pre-stitching
-   - `NN_NN_stitched.png` — stitched composites (always PNG)
+   - `NN_l.jpeg` / `NN_r.jpeg` — single-piece left/right partials pre-stitching
+   - `NN_NN_l.jpeg` / `NN_NN_r.jpeg` — multi-piece left/right partials pre-stitching
+   - `NN_stitched.png` / `NN_NN_stitched.png` — stitched composites (always PNG)
+   - Letter-variant IDs (`92a`) sort alphanumerically with their numeric base in ascending lists (e.g. `92a_98_99.jpeg`).
 4. Runs tiered checks per file (see "Health checks" below).
 5. Cross-references chunk filenames against pending pieces — for each pending piece, lists which chunks contain it.
 6. Prints a structured markdown report to stdout. Exits 0 if no BLOCK errors; non-zero otherwise.

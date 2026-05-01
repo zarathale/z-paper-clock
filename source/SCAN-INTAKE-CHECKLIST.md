@@ -52,17 +52,19 @@ Capturing the same piece in multiple chunks is fine — only one chunk feeds the
 ### Chunks (multi-piece captures)
 
 ```
-NN_NN_NN.{jpeg,png}            chunk listing the COMPLETE pieces inside, in ascending order
+NN_NN_NN.{jpeg,png}            multi-piece chunk listing the COMPLETE pieces inside, in ascending order
 NN.{jpeg,png}                  single-piece chunk (only one piece fully captured)
-NN_NN_l.jpeg / NN_NN_r.jpeg    left/right partial captures pre-stitching
-NN_NN_stitched.png             stitched composite (always PNG, lossless seam preservation)
+NN_l.jpeg / NN_r.jpeg          single-piece L/R partial captures pre-stitching
+NN_NN_l.jpeg / NN_NN_r.jpeg    multi-piece L/R partial captures pre-stitching
+NN_stitched.png                stitched composite for a single piece (PNG, lossless seam preservation)
+NN_NN_stitched.png             stitched composite for a multi-piece chunk (PNG, lossless seam preservation)
 ```
 
-The numeric prefix lists every piece whose silhouette is fully visible and not edge-clipped in the chunk. Partially-visible neighbors are intentionally omitted from the filename — they're cues for which pieces a chunk can be a re-crop source for.
+The numeric prefix lists every piece whose silhouette is fully visible and not edge-clipped in the chunk. Partially-visible neighbors are intentionally omitted from the filename — they're cues for which pieces a chunk can be a re-crop source for. Letter-variant pieces (e.g. `92a`) sort alphanumerically with their numeric base, so `92a_98_99.jpeg` is correct ascending order.
 
 Examples (all currently in `source/scans-chunks/`):
 
-- `43_44_45_51.jpeg` — complete pieces 43, 44, 45, 51. Piece 36 may be partially visible but isn't complete, so it doesn't appear in the filename.
+- `43_44_45.jpeg` — complete pieces 43, 44, 45. (Piece 36 may be partially visible at the edge but isn't complete, so it doesn't appear in the filename.)
 - `34_35_l.jpeg` + `34_35_r.jpeg` + `34_35_stitched.png` — left/right halves and the stitched composite for the long-strip pair pieces 34 and 35.
 - `4_18_19_26_29_30_31_32_91_92.jpeg` — large chunk covering most of plate D except piece 10.
 - `10.jpeg` — single-piece chunk for piece 10 (which extends past the bed in the wide-chunk capture).
@@ -135,15 +137,14 @@ Once chunk QC passes and per-piece crops are saved:
 ```bash
 cd ~/Documents/GitHub/z-paper-clock
 
-# Rename the chunk to canonical form (example for a 4-piece chunk)
-mv inbox/Scan_001.jpg inbox/43_44_45_51.jpeg
+# Rename the chunk to canonical form (example for a 3-piece chunk)
+mv inbox/Scan_001.jpg inbox/43_44_45.jpeg
 
-# After cropping pieces 43, 44, 45, 51 to source/pieces/043.png etc., archive the chunk:
-mv inbox/43_44_45_51.jpeg source/scans-chunks/
+# After cropping pieces 43, 44, 45 to source/pieces/043.png etc., archive the chunk:
+mv inbox/43_44_45.jpeg source/scans-chunks/
 
 # Sanity check: pieces landed
 ls source/pieces/04[3-5].png
-ls source/pieces/051.png
 ```
 
 ---
