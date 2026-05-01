@@ -14,9 +14,16 @@ Output schema:
 - bucket: auto-trace-clean | auto-trace-edit | hand-trace | (blank)
   Populated only for pieces with a bucket assignment from M1
   (plate D); blank for all others (TBD when each plate is traced).
-- status: pending | captured | traced
-  All pieces start "pending" — flipped to "captured" by the future
-  ingest skill once source/pieces/NNN.png exists.
+- status: pending | captured | reviewed | traced
+  All pieces start "pending" — flipped to "captured" once
+  source/pieces/NNN.png exists, then to "reviewed" once Alan
+  has signed off on the PNG as the build-grade artifact (the
+  human review / cleanup pass), then to "traced" once
+  work/pieces/NNN/piece-NNN.svg ships. The ingest skill audits
+  but never writes; status flips are deliberate manual edits.
+  This generator is a one-shot bootstrapper from embedded-labels.md;
+  re-running it clobbers status flips, so don't re-run after
+  status work has happened unless you reconcile manually.
 - notes: free text. Cross-references to glue-mate pieces, multiple
   copies, partner pieces, etc.
 """

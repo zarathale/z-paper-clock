@@ -15,11 +15,19 @@
 # bucket  Tracing strategy: auto-trace-clean | auto-trace-edit | hand-trace.
 #         Populated only for plate D from M1 (gen-1 era); blank for all other
 #         pieces until each plate's tracing pass assigns one.
-# status  pending | captured | traced. 'pending' = not yet in source/pieces/;
-#         'captured' = source/pieces/<id>.png exists; 'traced' = work/pieces/
-#         <id>/piece-<id>.svg ships. Status flips are deliberate manual edits;
-#         the M0.5.2 ingest skill audits and reports but never writes to this
-#         file (read-only contract per CLAUDE.md "Architectural Decisions").
+# status  pending | captured | reviewed | traced.
+#         'pending'  = not yet in source/pieces/.
+#         'captured' = source/pieces/<id>.png exists, but the PNG has not yet
+#                      been through the human review / cleanup pass.
+#         'reviewed' = source/pieces/<id>.png is the build-grade artifact:
+#                      Alan has tightened the crop, masked the background,
+#                      corrected orientation if needed, and signed off on it
+#                      as the canonical input for the trace pipeline. Every
+#                      piece must pass through this gate before tracing.
+#         'traced'   = work/pieces/<id>/piece-<id>.svg ships.
+#         Status flips are deliberate manual edits; the M0.5.2 ingest skill
+#         audits and reports but never writes to this file (read-only contract
+#         per CLAUDE.md "Architectural Decisions").
 # notes   Free text. Cross-references, glue-mate pieces, partner pieces,
 #         duplicate copies on other plates, special instructions.
 #
@@ -28,8 +36,8 @@
 # are gone: under the chunk-and-crop onboarding model, source/pieces/ already
 # holds per-piece crops, so the pipeline reads them directly without slicing.
 id,plate,section,bucket,status,notes
-001,A,framework,,captured,"U-channel frame strip (long horizontal frame run, paired with 2/6/7 across panels A and B)"
-002,A,framework,,captured,U-channel frame strip
+001,A,framework,,reviewed,"U-channel frame strip (long horizontal frame run, paired with 2/6/7 across panels A and B)"
+002,A,framework,,reviewed,U-channel frame strip
 006,A,framework,,captured,U-channel frame strip
 007,A,framework,,captured,U-channel frame strip
 110,A,face-case,,pending,Face-frame end rail; X/Y end-match markers to 111/112
@@ -88,13 +96,13 @@ id,plate,section,bucket,status,notes
 047,F,motor-wheel,,captured,Pulley plate; partner to 46
 048,F,motor-wheel,,captured,Plain disc; glue to double cardboard
 049,F,motor-wheel,,captured,Small disc (plate cap); also appears on plate G
-058,F,escapement,,captured,Escapement-wheel disc; glue back to back to 59 before cutting
-059,F,escapement,,captured,Escapement-wheel disc partner to 58
+058,F,escapement,,reviewed,Escapement-wheel disc; glue back to back to 59 before cutting
+059,F,escapement,,reviewed,Escapement-wheel disc partner to 58
 061,F,escapement,,captured,Star-cutout disc (pinion-stack)
 062,F,escapement,,captured,Star-cutout disc
 063,F,escapement,,captured,Star-cutout disc
 064,F,escapement,,captured,Star-cutout disc
-065,F,anchor-pendulum,,captured,Zig-zag anchor arm; 'axe R' label = rear axle
+065,F,anchor-pendulum,,reviewed,Zig-zag anchor arm; 'axe R' label = rear axle
 066,F,anchor-pendulum,,captured,Pendulum-blade tube/casing development
 067,F,anchor-pendulum,,captured,Rear plate of the anchor; flap labels a-f
 073,F,hands,,captured,Star-shaped hands-assembly wheel; cut out center
@@ -130,16 +138,16 @@ id,plate,section,bucket,status,notes
 056,G,middle-wheel,,captured,Star-cut pinion piece; slips over pinion 55
 057,G,middle-wheel,,captured,Star-cut pinion piece; presses against pinion top
 053,H,middle-wheel,,captured,"Small disc with starred center (pinion-mount, middle wheel); also referenced on plate G"
-068,H,anchor-pendulum,,captured,Anchor fork; passes over beam piece 9
-069,H,anchor-pendulum,,captured,Anchor-bearing box; + center mark
-070,H,anchor-pendulum,,captured,Pendulum rod (long vertical strip); receives 71 at bottom
+068,H,anchor-pendulum,,reviewed,Anchor fork; passes over beam piece 9
+069,H,anchor-pendulum,,reviewed,Anchor-bearing box; + center mark
+070,H,anchor-pendulum,,reviewed,Pendulum rod (long vertical strip); receives 71 at bottom
 071,H,anchor-pendulum,,captured,Square ring; cut out center; glue between b/c of piece 70
-072,H,anchor-pendulum,,captured,Pendulum blade with mounting-pin hole; squeeze into 70's slot
+072,H,anchor-pendulum,,reviewed,Pendulum blade with mounting-pin hole; squeeze into 70's slot
 092a,H,hands,,captured,Narrow tongue piece; glues on top of 92 and 91 with axle holes coinciding. LETTER VARIANT.
 094,H,anchor-pendulum,,captured,Pendulum-bob outer casing (long tapered tube)
 095,H,anchor-pendulum,,captured,Pendulum hook outer shape; receives 96 in bottom
 096,H,anchor-pendulum,,captured,Narrow cardboard reinforcement; glue to 1mm cardboard
-097,H,anchor-pendulum,,captured,Pendulum-bob front face (large round disc); 'apply no glue here' inner rectangle
+097,H,anchor-pendulum,,reviewed,Pendulum-bob front face (large round disc); 'apply no glue here' inner rectangle
 098,H,anchor-pendulum,,captured,"Bowed retainer; glues to 97 (bowed when glued, holds bob in place)"
 099,H,anchor-pendulum,,captured,Saw-toothed crescent (decorative trim)
 100,H,anchor-pendulum,,captured,Bob-position disc with F (fast/up) and S (slow/down) arrows
