@@ -33,13 +33,13 @@ id,plate,section,bucket,status,notes
 006,A,framework,,captured,U-channel frame strip
 007,A,framework,,captured,U-channel frame strip
 110,A,face-case,,pending,Face-frame end rail; X/Y end-match markers to 111/112
-003,B,framework,,pending,Vertical frame strip (paired with 1)
-005,B,framework,,pending,Vertical frame strip (paired with 2)
-008,B,framework,,pending,Vertical frame strip (paired with 6)
-012,B,framework,,pending,Bracket piece (12/13/14 top row)
+003,B,framework,,captured,Vertical frame strip (paired with 1)
+005,B,framework,,captured,Vertical frame strip (paired with 2)
+008,B,framework,,captured,Vertical frame strip (paired with 6)
+012,B,framework,,captured,Bracket piece (12/13/14 top row)
 013,B,framework,,pending,Bracket piece
 014,B,framework,,pending,Bracket piece
-015,B,framework,,pending,Bracket piece (15/16/17 bottom row)
+015,B,framework,,captured,Bracket piece (15/16/17 bottom row)
 016,B,framework,,pending,Bracket piece
 017,B,framework,,pending,Bracket piece
 093,B,anchor-pendulum,,captured,"Pendulum-bob inner brace; printed as 6 copies, glued in pairs to make 3 braces"
@@ -58,7 +58,7 @@ id,plate,section,bucket,status,notes
 027,C,framework,,captured,Pendulum-support spacer (small piece carrying '28' label); also appears on plate G
 028,C,framework,,captured,Pendulum-support spacer
 004,D,framework,hand-trace,captured,Long main frame column (front center); axle holes; positioning guides for 91/92
-010,D,framework,hand-trace,pending,Long main frame column (back center)
+010,D,framework,hand-trace,captured,Long main frame column (back center)
 018,D,framework,auto-trace-edit,captured,Back-of-frame L-bracket; pinches pendulum blade
 019,D,framework,auto-trace-edit,captured,Back-of-frame L-bracket; pinches pendulum blade
 026,D,framework,auto-trace-clean,captured,Wall-bracket wedge; glue to strong cardboard
@@ -67,7 +67,7 @@ id,plate,section,bucket,status,notes
 031,D,framework,auto-trace-clean,captured,Flat oval/leaf tongue; glue back to back to 32
 032,D,framework,auto-trace-clean,captured,Flat elongated oval (pairs with 31); also appears on plate G
 091,D,hands,auto-trace-clean,captured,Small square spacer; glue to 1mm cardboard; aligns to piece 4
-092,D,hands,auto-trace-clean,pending,Disc spacer; glue to 1mm cardboard; aligns to piece 4
+092,D,hands,auto-trace-clean,captured,Disc spacer; glue to 1mm cardboard; aligns to piece 4
 039,E,motor-wheel,,captured,Accordion-pleated pulley column (glues to 38)
 060,E,escapement,,captured,Pinion for escapement wheel (rolled cylinder)
 074,E,anchor-pendulum,,captured,Thin strip (hook form) at bottom of plate E; small fragment also visible on H
@@ -94,14 +94,14 @@ id,plate,section,bucket,status,notes
 062,F,escapement,,captured,Star-cutout disc
 063,F,escapement,,captured,Star-cutout disc
 064,F,escapement,,captured,Star-cutout disc
-065,F,anchor-pendulum,,pending,Zig-zag anchor arm; 'axe R' label = rear axle
+065,F,anchor-pendulum,,captured,Zig-zag anchor arm; 'axe R' label = rear axle
 066,F,anchor-pendulum,,captured,Pendulum-blade tube/casing development
-067,F,anchor-pendulum,,pending,Rear plate of the anchor; flap labels a-f
-073,F,hands,,pending,Star-shaped hands-assembly wheel; cut out center
-075,F,hands,,pending,Star-shaped hands-assembly wheel
-076,F,hands,,pending,Small rectangular piece for minute-hand assembly
+067,F,anchor-pendulum,,captured,Rear plate of the anchor; flap labels a-f
+073,F,hands,,captured,Star-shaped hands-assembly wheel; cut out center
+075,F,hands,,captured,Star-shaped hands-assembly wheel
+076,F,hands,,captured,Small rectangular piece for minute-hand assembly
 077,F,hands,,captured,Minute-hand holder tube development
-080,F,hands,,pending,Small rectangle ('Push into wheel 78'); 'rear' label on one face
+080,F,hands,,captured,Small rectangle ('Push into wheel 78'); 'rear' label on one face
 081,F,reduction-gear,,captured,Reduction-gear stage piece
 084,F,reduction-gear,,captured,Reduction-gear stage piece
 085,F,reduction-gear,,captured,Rectangular strip; +++ along length
@@ -110,10 +110,10 @@ id,plate,section,bucket,status,notes
 088,F,reduction-gear,,captured,Pulley/gear stack disc
 089,F,reduction-gear,,captured,Pulley disc for hands mechanism; also appears on plate H
 090,F,reduction-gear,,pending,Pulley/gear stack disc
-120,F,reference,,pending,Axle-mount cardboard square (model for all mounting squares)
+120,F,reference,,captured,Axle-mount cardboard square (model for all mounting squares)
 033,G,motor-wheel,,captured,Large disc with internal triangle (motor-wheel back face); a35 corner labels
-034,G,motor-wheel,,pending,Long zig-zag teeth strip (motor-wheel teeth); engages between 33 and 36
-035,G,motor-wheel,,pending,Long zig-zag teeth strip; folds into cone braced by 33's triangle
+034,G,motor-wheel,,captured,Long zig-zag teeth strip (motor-wheel teeth); engages between 33 and 36
+035,G,motor-wheel,,captured,Long zig-zag teeth strip; folds into cone braced by 33's triangle
 036,G,motor-wheel,,captured,Large motor-wheel disc with crown-band of vertical hatching (teeth band)
 037,G,motor-wheel,,captured,Long thin strip with vertical-hatch (motor-wheel tooth strip)
 040,G,motor-wheel,,captured,"Pulley cylinder; glue ends together, slip over 39 with arrow toward motor wheel"
@@ -136,13 +136,13 @@ id,plate,section,bucket,status,notes
 071,H,anchor-pendulum,,captured,Square ring; cut out center; glue between b/c of piece 70
 072,H,anchor-pendulum,,captured,Pendulum blade with mounting-pin hole; squeeze into 70's slot
 092a,H,hands,,captured,Narrow tongue piece; glues on top of 92 and 91 with axle holes coinciding. LETTER VARIANT.
-094,H,anchor-pendulum,,pending,Pendulum-bob outer casing (long tapered tube)
+094,H,anchor-pendulum,,captured,Pendulum-bob outer casing (long tapered tube)
 095,H,anchor-pendulum,,captured,Pendulum hook outer shape; receives 96 in bottom
 096,H,anchor-pendulum,,captured,Narrow cardboard reinforcement; glue to 1mm cardboard
-097,H,anchor-pendulum,,pending,Pendulum-bob front face (large round disc); 'apply no glue here' inner rectangle
+097,H,anchor-pendulum,,captured,Pendulum-bob front face (large round disc); 'apply no glue here' inner rectangle
 098,H,anchor-pendulum,,captured,"Bowed retainer; glues to 97 (bowed when glued, holds bob in place)"
 099,H,anchor-pendulum,,captured,Saw-toothed crescent (decorative trim)
-100,H,anchor-pendulum,,pending,Bob-position disc with F (fast/up) and S (slow/down) arrows
+100,H,anchor-pendulum,,captured,Bob-position disc with F (fast/up) and S (slow/down) arrows
 118,I,face-case,,captured,Case-side panel; * pin-hole markers; glues to b119/c119 underside of 117
 119,I,face-case,,captured,Case-side panel; * pin-hole markers; glues to b118/c118 underside of 117
 101,J,weight,,captured,"Weight cylinder development (rectangular sheet, multiple horizontal folds)"
@@ -150,4 +150,4 @@ id,plate,section,bucket,status,notes
 108,J,face-case,,captured,Minute hand (solid black silhouette); glue on heavy cardboard
 109,J,face-case,,captured,Hour hand (solid black silhouette); glue on heavy cardboard
 117,J,face-case,,captured,Case top with chamfered corners; central 'front' tab
-121,M,face-case,,pending,"Clock face: tan/brown border, off-white field, numbers 1-12, minute marks. Not numbered in print; assigned ID 121 for build authoring (closes the gap in non-contiguous source numbering)."
+121,M,face-case,,captured,"Clock face: tan/brown border, off-white field, numbers 1-12, minute marks. Not numbered in print; assigned ID 121 for build authoring (closes the gap in non-contiguous source numbering)."
