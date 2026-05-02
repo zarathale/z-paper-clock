@@ -1,9 +1,12 @@
 ---
-status: ready-for-code
+status: shipped
+shipped: 2026-05-02
 started: 2026-05-02
 owner: Zarathale (Alan)
 target: preview-html-perf
 ---
+
+_Shipped 2026-05-02; paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / ROADMAP.md for current state._
 
 ## What You Are Doing and Why
 
