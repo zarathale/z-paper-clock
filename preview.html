@@ -276,6 +276,9 @@ function parseSVG(text, filename) {
           const [a, b, c, d, e, f] = mMatch[1].split(/[\s,]+/).map(Number);
           // TODO(070): handle rotated/skewed transforms (b ≠ 0 or c ≠ 0).
           // Current code only reads sx=a, sy=d, tx=e, ty=f and silently drops rotation.
+          // TODO(uv-offsets): account for <use> x/y/width/height and imageScale offsets
+          // in buildSlab's front-face UVs (currently assumes PNG covers exactly
+          // [0, VB.w] × [0, VB.h]; ~7px slip on 067, sub-pixel on 069).
           imageScale = { sx: a, sy: d, tx: e || 0, ty: f || 0 };
         }
 
@@ -298,6 +301,9 @@ function parseSVG(text, filename) {
           const [a, b, c, d, e, f] = mMatch[1].split(/[\s,]+/).map(Number);
           // TODO(070): handle rotated/skewed transforms (b ≠ 0 or c ≠ 0).
           // Current code only reads sx=a, sy=d, tx=e, ty=f and silently drops rotation.
+          // TODO(uv-offsets): account for <use> x/y/width/height and imageScale offsets
+          // in buildSlab's front-face UVs (currently assumes PNG covers exactly
+          // [0, VB.w] × [0, VB.h]; ~7px slip on 067, sub-pixel on 069).
           imageScale = { sx: a, sy: d, tx: e || 0, ty: f || 0 };
         }
         scanPng = new Image();
@@ -583,6 +589,7 @@ function extractSilhouetteFromLayer(p) {
   const maskRe    = /^mask(-\d+)?$/;
 
   const cutaways = [];
+  let unrecognisedCount = 0;
   // querySelectorAll('*') returns all element descendants in document order,
   // transparently handling Affinity's unnamed wrapper <g> elements.
   for (const el of layer.querySelectorAll('*')) {
@@ -600,13 +607,24 @@ function extractSilhouetteFromLayer(p) {
     } else if (maskRe.test(id)) {
       // visual authoring frame — ignore silently
     } else {
+      unrecognisedCount++;
       console.warn('[preview.html] <g id="silhouette"> contains <' + tag + '>' +
                    (id ? ' id="' + id + '"' : '') +
                    ' — unrecognised, ignoring. Use id="cutaway" / "cutaway-N" or "mask".');
     }
   }
 
-  if (cutaways.length === 0) return null;
+  if (cutaways.length === 0) {
+    if (unrecognisedCount > 0) {
+      addBanner(
+        `<g id="silhouette"> found, but no <path id="cutaway"> inside ` +
+        `(${unrecognisedCount} unrecognised element${unrecognisedCount > 1 ? 's' : ''} ignored). ` +
+        `Falling through to alpha/path-fallback. Tag the cut polygon id="cutaway".`,
+        'warn'
+      );
+    }
+    return null;
+  }
 
   if (cutaways.length > 1) {
     addBanner(
@@ -1068,7 +1086,11 @@ function buildScanTexture(scanPng) {
   if (_scanTexCache) { _scanTexCache.dispose(); _scanTexCache = null; }
   const tex = new THREE.Texture(scanPng);
   tex.needsUpdate = true;
-  tex.flipY = false;  // UV Y already accounted for in the 1-vy/h formula
+  // tex.flipY defaults to true: HTML image row 0 (visual top) lands at UV v=1.
+  // buildSlab's front-face UV uses `v = 1 - vy/VB.h`, which puts viewBox-top
+  // (vy=0) at UV v=1 — i.e. the visual top of the scan. The two pair correctly
+  // only when flipY is left at its default; setting it false here was the v1a
+  // texture-flip bug (diagnosed in sessions/2026-05-02-1700_cowork_067-svg-id-swap.md).
   _scanTexCache = tex;
   return tex;
 }
