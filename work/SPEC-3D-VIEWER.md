@@ -254,4 +254,74 @@ All five product decisions called out in the original draft are now resolved. Se
 
 ## Sequence
 
-M1 shipped against gen-1 phone scans on 2026-04-30 and is archived. The next concrete step is **M0.5** — chunk-and-crop onboarding (populating `source/pieces/`) and a small pipeline reshape (archive `01-crop.py`, repoint `02-trace.py` at `source/pieces/`, update the Makefile target chain). After that, **M2** runs the pipeline across all plates against the gen-2 per-piece archive. See `ROADMAP.md` for the milestone breakdown.
+M1 shipped against gen-1 phone scans on 2026-04-30 and is archived. The next concrete step is **M0.5** — chunk-and-crop onboarding (populating `source/pieces/`) and a small pipeline reshape (archive `01-crop.py`, repoint `02-trace.py` at `source/pieces/`, update the Makefile target chain). Running in parallel since 2026-05-01 is **M0.6** — the `preview.html` authoring/QA tool (see next section). After M0.5 closes, **M2** runs the pipeline across all plates against the gen-2 per-piece archive. See `ROADMAP.md` for the milestone breakdown.
+
+## Authoring/QA preview tool (`preview.html`)
+
+While the production viewer described above lives at `work/viewer/` and ships in M3+, the build leans on a separate tool at `preview.html` (repo root) for authoring and QA today. **preview.html** is a single self-contained HTML file that loads a per-piece SVG via drag-drop and renders the paper silhouette as a 3D extruded slab with the embedded scan as the front-face texture. It runs from `file://` — double-click to open, no dev server, no build step. It's the working surface where new SVG conventions get test-driven, and it's the daily check that "this piece traces correctly and the layers parse the way we think they do" before the production pipeline ever runs.
+
+The tool entered the repo on 2026-05-02 (v1a foundation) and accumulated cut-layer parsing, texture-flip + back-face fixes, a perf pass (render-on-demand), thickness extrusion correctness, and axle rotation through the rest of the day. Its detailed milestone breakdown lives in `ROADMAP.md` M0.6.
+
+### What it consumes
+
+A single per-piece SVG, dropped onto the page. The SVG carries the embedded scan PNG (typically as `<image>` referenced through `<use xlink:href="#_ImageN">`, the pattern Affinity Designer exports) and uses the canonical layered structure documented in CLAUDE.md's File Naming Conventions. The tool reads:
+
+| Layer | What the tool does with it |
+|---|---|
+| `silhouette` (with `cutaway` / `cutaway-N` children) | Extracts the cut polygon. Tier 1 of the silhouette source chain. |
+| `cutouts` (sibling of silhouette, with `cutout-N` children) | Reserved; not yet consumed. Will be subtracted from the slab when the cutouts pass lands. |
+| `folds-valley` / `folds-mountain` | Parses each fold path (`M..l` or `M..L`) to start / end coords. Currently parsed and counted but not rendered as hinges (v1b territory). |
+| `axles` | Each `<ellipse>` / `<circle>` → axle marker. An optional `id="north"` element inside the same layer defines the +0° orientation cue. |
+| `root` | Optional centroid marker (ellipse / circle / rect / path). Reserved for future fold-tree rooting. |
+| `thickness` | Optional `<text>` node giving thickness in mm. Falls back to 0.4 mm (cardstock-typical). |
+
+The tool is read-only — it never writes back to the SVG, and never modifies anything under `source/` or `work/`. Authoring slips surface as yellow / red banners in the side panel rather than silent render glitches.
+
+### Silhouette source chain
+
+The cut polygon is resolved through three priority tiers, with a banner at every fallback so authoring misses are loud:
+
+1. **`<g id="silhouette">` layer** — the canonical authored cut. Parser walks descendants (Affinity wraps children in an unnamed `<g>`; the wrapper is transparent). `cutaway` / `cutaway-N` ids → silhouette polygon; `mask` / `mask-N` ids → ignored visual frame; anything else → `console.warn` so typos don't disappear.
+2. **PNG alpha** — marching squares + segment chaining at α = 0.5 if the embedded scan has any transparency. Yellow banner when this kicks in.
+3. **Largest colored path heuristic** — last resort, for fully-opaque PNGs without an authored silhouette layer. Yellow banner. Excludes metadata layer ids and authored cut-layer ids so the heuristic never mistakes a `mask` rect for the silhouette.
+
+The chain was settled in `sessions/2026-05-02-1500_cowork_preview-html-cut-layer-spec.md` and shipped via `CODE_PROMPT_preview-html-cut-layer.md`.
+
+### Current feature set
+
+**Slab rendering.** The silhouette polygon is built into a `THREE.Shape`, extruded as a front cap (`THREE.ShapeGeometry` + scan-textured `MeshStandardMaterial`, `FrontSide`) + back cap (same shape, cream `BackSide` so it's only visible from −Z) + custom `BufferGeometry` side walls (cream `DoubleSide`). UV mapping uses `(vx / VB.w, 1 - vy / VB.h)` — the `1 -` Y-flip pairs with three.js's default `flipY: true` on textures so the visual top of the scan lands on the geometric top of the slab.
+
+**Thickness control.** A slider runs 0.3–4.0 mm. Default is whatever the SVG's `thickness` layer gives, falling back to 0.4 mm (cardstock-typical). Slider changes debounce a slab rebuild at 80 ms. The thickness value flows directly into three.js as mm = three.js units; `MM_PER_UNIT` is the viewBox-units → mm scale, derived from the embedded scan dimensions assuming 600 DPI (verified at ~613 effective DPI on piece 002).
+
+**Axle rotation.** Pieces with a populated `axles` layer get a Rotation slider (−180° to +180°, **CW positive** by clock convention — three.js's CCW-positive `rotation.z` is negated at the slider boundary). The slab pivots around the active axle (`axles[0]`; multi-axle support deferred until a piece needs it). Each authored axle renders as a 1 mm-diameter shiny silver cylinder (metalness 0.9, roughness 0.25), positioned **outside** the rotation pivot so it stays fixed in world space — matching the physical clock where the axle wire is mounted to the framework and the piece rotates around it. The future bearing (knitting-needle stub glued to the piece) will render **inside** the pivot when authoring data arrives.
+
+**Orientation cue.** An optional `id="north"` element inside `<g id="axles">` defines the +0° direction via the (active-axle → north) vector. It renders as a brass-gold sphere (color `0xb89e5b`) **inside** the rotation pivot, so it visualises the current angle relative to the as-authored 0°. The two materials (silver-cylinder framework, brass-gold sphere passenger) are deliberately distinct so they read as separate roles rather than as a single "marker."
+
+**Performance.** Render-on-demand: `renderer.render()` only fires when the scene or camera changed. OrbitControls' `change` event sets a `needsRender` flag; programmatic mutations call `requestRender()`; `controls.update()` returning truthy while damping is settling also triggers a render. Pixel ratio is capped at 2 (Retina + 4K externals can hit 3+, which makes the fragment shader 2.25× more expensive for no perceptible quality gain on a static slab). Slab + axle teardown disposes geometries and materials; the scan texture is cached on the `Image` so repeated thickness rebuilds don't re-upload.
+
+**Diagnostics.** Every load logs viewBox dimensions, silhouette vertex count + area, fold counts, root presence, thickness + source, axle count, and `MM_PER_UNIT` to the console. Banners surface authoring misses in the side panel.
+
+### What's not yet there
+
+The tool ships v1a + cut-layer + texture-flip + back-face-mirror + perf + thickness fix + axle rotation as of 2026-05-02. **v1b is queued** in `CODE_PROMPT_preview-html-v1b.md`: polygon cutting (silhouette × N fold lines → N+1 panels via `polygon-clipping`), adjacency BFS (panels → fold tree rooted at the root-marker panel), per-fold UI sliders + a global fold slider, hinge hierarchy in three.js, and live fold animation. The polygon-clipping library is already loaded via CDN; the `<div id="fold-controls">` shell is present as a placeholder. v1b's prompt is currently `status: draft` and depends on tightening against v1a's actual function signatures before flipping to `ready-for-code`.
+
+Other deferred work, in rough priority order:
+
+- **Cutouts subtraction.** The `cutouts` layer is parsed-aware-of but not yet subtracted from the slab. A piece like 71 (with a center cell) renders as a solid slab today. The convention is locked in; the implementation isn't.
+- **Multi-cutaway slabs.** Pieces with `cutaway-1`, `cutaway-2`, … currently render only the first with a banner. Multi-slab support is a v1b+ concern.
+- **Rotated / skewed `<use>` transforms.** The scan-image transform parser reads `matrix(sx, 0, 0, sy, tx, ty)` only; rotation / skew components (b, c) are silently dropped (`TODO(070)` in code).
+- **UV offsets from `<use>` `x` / `y` / `imageScale`.** Front-face UVs assume the PNG covers `[0, VB.w] × [0, VB.h]` exactly; ~7 px slip on 067, sub-pixel on 069 (`TODO(uv-offsets)` in code).
+
+### Path forward — preview.html vs. `work/viewer/`
+
+The original SPEC scoped the production viewer at `work/viewer/` (TypeScript + Vite + three.js + Tailwind, deployable to GitHub Pages, M3 milestone). preview.html started as a single-piece authoring/QA prototype distinct from that production viewer.
+
+The split is no longer obvious. preview.html now carries the production silhouette parser, the cut-layer convention, the thickness model, the axle / north convention, the textured-slab render, and a real-world performance budget. Most of what M3 needs to ship for one piece exists today inside preview.html. The remaining production-viewer surface (per-piece manifest, multi-piece grid layout, hover + click + inspect panel, layer toggles, GitHub Pages deploy) is integration and UX work, not new rendering primitives.
+
+**Open question (May 2026): does preview.html graduate into `work/viewer/`, or stay a separate authoring/QA tool while `work/viewer/` is built fresh in TS / Vite?** Three plausible directions:
+
+1. **Port preview.html into `work/viewer/`.** Lift the parsing + extrusion + axle code into TypeScript modules, wrap them in a Vite app, add the production UX (manifest, multi-piece layout, inspect panel). Keeps the convention-discovery work intact and avoids re-authoring the parser. Cost: TS migration of ~500 lines of working JS, plus the M3 production-UX work.
+2. **Keep preview.html as the authoring/QA tool; build `work/viewer/` independently.** preview.html stays single-piece, single-file, opened from `file://`. `work/viewer/` is rebuilt in TS / Vite from the SPEC, using preview.html as a reference implementation rather than as the substrate. Higher total code volume, but each tool stays clean for its purpose.
+3. **Promote preview.html and skip `work/viewer/`.** Stay single-file HTML for the production deploy too; add a `?piece=NNN` URL parameter, a manifest fetch, and a piece picker; deploy via GitHub Pages by serving the same `preview.html` with the manifest + asset folders alongside it. Lowest code volume; loses the TS / Vite scaffolding the SPEC originally chose for type safety + dev ergonomics. Reasonable to revisit if the production viewer's complexity stays modest.
+
+This decision is open. The roadmap row M0.6 tracks preview.html's continued development independent of the resolution; whichever path is chosen, the v1b polygon-cut + hinge work and the cutouts + multi-cutaway work happen against `preview.html` first, then either port forward (option 1 / 3) or fork forward into `work/viewer/` (option 2). Recommended next step before deciding: ship v1b on preview.html and live with the result for a few pieces. The polygon-cut + adjacency BFS + hinge hierarchy is the largest remaining piece of architectural risk; if it works cleanly in plain JS at preview.html scope, option 1 or 3 becomes the obvious move; if it gets tangled, the rebuild-in-TS option earns its keep.

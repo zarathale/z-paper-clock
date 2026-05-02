@@ -42,7 +42,9 @@ html, body { width:100%; height:100%; overflow:hidden; background:#1a1a1a; color
   color:#666; font-style:italic; font-size:12px;
 }
 
-#thickness-section { display:flex; flex-direction:column; gap:6px; }
+#thickness-section,
+#rotation-section { display:flex; flex-direction:column; gap:6px; }
+#rotation-section[hidden] { display:none; }
 .slider-row { display:flex; align-items:center; gap:8px; }
 .slider-row label { color:#aaa; min-width:70px; }
 .slider-row input[type=range] { flex:1; accent-color:#c9a96e; }
@@ -81,10 +83,19 @@ button:hover { background:#383838; }
   <div id="thickness-section">
     <div class="slider-row">
       <label>Thickness</label>
-      <input type="range" id="thickSlider" min="0.3" max="4.0" step="0.1" value="1.0">
-      <span class="val" id="thickVal">1.0 mm</span>
+      <input type="range" id="thickSlider" min="0.3" max="4.0" step="0.1" value="0.4">
+      <span class="val" id="thickVal">0.4 mm</span>
     </div>
     <button id="resetBtn">Reset thickness</button>
+  </div>
+
+  <div id="rotation-section" hidden>
+    <div class="slider-row">
+      <label>Rotation</label>
+      <input type="range" id="rotateSlider" min="-180" max="180" step="1" value="0">
+      <span class="val" id="rotateVal">0°</span>
+    </div>
+    <button id="resetRotateBtn">Reset rotation</button>
   </div>
 </div>
 
@@ -96,8 +107,8 @@ button:hover { background:#383838; }
 
 // ─── Three.js scene globals ───────────────────────────────────────────────────
 let renderer, camera, scene, controls;
-let currentSlabGroup = null;
-let currentAxleMarkers = [];
+let currentSlabPivot = null;
+let currentAxleWires = [];
 
 // Render-on-demand: only call renderer.render() when the scene or camera changed.
 // Set true via requestRender() after any scene mutation; OrbitControls' 'change'
@@ -128,6 +139,10 @@ const bannersEl  = document.getElementById('banners');
 const thickSlider = document.getElementById('thickSlider');
 const thickVal   = document.getElementById('thickVal');
 const resetBtn   = document.getElementById('resetBtn');
+const rotateSlider    = document.getElementById('rotateSlider');
+const rotateVal       = document.getElementById('rotateVal');
+const resetRotateBtn  = document.getElementById('resetRotateBtn');
+const rotationSection = document.getElementById('rotation-section');
 const canvasHost = document.getElementById('canvas-host');
 
 // ─── Init three.js scene ──────────────────────────────────────────────────────
@@ -250,6 +265,11 @@ function loadSVG(text, filename) {
   thickSlider.value = parsed.thicknessMm;
   thickVal.textContent = parsed.thicknessMm.toFixed(1) + ' mm';
 
+  // Reset rotation on every new file. Thickness rebuilds (debouncedRebuild)
+  // skip this path so the rotation persists across thickness slider tweaks.
+  rotateSlider.value = 0;
+  rotateVal.textContent = '0°';
+
   // Derive MM_PER_UNIT once scan image dimensions are known
   derivePPM(parsed, () => renderScene(parsed));
 }
@@ -370,16 +390,32 @@ function parseSVG(text, filename) {
     // mountain absent is expected on many pieces; no banner
   }
 
-  // Axles
+  // Axles + optional `north` marker (orientation cue).
+  // Convention (settled 2026-05-02): inside <g id="axles">, an element with
+  // id="north" anywhere in the layer defines the +0° direction via the vector
+  // from the active axle (axles[0]) to the north marker's centroid. Element
+  // type can be ellipse / circle / rect / path — anything elementCentroid()
+  // handles. Optional; pieces without it still rotate, just no orientation
+  // cue is rendered. The marker rotates with the piece (it's part of the
+  // slab visually) so it gives live feedback as the user drags the rotation
+  // slider.
   const axles = [];
+  let north = null;
   if (layerAxles) {
+    const northEl = layerAxles.querySelector('[id="north"]');
+    if (northEl) {
+      north = elementCentroid(northEl);
+      if (!north) addBanner('north marker found but its centroid could not be parsed.', 'warn');
+    }
     for (const el of layerAxles.querySelectorAll('ellipse, circle')) {
+      if (el.getAttribute('id') === 'north') continue;
       const cx = parseFloat(el.getAttribute('cx') || el.getAttribute('x') || 0);
       const cy = parseFloat(el.getAttribute('cy') || el.getAttribute('y') || 0);
       if (!isNaN(cx) && !isNaN(cy)) axles.push({ cx, cy });
     }
   }
   if (!layerAxles || axles.length === 0) addBanner('Axles empty — no pivot marker.', 'warn');
+  if (north && axles.length === 0) addBanner('north marker authored without an axle — orientation cue ignored.', 'warn');
 
   // Root marker
   let rootCentroid = null;
@@ -410,7 +446,7 @@ function parseSVG(text, filename) {
   }
 
   // Thickness
-  let thicknessMm = 1.0;
+  let thicknessMm = 0.4;
   let thicknessSource = 'default';
   if (layerThick) {
     const textEl = layerThick.querySelector('text');
@@ -419,17 +455,49 @@ function parseSVG(text, filename) {
       if (!isNaN(val) && val > 0) { thicknessMm = val; thicknessSource = 'text-layer'; }
     }
   }
-  if (thicknessSource === 'default') addBanner('Thickness layer missing — using 1.0 mm default.', 'warn');
+  if (thicknessSource === 'default') addBanner('Thickness layer missing — using 0.4 mm default.', 'warn');
 
   return {
     filename, viewBox,
     scanPng, scanWidth, scanHeight, imageScale,
     folds,
     axles,
+    north,         // {x, y} in viewBox coords, or null if no orientation marker authored
     rootCentroid,
     thicknessMm, thicknessDefault: thicknessMm, thicknessSource,
     _svgText: text   // kept for silhouette fallback path parsing
   };
+}
+
+// Centroid of a single SVG element. Handles ellipse/circle (cx,cy), rect
+// (bbox midpoint), and path (mean of sampled vertices). Returns null on
+// unrecognised tag or unparseable geometry. Used for the optional `north`
+// orientation marker inside <g id="axles">.
+function elementCentroid(el) {
+  if (!el) return null;
+  const tag = el.tagName.toLowerCase();
+  if (tag === 'ellipse' || tag === 'circle') {
+    return {
+      x: parseFloat(el.getAttribute('cx') || 0),
+      y: parseFloat(el.getAttribute('cy') || 0)
+    };
+  }
+  if (tag === 'rect') {
+    const rx = parseFloat(el.getAttribute('x') || 0);
+    const ry = parseFloat(el.getAttribute('y') || 0);
+    const rw = parseFloat(el.getAttribute('width') || 0);
+    const rh = parseFloat(el.getAttribute('height') || 0);
+    return { x: rx + rw / 2, y: ry + rh / 2 };
+  }
+  if (tag === 'path') {
+    const verts = parsePathVertices(el.getAttribute('d') || '');
+    if (verts.length) {
+      const sx = verts.reduce((s, v) => s + v[0], 0) / verts.length;
+      const sy = verts.reduce((s, v) => s + v[1], 0) / verts.length;
+      return { x: sx, y: sy };
+    }
+  }
+  return null;
 }
 
 // Parse a fold path d-attribute: handles M sx,sy l dx,dy  and  M sx,sy L ex,ey
@@ -948,26 +1016,55 @@ function polyArea(poly) {
   return Math.abs(a) / 2;
 }
 
+// ─── Axle wire builder ────────────────────────────────────────────────────────
+// Renders the axle as a thin shiny silver cylinder, perpendicular to the slab,
+// passing through the axle point. The wire is world-anchored — the slab+pivot
+// rotates around it, the wire itself does not move. This matches the physical
+// clock: the wire is a fixed shaft mounted in the framework, and the piece
+// (with a future glued-on knitting-needle-segment bearing) rotates around it.
+//
+// Future extension: a `buildBearing(...)` paired with this and added INSIDE
+// the rotation pivot group will render the knitting-needle bearing — hollow
+// tube around the wire, glued to the piece, rotating with it.
+const AXLE_WIRE_RADIUS = 0.5;     // mm (1 mm diameter)
+const AXLE_WIRE_OVERHANG = 4.0;   // mm beyond each face — visible "wire poking through"
+function buildAxleWire(axleX_3js, axleY_3js, slabT_mm) {
+  const length = slabT_mm + 2 * AXLE_WIRE_OVERHANG;
+  const geo = new THREE.CylinderGeometry(
+    AXLE_WIRE_RADIUS, AXLE_WIRE_RADIUS, length, 24
+  );
+  // Default cylinder runs along Y; rotate so it runs along Z (perpendicular to slab).
+  geo.rotateX(Math.PI / 2);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xc8cdd0,
+    metalness: 0.9,
+    roughness: 0.25
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(axleX_3js, axleY_3js, 0);
+  return mesh;
+}
+
 // ─── Scene render ─────────────────────────────────────────────────────────────
 async function renderScene(p) {
   // Clear previous slab + axle markers, disposing their GPU resources.
   // The scan texture is cached in _scanTexCache and disposed there; the slab's
   // material references it via `map`, so we don't dispose the texture here —
   // disposing the material is enough to release the JS-side reference.
-  if (currentSlabGroup) {
-    scene.remove(currentSlabGroup);
-    currentSlabGroup.traverse(obj => {
+  if (currentSlabPivot) {
+    scene.remove(currentSlabPivot);
+    currentSlabPivot.traverse(obj => {
       if (obj.geometry) obj.geometry.dispose();
       if (obj.material) obj.material.dispose();
     });
-    currentSlabGroup = null;
+    currentSlabPivot = null;
   }
-  for (const m of currentAxleMarkers) {
+  for (const m of currentAxleWires) {
     scene.remove(m);
     if (m.geometry) m.geometry.dispose();
     if (m.material) m.material.dispose();
   }
-  currentAxleMarkers = [];
+  currentAxleWires = [];
 
   // Extract silhouette — cached on p._polygon so thickness rebuilds skip re-extraction
   if (!p._polygon) p._polygon = await extractSilhouette(p);
@@ -978,30 +1075,84 @@ async function renderScene(p) {
 
   // Build slab
   const slab = buildSlab(poly, p.thicknessMm);
-  scene.add(slab);
-  currentSlabGroup = slab;
-
-  // Axle markers
   const bb = polyBbox(poly);
   // T is in three.js units (= mm). thicknessMm is already mm — do NOT multiply
   // by MM_PER_UNIT (that's the vb-units → mm scale, used for the XY conversions
   // below). Multiplying produced T ≈ thicknessMm × 0.01 on real pieces, which is
   // why the slab looked completely flat regardless of slider position.
   const T = p.thicknessMm;
-  // Axle marker sized so it's visible against typical piece widths (a few cm);
-  // sits just above the front face with a small clearance.
-  const AXLE_R = 1.0;
+
+  // Wrap the slab in a rotation pivot. The pivot sits at the active axle's
+  // world position; the slab inside is offset so visually it stays at the same
+  // spot at rotation = 0. Rotating pivot.rotation.z then swings the slab
+  // around the axle line (Z-axis through the axle point). Single-axle
+  // assumption per design: axles[0] is the active rotation axle. Multi-axle
+  // support deferred until needed.
+  const pivot = new THREE.Group();
+  let activeAxle3js = null;  // {x, y} in three.js coords, or null if no axles
+  if (p.axles.length > 0) {
+    const a = p.axles[0];
+    activeAxle3js = {
+      x:  (a.cx - bb.cx) * MM_PER_UNIT,
+      y: -(a.cy - bb.cy) * MM_PER_UNIT
+    };
+    pivot.position.set(activeAxle3js.x, activeAxle3js.y, 0);
+    slab.position.set(-activeAxle3js.x, -activeAxle3js.y, 0);
+  }
+  pivot.add(slab);
+  scene.add(pivot);
+  currentSlabPivot = pivot;
+
+  // Render every axle as a world-anchored silver wire passing through the
+  // axle point perpendicular to the slab. Wires sit OUTSIDE the pivot — they
+  // do not rotate with the piece, matching the physical clock where the wire
+  // is fixed to the framework.
   for (const { cx, cy } of p.axles) {
-    const geo = new THREE.SphereGeometry(AXLE_R, 16, 12);
-    const mat = new THREE.MeshStandardMaterial({ color: 0xff00ff });
-    const sphere = new THREE.Mesh(geo, mat);
-    sphere.position.set(
+    const wire = buildAxleWire(
       (cx - bb.cx) * MM_PER_UNIT,
       -(cy - bb.cy) * MM_PER_UNIT,
-      T / 2 + AXLE_R + 0.1
+      T
     );
-    scene.add(sphere);
-    currentAxleMarkers.push(sphere);
+    scene.add(wire);
+    currentAxleWires.push(wire);
+  }
+
+  // Optional north marker — orientation cue. Brass-gold sphere INSIDE the
+  // rotation pivot, so it rotates with the piece and visually communicates
+  // the current angle relative to the as-authored 0°. Distinct color from
+  // the silver axle wire so the two read as separate elements.
+  if (p.north && activeAxle3js) {
+    const NORTH_R = 1.0;
+    const ngeo = new THREE.SphereGeometry(NORTH_R, 16, 12);
+    const nmat = new THREE.MeshStandardMaterial({
+      color: 0xb89e5b, metalness: 0.7, roughness: 0.35
+    });
+    const nmesh = new THREE.Mesh(ngeo, nmat);
+    // World position when rotation = 0:
+    const nwx =  (p.north.x - bb.cx) * MM_PER_UNIT;
+    const nwy = -(p.north.y - bb.cy) * MM_PER_UNIT;
+    // Local position inside the pivot (which is positioned at activeAxle3js):
+    nmesh.position.set(
+      nwx - activeAxle3js.x,
+      nwy - activeAxle3js.y,
+      T / 2 + NORTH_R + 0.1
+    );
+    pivot.add(nmesh);  // disposed via currentSlabPivot.traverse() at next teardown
+  }
+
+  // Show / hide the rotation slider section based on whether this piece has
+  // an axle to rotate around.
+  rotationSection.hidden = (p.axles.length === 0);
+
+  // Apply the rotation slider's current value. On a fresh file load this is 0
+  // (loadSVG resets the slider). On a thickness rebuild we preserve whatever
+  // the user has the slider set to so the in-progress rotation doesn't jump.
+  // Sign: CW positive convention (Alan's choice 2026-05-02). three.js's
+  // rotation.z is CCW-positive (right-hand rule around +Z, which points
+  // toward viewer), so we negate.
+  if (p.axles.length > 0) {
+    const deg = parseFloat(rotateSlider.value) || 0;
+    pivot.rotation.z = -deg * Math.PI / 180;
   }
 
   // Frame camera
@@ -1169,6 +1320,33 @@ resetBtn.addEventListener('click', () => {
   thickVal.textContent = def.toFixed(1) + ' mm';
   parsed.thicknessMm = def;
   debouncedRebuild();
+});
+
+// ─── Rotation slider ──────────────────────────────────────────────────────────
+// Rotation is a cheap in-place pivot.rotation.z update — no geometry rebuild,
+// no debounce. Fires requestRender() each tick so OrbitControls' render-on-
+// demand picks it up.
+//
+// Sign convention: +deg = CW (clock convention) when viewed from the front.
+// three.js's rotation.z is CCW-positive (right-hand rule around +Z, +Z points
+// toward viewer), so we negate to get CW-positive at the slider level.
+rotateSlider.addEventListener('input', () => {
+  const deg = parseFloat(rotateSlider.value) || 0;
+  rotateVal.textContent = deg.toFixed(0) + '°';
+  if (currentSlabPivot) {
+    currentSlabPivot.rotation.z = -deg * Math.PI / 180;
+    requestRender();
+  }
+});
+
+resetRotateBtn.addEventListener('click', () => {
+  if (parseFloat(rotateSlider.value) === 0) return;
+  rotateSlider.value = 0;
+  rotateVal.textContent = '0°';
+  if (currentSlabPivot) {
+    currentSlabPivot.rotation.z = 0;
+    requestRender();
+  }
 });
 
 // ─── Debounce ─────────────────────────────────────────────────────────────────

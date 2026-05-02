@@ -44,3 +44,7 @@ None blocking. After Alan reloads `preview.html` and confirms the slab visibly e
 1. Alan: reload `preview.html`, drag in any piece SVG (065, 066, 067, 069 — all in `inbox/`), confirm the slab now visibly extrudes and the slider responsively changes thickness from ~0.3 mm to ~4.0 mm.
 2. If happy: commit message below. If the slab extrusion is over- or under-shooting expectations, capture the actual measurements and we'll re-tune the `MM_PER_UNIT` derivation (likely the 600 DPI assumption — piece 002 was measured at ~613 DPI).
 3. Axle markers may want re-sizing or recoloring after Alan sees them on a real piece.
+
+## Addendum — default/fallback thickness 1.0 → 0.4 mm
+
+Alan confirmed the extrusion fix worked, then asked for the default/fallback thickness to drop from 1.0 mm to 0.4 mm — closer to the actual cardstock weight he plans to build with. Three spots in `preview.html`: slider's initial DOM `value` attribute, the parser's fallback assignment in `parseSVG`, and the warning banner text. No code-path changes; pure constant tweak. Commit can fold into the same commit as the extrusion fix, or ship as a tiny follow-up.
