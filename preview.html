@@ -998,7 +998,7 @@ async function renderScene(p) {
 // Takes polygon (array of [vx, vy] in viewBox coords) and thicknessMm.
 // Returns THREE.Group with:
 //   - frontMesh: ShapeGeometry at z=+T/2, scan texture, custom UVs
-//   - backMesh:  ShapeGeometry at z=-T/2, cream, FrontSide (rotated to face -Z)
+//   - backMesh:  ShapeGeometry at z=-T/2, cream, BackSide (visible from -Z, no rotation)
 //   - sideMesh:  custom BufferGeometry connecting front and back edges, cream DoubleSide
 // v1b calls this N times — once per cut panel polygon — without modification.
 function buildSlab(polygon, thicknessMm) {
@@ -1020,7 +1020,7 @@ function buildSlab(polygon, thicknessMm) {
     map: scanTex, transparent: true, alphaTest: 0.1, side: THREE.FrontSide
   });
   const backMat = new THREE.MeshStandardMaterial({
-    color: 0xf0e0c8, side: THREE.FrontSide
+    color: 0xf0e0c8, side: THREE.BackSide
   });
   const edgeMat = new THREE.MeshStandardMaterial({
     color: 0xf0e0c8, side: THREE.DoubleSide
@@ -1043,10 +1043,9 @@ function buildSlab(polygon, thicknessMm) {
   const frontMesh = new THREE.Mesh(fgeo, scanMat);
   frontMesh.position.z = T / 2;
 
-  // ── Back face (cream, z = -T/2, rotated to face -Z) ────────────────────────
+  // ── Back face (cream, z = -T/2, BackSide so it's only visible from -Z) ─────
   const bgeo     = new THREE.ShapeGeometry(shape);
   const backMesh = new THREE.Mesh(bgeo, backMat);
-  backMesh.rotation.y = Math.PI;
   backMesh.position.z = -T / 2;
 
   // ── Side walls (cream DoubleSide, custom BufferGeometry) ────────────────────
