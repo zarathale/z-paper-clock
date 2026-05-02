@@ -99,6 +99,13 @@ let renderer, camera, scene, controls;
 let currentSlabGroup = null;
 let currentAxleMarkers = [];
 
+// Render-on-demand: only call renderer.render() when the scene or camera changed.
+// Set true via requestRender() after any scene mutation; OrbitControls' 'change'
+// event also flips it. Damping is preserved because controls.update() returns
+// truthy while damping is still settling, and that path also triggers a render.
+let needsRender = true;
+function requestRender() { needsRender = true; }
+
 // ─── Parsed data (set by parseSVG, read by renderScene) ──────────────────────
 let parsed = null;
 // parsed = {
@@ -126,7 +133,10 @@ const canvasHost = document.getElementById('canvas-host');
 // ─── Init three.js scene ──────────────────────────────────────────────────────
 function initScene() {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
+  // On Retina macs DPR is already 2; on 4K externals or fractional-scaling configs
+  // it can be 3+, which makes the fragment shader 2.25× more expensive per frame
+  // for no perceptible quality gain on a static slab render.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(0x1a1a1a, 1);
   canvasHost.appendChild(renderer.domElement);
 
@@ -148,14 +158,19 @@ function initScene() {
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
+  controls.addEventListener('change', requestRender);
 
   window.addEventListener('resize', onResize);
   onResize();
 
   (function animate() {
     requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
+    // controls.update() returns true while damping is still settling.
+    const damping = controls.update();
+    if (needsRender || damping) {
+      renderer.render(scene, camera);
+      needsRender = false;
+    }
   })();
 }
 
@@ -165,6 +180,7 @@ function onResize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  requestRender();
 }
 
 // ─── Banner helpers ───────────────────────────────────────────────────────────
@@ -934,9 +950,23 @@ function polyArea(poly) {
 
 // ─── Scene render ─────────────────────────────────────────────────────────────
 async function renderScene(p) {
-  // Clear previous slab + axle markers
-  if (currentSlabGroup) { scene.remove(currentSlabGroup); currentSlabGroup = null; }
-  for (const m of currentAxleMarkers) scene.remove(m);
+  // Clear previous slab + axle markers, disposing their GPU resources.
+  // The scan texture is cached in _scanTexCache and disposed there; the slab's
+  // material references it via `map`, so we don't dispose the texture here —
+  // disposing the material is enough to release the JS-side reference.
+  if (currentSlabGroup) {
+    scene.remove(currentSlabGroup);
+    currentSlabGroup.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) obj.material.dispose();
+    });
+    currentSlabGroup = null;
+  }
+  for (const m of currentAxleMarkers) {
+    scene.remove(m);
+    if (m.geometry) m.geometry.dispose();
+    if (m.material) m.material.dispose();
+  }
   currentAxleMarkers = [];
 
   // Extract silhouette — cached on p._polygon so thickness rebuilds skip re-extraction
@@ -980,6 +1010,7 @@ async function renderScene(p) {
   camera.updateProjectionMatrix();
   controls.target.set(0, 0, 0);
   controls.update();
+  requestRender();
 
   // Console diagnostics
   const vFolds = p.folds.filter(f => f.layer === 'folds-valley').length;
@@ -1080,8 +1111,13 @@ function buildSlab(polygon, thicknessMm) {
 
 // ─── Scan texture builder ─────────────────────────────────────────────────────
 let _scanTexCache = null;
+let _scanTexCacheSrc = null;
 function buildScanTexture(scanPng) {
   if (!scanPng) return null;
+  // Reuse the cached texture when the same Image is requested (e.g. thickness-slider
+  // rebuilds): three.js's GPU upload is one-shot per Texture; re-creating it on every
+  // rebuild was wasted work even before render-on-demand.
+  if (_scanTexCache && _scanTexCacheSrc === scanPng) return _scanTexCache;
   if (_scanTexCache) { _scanTexCache.dispose(); _scanTexCache = null; }
   const tex = new THREE.Texture(scanPng);
   tex.needsUpdate = true;
@@ -1090,7 +1126,16 @@ function buildScanTexture(scanPng) {
   // (vy=0) at UV v=1 — i.e. the visual top of the scan. The two pair correctly
   // only when flipY is left at its default; setting it false here was the v1a
   // texture-flip bug (diagnosed in sessions/2026-05-02-1700_cowork_067-svg-id-swap.md).
+  if (!scanPng.complete) {
+    // PNG decode hasn't finished yet — under render-on-demand we need an explicit
+    // nudge once the image is ready, otherwise the texture would never upload.
+    scanPng.addEventListener('load', () => {
+      tex.needsUpdate = true;
+      requestRender();
+    }, { once: true });
+  }
   _scanTexCache = tex;
+  _scanTexCacheSrc = scanPng;
   return tex;
 }
 
@@ -1098,13 +1143,7 @@ function buildScanTexture(scanPng) {
 const debouncedRebuild = debounce(() => {
   if (!parsed) return;
   parsed.thicknessMm = parseFloat(thickSlider.value);
-  if (currentSlabGroup) {
-    scene.remove(currentSlabGroup);
-    currentSlabGroup = null;
-  }
-  for (const m of currentAxleMarkers) scene.remove(m);
-  currentAxleMarkers = [];
-  // re-render (silhouette already known; rebuild only geometry)
+  // renderScene handles slab + axle teardown (with disposal) at the top.
   renderScene(parsed);
 }, 80);
 
