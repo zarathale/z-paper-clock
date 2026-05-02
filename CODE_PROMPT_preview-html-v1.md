@@ -1,9 +1,12 @@
 ---
-status: ready-for-code
+status: superseded
 started: 2026-05-02
 owner: Zarathale (Alan)
 target: preview-html-v1
+superseded_by: preview-html-v1a + preview-html-v1b
 ---
+
+_Superseded 2026-05-02 by `CODE_PROMPT_preview-html-v1a.md` + `CODE_PROMPT_preview-html-v1b.md` after two failed Code sessions hit the 32000-output-token ceiling trying to produce the full file in one pass. This prompt is preserved as the unified architectural vision and design-rationale record; the split prompts (v1a then v1b) are the executable work units. Tasks numbered here are referenced by the split prompts; section §"Architectural Decisions" still applies._
 
 ## What You Are Doing and Why
 
