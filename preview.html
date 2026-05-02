@@ -274,6 +274,8 @@ function parseSVG(text, filename) {
         const mMatch = tfm.match(/matrix\(([^)]+)\)/);
         if (mMatch) {
           const [a, b, c, d, e, f] = mMatch[1].split(/[\s,]+/).map(Number);
+          // TODO(070): handle rotated/skewed transforms (b ≠ 0 or c ≠ 0).
+          // Current code only reads sx=a, sy=d, tx=e, ty=f and silently drops rotation.
           imageScale = { sx: a, sy: d, tx: e || 0, ty: f || 0 };
         }
 
@@ -294,6 +296,8 @@ function parseSVG(text, filename) {
         const mMatch = tfm.match(/matrix\(([^)]+)\)/);
         if (mMatch) {
           const [a, b, c, d, e, f] = mMatch[1].split(/[\s,]+/).map(Number);
+          // TODO(070): handle rotated/skewed transforms (b ≠ 0 or c ≠ 0).
+          // Current code only reads sx=a, sy=d, tx=e, ty=f and silently drops rotation.
           imageScale = { sx: a, sy: d, tx: e || 0, ty: f || 0 };
         }
         scanPng = new Image();
@@ -426,24 +430,113 @@ function parseFoldPath(d) {
   return null;
 }
 
-// Extract all vertices from a path d (handles M + relative l, no Z required)
+// Extract all vertices from a path d.
+// Handles: M/m L/l H/h V/v C/c Q/q Z/z
+// Curves sampled at 8 points (cubic) or 6 points (quadratic) — enough fidelity for
+// silhouette outlines; the downstream RDP pass collapses collinear samples.
 function parsePathVertices(d) {
   const verts = [];
   let cx = 0, cy = 0;
-  const tokens = d.trim().split(/(?=[MmLlHhVvZz])/);
+  let subpathStartX = 0, subpathStartY = 0;
+  const tokens = d.trim().split(/(?=[MmLlHhVvCcQqZz])/);
   for (const tok of tokens) {
     const cmd = tok[0];
     const nums = tok.slice(1).trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
-    if (cmd === 'M' || cmd === 'L') {
+    if (cmd === 'M') {
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        cx = nums[i]; cy = nums[i + 1];
+        if (i === 0) { subpathStartX = cx; subpathStartY = cy; }
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'm') {
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        cx += nums[i]; cy += nums[i + 1];
+        if (i === 0) { subpathStartX = cx; subpathStartY = cy; }
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'L') {
       for (let i = 0; i + 1 < nums.length; i += 2) {
         cx = nums[i]; cy = nums[i + 1];
         verts.push([cx, cy]);
       }
-    } else if (cmd === 'm' || cmd === 'l') {
+    } else if (cmd === 'l') {
       for (let i = 0; i + 1 < nums.length; i += 2) {
         cx += nums[i]; cy += nums[i + 1];
         verts.push([cx, cy]);
       }
+    } else if (cmd === 'H') {
+      for (let i = 0; i < nums.length; i++) {
+        cx = nums[i];
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'h') {
+      for (let i = 0; i < nums.length; i++) {
+        cx += nums[i];
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'V') {
+      for (let i = 0; i < nums.length; i++) {
+        cy = nums[i];
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'v') {
+      for (let i = 0; i < nums.length; i++) {
+        cy += nums[i];
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'C') {
+      for (let i = 0; i + 5 < nums.length; i += 6) {
+        const x1 = nums[i], y1 = nums[i+1], x2 = nums[i+2], y2 = nums[i+3];
+        const ex = nums[i+4], ey = nums[i+5];
+        for (let s = 1; s <= 8; s++) {
+          const t = s / 8;
+          const u = 1 - t;
+          verts.push([
+            u*u*u*cx + 3*u*u*t*x1 + 3*u*t*t*x2 + t*t*t*ex,
+            u*u*u*cy + 3*u*u*t*y1 + 3*u*t*t*y2 + t*t*t*ey
+          ]);
+        }
+        cx = ex; cy = ey;
+      }
+    } else if (cmd === 'c') {
+      for (let i = 0; i + 5 < nums.length; i += 6) {
+        const x1 = cx + nums[i], y1 = cy + nums[i+1];
+        const x2 = cx + nums[i+2], y2 = cy + nums[i+3];
+        const ex = cx + nums[i+4], ey = cy + nums[i+5];
+        for (let s = 1; s <= 8; s++) {
+          const t = s / 8;
+          const u = 1 - t;
+          verts.push([
+            u*u*u*cx + 3*u*u*t*x1 + 3*u*t*t*x2 + t*t*t*ex,
+            u*u*u*cy + 3*u*u*t*y1 + 3*u*t*t*y2 + t*t*t*ey
+          ]);
+        }
+        cx = ex; cy = ey;
+      }
+    } else if (cmd === 'Q') {
+      for (let i = 0; i + 3 < nums.length; i += 4) {
+        const x1 = nums[i], y1 = nums[i+1], ex = nums[i+2], ey = nums[i+3];
+        for (let s = 1; s <= 6; s++) {
+          const t = s / 6;
+          const u = 1 - t;
+          verts.push([u*u*cx + 2*u*t*x1 + t*t*ex, u*u*cy + 2*u*t*y1 + t*t*ey]);
+        }
+        cx = ex; cy = ey;
+      }
+    } else if (cmd === 'q') {
+      for (let i = 0; i + 3 < nums.length; i += 4) {
+        const x1 = cx + nums[i], y1 = cy + nums[i+1];
+        const ex = cx + nums[i+2], ey = cy + nums[i+3];
+        for (let s = 1; s <= 6; s++) {
+          const t = s / 6;
+          const u = 1 - t;
+          verts.push([u*u*cx + 2*u*t*x1 + t*t*ex, u*u*cy + 2*u*t*y1 + t*t*ey]);
+        }
+        cx = ex; cy = ey;
+      }
+    } else if (cmd === 'Z' || cmd === 'z') {
+      verts.push([subpathStartX, subpathStartY]);
+      cx = subpathStartX; cy = subpathStartY;
     }
   }
   return verts;
@@ -471,74 +564,174 @@ function derivePPM(p, callback) {
 }
 
 // ─── Silhouette extraction ────────────────────────────────────────────────────
-async function extractSilhouette(p) {
-  if (!p.scanPng) return extractSilhouettePath(p);
 
-  // Decode PNG to canvas
-  const img = p.scanPng;
-  await new Promise(res => {
-    if (img.complete) { res(); return; }
-    img.onload = res;
-    img.onerror = res;
-  });
+// Tier 1 silhouette source: the authored <g id="silhouette"> layer.
+// Convention (settled 2026-05-02 after authoring 069.svg + reviewing piece 071):
+//   inside <g id="silhouette">:
+//     id="cutaway"   or id="cutaway-N"  → silhouette polygon
+//     id="mask"      or id="mask-N"     → visual authoring frame, ignored
+//     anything else                     → unrecognised, console.warn
+//   <g id="cutouts"> is a SIBLING layer (interior holes); v1a-fix does NOT consume it.
+//
+// Returns array of [vx, vy] in viewBox coords, or null if layer absent / no cutaways found.
+function extractSilhouetteFromLayer(p) {
+  const dom = new DOMParser().parseFromString(p._svgText, 'image/svg+xml');
+  const layer = dom.querySelector('g#silhouette');
+  if (!layer) return null;
 
-  const offW = img.naturalWidth  || p.scanWidth;
-  const offH = img.naturalHeight || p.scanHeight;
-  if (offW === 0 || offH === 0) return extractSilhouettePath(p);
+  const cutawayRe = /^cutaway(-\d+)?$/;
+  const maskRe    = /^mask(-\d+)?$/;
 
-  const offCanvas = document.createElement('canvas');
-  offCanvas.width  = offW;
-  offCanvas.height = offH;
-  const ctx = offCanvas.getContext('2d');
-  ctx.drawImage(img, 0, 0);
-  let data;
-  try { data = ctx.getImageData(0, 0, offW, offH).data; }
-  catch (e) { addBanner('Could not read scan pixels (CORS/tainting) — using path fallback.', 'warn'); return extractSilhouettePath(p); }
+  const cutaways = [];
+  // querySelectorAll('*') returns all element descendants in document order,
+  // transparently handling Affinity's unnamed wrapper <g> elements.
+  for (const el of layer.querySelectorAll('*')) {
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'g') continue;  // structural wrapper; descendants iterated separately
 
-  // Count opaque pixels
-  let opaque = 0;
-  const total = offW * offH;
-  for (let i = 3; i < data.length; i += 4) if (data[i] > 250) opaque++;
-  const opaqueFrac = opaque / total;
-
-  if (opaqueFrac >= 0.99) {
-    // Fully opaque PNG — fall back to SVG path silhouette
-    return extractSilhouettePath(p);
+    const id = el.getAttribute('id') || '';
+    if (cutawayRe.test(id)) {
+      const poly = shapeToPolygon(el);
+      if (poly && poly.length >= 3) {
+        cutaways.push({ id, poly });
+      } else {
+        addBanner(`<g id="silhouette"> #${id} could not be parsed as a closed shape.`, 'warn');
+      }
+    } else if (maskRe.test(id)) {
+      // visual authoring frame — ignore silently
+    } else {
+      console.warn('[preview.html] <g id="silhouette"> contains <' + tag + '>' +
+                   (id ? ' id="' + id + '"' : '') +
+                   ' — unrecognised, ignoring. Use id="cutaway" / "cutaway-N" or "mask".');
+    }
   }
 
-  // Alpha-based: marching squares
-  const rawSegs = marchingSquares(data, offW, offH, 0.5);
-  const rawPoly = chainSegments(rawSegs);
-  if (!rawPoly || rawPoly.length < 3) {
-    addBanner('Marching squares produced no contour — falling back to SVG path.', 'error');
-    return extractSilhouettePath(p);
+  if (cutaways.length === 0) return null;
+
+  if (cutaways.length > 1) {
+    addBanner(
+      `Found ${cutaways.length} cutaways (${cutaways.map(c => c.id).join(', ')}); ` +
+      `v1a renders only the first. Multi-slab support is pending.`,
+      'warn'
+    );
   }
 
-  // Scale from PNG-pixel space to viewBox space
-  const sx = p.imageScale.sx || 1;
-  const sy = p.imageScale.sy || 1;
-  const tx = p.imageScale.tx || 0;
-  const ty = p.imageScale.ty || 0;
-  const vbPoly = rawPoly.map(([x, y]) => [x * sx + tx, y * sy + ty]);
-
-  // RDP simplify at ε = 1 viewBox unit
-  const simplified = rdp(vbPoly, 1.0);
-  console.log('[preview.html] Silhouette: raw', rawPoly.length, 'verts → simplified', simplified.length,
-              'verts, area', polyArea(simplified).toFixed(0), 'units²');
+  const chosen = cutaways[0];
+  const simplified = rdp(chosen.poly, 1.0);
+  console.log('[preview.html] Silhouette: from <g id="silhouette"> #' + chosen.id + ',',
+              chosen.poly.length, 'verts →', simplified.length,
+              'simplified, area', polyArea(simplified).toFixed(0), 'units² (source: layer)');
   return simplified;
+}
+
+// Convert a leaf shape element to [[vx, vy], ...] in its own local viewBox coords.
+// Per-element transforms are NOT applied — current SVGs don't author them on
+// silhouette children.
+function shapeToPolygon(el) {
+  const tag = el.tagName.toLowerCase();
+  if (tag === 'path') {
+    const d = el.getAttribute('d') || '';
+    return d ? parsePathVertices(d) : null;
+  }
+  if (tag === 'polygon') {
+    const pts = (el.getAttribute('points') || '').trim().split(/[\s,]+/).map(Number);
+    const verts = [];
+    for (let i = 0; i + 1 < pts.length; i += 2) verts.push([pts[i], pts[i + 1]]);
+    return verts;
+  }
+  if (tag === 'rect') {
+    const x = parseFloat(el.getAttribute('x') || '0');
+    const y = parseFloat(el.getAttribute('y') || '0');
+    const w = parseFloat(el.getAttribute('width') || '0');
+    const h = parseFloat(el.getAttribute('height') || '0');
+    if (w > 0 && h > 0) return [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
+  }
+  return null;
+}
+
+async function extractSilhouette(p) {
+  // Tier 1: authored <g id="silhouette"> layer (canonical, per CLAUDE.md)
+  const fromLayer = extractSilhouetteFromLayer(p);
+  if (fromLayer) return fromLayer;
+
+  // Layer absent or empty — fall through with a banner so authoring misses never
+  // silently corrupt a render.
+  if (p.scanPng) {
+    // Decode PNG to canvas
+    const img = p.scanPng;
+    await new Promise(res => {
+      if (img.complete) { res(); return; }
+      img.onload = res;
+      img.onerror = res;
+    });
+
+    const offW = img.naturalWidth  || p.scanWidth;
+    const offH = img.naturalHeight || p.scanHeight;
+
+    if (offW > 0 && offH > 0) {
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width  = offW;
+      offCanvas.height = offH;
+      const ctx = offCanvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      let data;
+      try { data = ctx.getImageData(0, 0, offW, offH).data; }
+      catch (e) { addBanner('Could not read scan pixels (CORS/tainting) — using path fallback.', 'warn'); }
+
+      if (data) {
+        // Count opaque pixels
+        let opaque = 0;
+        const total = offW * offH;
+        for (let i = 3; i < data.length; i += 4) if (data[i] > 250) opaque++;
+        const opaqueFrac = opaque / total;
+
+        if (opaqueFrac < 0.99) {
+          // Tier 2: PNG alpha (legacy; less authoritative than authored layer)
+          addBanner('No <g id="silhouette"> layer — falling back to PNG alpha mask. ' +
+                    'Author a silhouette layer to make the cut authoritative.', 'warn');
+
+          const rawSegs = marchingSquares(data, offW, offH, 0.5);
+          const rawPoly = chainSegments(rawSegs);
+          if (rawPoly && rawPoly.length >= 3) {
+            // Scale from PNG-pixel space to viewBox space
+            const sx = p.imageScale.sx || 1;
+            const sy = p.imageScale.sy || 1;
+            const tx = p.imageScale.tx || 0;
+            const ty = p.imageScale.ty || 0;
+            const vbPoly = rawPoly.map(([x, y]) => [x * sx + tx, y * sy + ty]);
+            const simplified = rdp(vbPoly, 1.0);
+            console.log('[preview.html] Silhouette: raw', rawPoly.length, 'verts → simplified',
+                        simplified.length, 'verts, area', polyArea(simplified).toFixed(0),
+                        'units² (source: alpha)');
+            return simplified;
+          }
+          addBanner('Marching squares produced no contour — falling back to SVG path.', 'error');
+        }
+      }
+    }
+  }
+
+  // Tier 3: largest closed colored path in the SVG body (heuristic)
+  addBanner('No <g id="silhouette"> and no usable PNG alpha — falling back to ' +
+            'largest colored path heuristic. This may pick the wrong shape.', 'warn');
+  return extractSilhouettePath(p);
 }
 
 function extractSilhouettePath(p) {
   // Look for a closed colored path in the SVG body
   const dom = new DOMParser().parseFromString(p._svgText, 'image/svg+xml');
-  // Exclude known metadata layers
-  const skipIds = new Set(['folds-valley', 'folds-mountain', 'axles', 'marks', 'root', 'thickness', 'Background']);
+  // Exclude known metadata layers; also exclude authored cut layers so the
+  // heuristic never accidentally matches mask/cutaway/cutout paths.
+  const skipIds = new Set([
+    'folds-valley', 'folds-mountain', 'axles', 'marks', 'root', 'thickness', 'Background',
+    'silhouette', 'cutouts'
+  ]);
   let bestPath = null;
   let bestLen  = 0;
 
   const allPaths = dom.querySelectorAll('path');
   for (const path of allPaths) {
-    // Check it's not inside a metadata layer
+    // Check it's not inside a metadata or cut layer
     let parent = path.parentElement;
     let skip = false;
     while (parent && parent !== dom.documentElement) {
@@ -559,12 +752,16 @@ function extractSilhouettePath(p) {
   }
 
   if (!bestPath || bestPath.length < 3) {
-    addBanner('No silhouette found — SVG needs an alpha-bearing scan or a colored silhouette path.', 'error');
+    addBanner(
+      'No silhouette source found — author <g id="silhouette"> with a <path id="cutaway"> ' +
+      '(or polygon/rect with id starting "cutaway"), or provide an alpha-bearing scan.',
+      'error'
+    );
     return null;
   }
 
   console.log('[preview.html] Silhouette: SVG-path fallback,', bestPath.length, 'verts, area',
-              polyArea(bestPath).toFixed(0), 'units²');
+              polyArea(bestPath).toFixed(0), 'units² (source: path-fallback)');
   return bestPath;
 }
 
