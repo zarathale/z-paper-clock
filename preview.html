@@ -118,7 +118,7 @@ let parsed = null;
 //   thicknessMm: number, thicknessSource: 'text-layer'|'default'
 // }
 
-let UNITS_PER_MM = null;   // set after scan image loads (mm per viewBox unit)
+let MM_PER_UNIT = null;   // set after scan image loads (mm per viewBox unit)
 let VB = null;             // shorthand for parsed.viewBox
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -250,7 +250,7 @@ function loadSVG(text, filename) {
   thickSlider.value = parsed.thicknessMm;
   thickVal.textContent = parsed.thicknessMm.toFixed(1) + ' mm';
 
-  // Derive UNITS_PER_MM once scan image dimensions are known
+  // Derive MM_PER_UNIT once scan image dimensions are known
   derivePPM(parsed, () => renderScene(parsed));
 }
 
@@ -565,8 +565,8 @@ function parsePathVertices(d) {
 }
 
 // ─── Scale derivation ─────────────────────────────────────────────────────────
-// UNITS_PER_MM = (viewBox diagonal in mm) / (viewBox diagonal in viewBox units)
-// Result: multiply a viewBox measurement by UNITS_PER_MM to get mm (= three.js units,
+// MM_PER_UNIT = (viewBox diagonal in mm) / (viewBox diagonal in viewBox units)
+// Result: multiply a viewBox measurement by MM_PER_UNIT to get mm (= three.js units,
 // since we set 1 three.js unit = 1 mm).
 function derivePPM(p, callback) {
   const vbDiag = Math.hypot(p.viewBox.w, p.viewBox.h);
@@ -574,13 +574,13 @@ function derivePPM(p, callback) {
   if (p.scanPng && p.scanWidth > 0 && p.scanHeight > 0) {
     const pngDiagPx  = Math.hypot(p.scanWidth, p.scanHeight);
     const pngDiagMm  = pngDiagPx / 600 * 25.4;   // assume 600 DPI
-    UNITS_PER_MM = pngDiagMm / vbDiag;
-    console.log('[preview.html] UNITS_PER_MM:', UNITS_PER_MM.toFixed(6), '(source: derived-from-scan)');
+    MM_PER_UNIT = pngDiagMm / vbDiag;
+    console.log('[preview.html] MM_PER_UNIT:', MM_PER_UNIT.toFixed(6), '(source: derived-from-scan)');
     callback();
   } else {
-    UNITS_PER_MM = 1;
+    MM_PER_UNIT = 1;
     addBanner('Scale unknown (no scan dims) — thickness shown in viewBox units.', 'warn');
-    console.log('[preview.html] UNITS_PER_MM: 1 (source: fallback-1)');
+    console.log('[preview.html] MM_PER_UNIT: 1 (source: fallback-1)');
     callback();
   }
 }
@@ -983,15 +983,22 @@ async function renderScene(p) {
 
   // Axle markers
   const bb = polyBbox(poly);
-  const T  = p.thicknessMm * UNITS_PER_MM;
+  // T is in three.js units (= mm). thicknessMm is already mm — do NOT multiply
+  // by MM_PER_UNIT (that's the vb-units → mm scale, used for the XY conversions
+  // below). Multiplying produced T ≈ thicknessMm × 0.01 on real pieces, which is
+  // why the slab looked completely flat regardless of slider position.
+  const T = p.thicknessMm;
+  // Axle marker sized so it's visible against typical piece widths (a few cm);
+  // sits just above the front face with a small clearance.
+  const AXLE_R = 1.0;
   for (const { cx, cy } of p.axles) {
-    const geo = new THREE.SphereGeometry(0.15, 16, 12);
+    const geo = new THREE.SphereGeometry(AXLE_R, 16, 12);
     const mat = new THREE.MeshStandardMaterial({ color: 0xff00ff });
     const sphere = new THREE.Mesh(geo, mat);
     sphere.position.set(
-      (cx - bb.cx) * UNITS_PER_MM,
-      -(cy - bb.cy) * UNITS_PER_MM,
-      T / 2 + 0.2
+      (cx - bb.cx) * MM_PER_UNIT,
+      -(cy - bb.cy) * MM_PER_UNIT,
+      T / 2 + AXLE_R + 0.1
     );
     scene.add(sphere);
     currentAxleMarkers.push(sphere);
@@ -999,8 +1006,8 @@ async function renderScene(p) {
 
   // Frame camera
   const diagUnits = Math.hypot(
-    (bb.maxX - bb.minX) * UNITS_PER_MM,
-    (bb.maxY - bb.minY) * UNITS_PER_MM
+    (bb.maxX - bb.minX) * MM_PER_UNIT,
+    (bb.maxY - bb.minY) * MM_PER_UNIT
   );
   const fovRad = camera.fov * Math.PI / 180;
   const dist   = (diagUnits / 2) / Math.tan(fovRad / 2) * 1.3;
@@ -1022,7 +1029,7 @@ async function renderScene(p) {
   console.log('Root marker:', p.rootCentroid ? 'present, centroid (' + p.rootCentroid.x.toFixed(1) + ', ' + p.rootCentroid.y.toFixed(1) + ')' : 'absent');
   console.log('Thickness:', p.thicknessMm, 'mm (source:', p.thicknessSource + ')');
   console.log('Axles:', p.axles.length);
-  console.log('UNITS_PER_MM:', UNITS_PER_MM.toFixed(6));
+  console.log('MM_PER_UNIT:', MM_PER_UNIT.toFixed(6));
 }
 
 // ─── buildSlab ────────────────────────────────────────────────────────────────
@@ -1033,16 +1040,18 @@ async function renderScene(p) {
 //   - sideMesh:  custom BufferGeometry connecting front and back edges, cream DoubleSide
 // v1b calls this N times — once per cut panel polygon — without modification.
 function buildSlab(polygon, thicknessMm) {
-  const T  = thicknessMm * UNITS_PER_MM;
+  // T is in three.js units (= mm). thicknessMm is already mm; MM_PER_UNIT is
+  // the vb-units → mm scale and applies only to the XY conversions below.
+  const T = thicknessMm;
   const bb = polyBbox(polygon);
 
   // Build THREE.Shape in three.js (mm) space, Y-flipped (SVG Y-down → three.js Y-up)
   const shape = new THREE.Shape();
   const [v0x, v0y] = polygon[0];
-  shape.moveTo((v0x - bb.cx) * UNITS_PER_MM, -(v0y - bb.cy) * UNITS_PER_MM);
+  shape.moveTo((v0x - bb.cx) * MM_PER_UNIT, -(v0y - bb.cy) * MM_PER_UNIT);
   for (let i = 1; i < polygon.length; i++) {
     const [vx, vy] = polygon[i];
-    shape.lineTo((vx - bb.cx) * UNITS_PER_MM, -(vy - bb.cy) * UNITS_PER_MM);
+    shape.lineTo((vx - bb.cx) * MM_PER_UNIT, -(vy - bb.cy) * MM_PER_UNIT);
   }
 
   // Materials
@@ -1065,8 +1074,8 @@ function buildSlab(polygon, thicknessMm) {
     const posX = fpos.getX(i);
     const posY = fpos.getY(i);
     // Recover viewBox coords from shape (mm) coords
-    const vx = posX / UNITS_PER_MM + bb.cx;
-    const vy = bb.cy - posY / UNITS_PER_MM;   // un-flip Y
+    const vx = posX / MM_PER_UNIT + bb.cx;
+    const vy = bb.cy - posY / MM_PER_UNIT;   // un-flip Y
     fuvs[i * 2]     = vx / VB.w;
     fuvs[i * 2 + 1] = 1.0 - vy / VB.h;
   }
@@ -1087,8 +1096,8 @@ function buildSlab(polygon, thicknessMm) {
 
   for (let i = 0; i <= n; i++) {
     const [vx, vy] = polygon[i % n];
-    const px = (vx - bb.cx) * UNITS_PER_MM;
-    const py = -(vy - bb.cy) * UNITS_PER_MM;
+    const px = (vx - bb.cx) * MM_PER_UNIT;
+    const py = -(vy - bb.cy) * MM_PER_UNIT;
     const base = i * 6;
     sideVerts[base]     = px; sideVerts[base + 1] = py; sideVerts[base + 2] = halfT;
     sideVerts[base + 3] = px; sideVerts[base + 4] = py; sideVerts[base + 5] = -halfT;
