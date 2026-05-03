@@ -38,8 +38,9 @@ next_action: Settle on per-piece JSON shape for asset-state; write a v0 audit sc
 
 **Recent log.**
 
-- 2026-05-03: shipped PROJECT-STATE.md + WORKPLAN.md as v1; light cross-reference update to CLAUDE.md.
-- 2026-05-03: settled the two-doc split (work-state vs. asset-state) and per-piece JSON shape for asset-state. GitHub Projects parked.
+- 2026-05-03 (afternoon): asset-state schema settled and `CODE_PROMPT_asset-state-audit.md` handed off (see Asset-state track). `LAYER-CONVENTIONS.md` shipped at repo root in parallel — distilled scannable reference for SVG authoring conventions, paired with the audit (audit checks each rule mechanically; the cheat sheet keeps the rules human-reachable while editing). One file landing: the convention-as-linter pattern that addresses the "uplift to new authoring standard" pain point. See `sessions/2026-05-03-1400_cowork_asset-state-schema-and-audit.md`.
+- 2026-05-03 (morning): shipped PROJECT-STATE.md + WORKPLAN.md as v1; light cross-reference update to CLAUDE.md.
+- 2026-05-03 (morning): settled the two-doc split (work-state vs. asset-state) and per-piece JSON shape for asset-state. GitHub Projects parked.
 - 2026-05-02: design conversation began (multi-turn Cowork session). Identified the methodology question buried inside the user's PROJECT STATE draft.
 
 ---
@@ -87,6 +88,7 @@ next_action: Decide which pendulum pieces to author next (in service of the regi
 
 **Recent log.**
 
+- 2026-05-03: `LAYER-CONVENTIONS.md` shipped at repo root — distilled scannable cheat sheet for canonical layer names, the cut-layer / axles+north conventions, the faithful-trace direction, and the common authoring slips the audit catches. Designed to stay open on a second window while authoring in Affinity. See `sessions/2026-05-03-1400_cowork_asset-state-schema-and-audit.md`.
 - 2026-05-02: cut-layer authoring convention settled and shipped through preview.html. See `sessions/2026-05-02-1500_cowork_preview-html-cut-layer-spec.md`.
 - 2026-05-02: axles-with-`id="north"` orientation cue convention settled and shipped through preview.html. See `sessions/2026-05-02-2330_cowork_preview-html-axle-rotation.md`.
 - 2026-05-02: faithful-trace + functional-sidecar direction settled (artifact stays human-drawn; mechanism geometry captured in optional `function` block).
@@ -137,7 +139,8 @@ next_action: Inbox/ feels awkward; clarify its semantics or fold it into a clean
 
 **Recent log.**
 
-- 2026-05-03: track opened. Inbox/-feels-awkward observation captured during the operations-layer design conversation.
+- 2026-05-03 (afternoon): `share/` folder no longer present at the repo root (cleaned up between sessions; the prior cowork turn observed it had 4 SVGs overlapping `inbox/`). `inbox/` still contains `069.af` (duplicate of `source/pieces/069.af`) plus 8 SVGs (001, 065, 066, 067, 069, 070, 071, 072) that the asset-state audit will flag once it ships. Audit-as-it-ships will surface what to do with each.
+- 2026-05-03 (morning): track opened. Inbox/-feels-awkward observation captured during the operations-layer design conversation.
 - 2026-04-30: repo audit caught downstream-doc drift after a high-velocity day of folder pivots.
 
 ---
@@ -145,9 +148,9 @@ next_action: Inbox/ feels awkward; clarify its semantics or fold it into a clean
 ## Track: Asset-state / audit tooling
 
 ```yaml
-status: queued
+status: active
 last_updated: 2026-05-03
-next_action: Settle the per-piece JSON schema (which pipeline stages to track), then write a v0 audit script that generates state.json from filesystem reality.
+next_action: Hand CODE_PROMPT_asset-state-audit.md (status: ready-for-code, authored 2026-05-03) to a Code session. Schema settled (per-piece JSON, single fat state.json for v0); convention-as-linter-rule pattern captured (each authoring convention becomes an independent check; new conventions auto-flag old SVGs without a migration step). LAYER-CONVENTIONS.md cheat sheet shipped in parallel at repo root.
 ```
 
 **Hypothesis.** Per-piece state ("where is each piece in its lifecycle") needs its own surface, separate from work-state (this document). A small Python audit script reads the filesystem (`source/pieces/`, `work/pieces/`, `inbox/`, `source/scans-chunks/`, etc.) and emits a per-piece JSON file (or a single fat `state.json`) reflecting which stages each piece has reached. Generated, never hand-maintained — eliminates the "I forgot to update the CSV" failure mode. Output becomes the basis for an eventual browser-rendered dashboard.
@@ -168,7 +171,8 @@ next_action: Settle the per-piece JSON schema (which pipeline stages to track), 
 
 **Recent log.**
 
-- 2026-05-03: track opened. Per-piece JSON shape settled in design conversation.
+- 2026-05-03 (afternoon): schema settled and `CODE_PROMPT_asset-state-audit.md` authored at repo root (status: ready-for-code). Key design point Alan flagged — "as preview.html matures, conventions evolve and pieces need to be uplifted" — handled by per-convention linter-style checks (new convention = new check; existing pieces auto-flag at next audit run; no migration step). `LAYER-CONVENTIONS.md` cheat sheet shipped in parallel at repo root. Track flipped queued → active. See `sessions/2026-05-03-1400_cowork_asset-state-schema-and-audit.md`.
+- 2026-05-03 (morning): track opened. Per-piece JSON shape settled in design conversation.
 
 ---
 
@@ -231,4 +235,6 @@ next_action: Identify exact piece IDs for the pendulum bob + pendulum arm from e
 
 ---
 
-*Last updated: 2026-05-03 — initial authoring. Eight tracks seeded from the multi-turn Cowork design conversation that introduced PROJECT-STATE.md + WORKPLAN.md. See `sessions/2026-05-03-0000_cowork_project-state-and-workplan.md`.*
+*Last updated: 2026-05-03 (afternoon) — asset-state schema settled and `CODE_PROMPT_asset-state-audit.md` handed off; `LAYER-CONVENTIONS.md` cheat sheet shipped at repo root in parallel. Asset-state track flipped queued → active. See `sessions/2026-05-03-1400_cowork_asset-state-schema-and-audit.md`.*
+
+*Earlier 2026-05-03 (morning) — initial authoring. Eight tracks seeded from the multi-turn Cowork design conversation that introduced PROJECT-STATE.md + WORKPLAN.md. See `sessions/2026-05-03-0000_cowork_project-state-and-workplan.md`.*
