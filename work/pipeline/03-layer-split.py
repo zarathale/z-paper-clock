@@ -7,7 +7,7 @@ Layer classification heuristics (in order of precedence):
      - Largest by bounding-box area         -> silhouette
      - Inside silhouette bbox, area >5% of silhouette -> cutouts
      - All other small closed paths         -> labels
-  2. Open paths (d does not end with Z)     -> marks-other
+  2. Open paths (d does not end with Z)     -> marks
 
 Valley folds, mountain folds, glue-zones, and axles require human judgment
 from the Inkscape pass (M1 task 1.5) — those layers are emitted empty here
@@ -39,7 +39,7 @@ CANONICAL_LAYERS = [
     "axles",
     "glue-zones",
     "labels",
-    "marks-other",
+    "marks",
 ]
 
 
@@ -148,7 +148,7 @@ def split_piece(piece_dir: Path) -> None:
     for el in open_paths:
         p = ET.Element("path")
         p.attrib.update({k: v for k, v in el.attrib.items()})
-        layers["marks-other"].append(p)
+        layers["marks"].append(p)
 
     # Build output SVG
     vb = root.get("viewBox", "")

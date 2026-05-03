@@ -1,7 +1,7 @@
 ---
 date: 2026-05-03
 start_time: "14:00"
-end_time: "14:30"
+end_time: "15:30"
 mode: cowork
 participant: Zarathale (Alan)
 ---
@@ -84,6 +84,29 @@ No file renames, no folder restructures, no architectural decisions reopened. `s
 3. The audit's output then feeds the **Repo hygiene** track's open question (what to do with `inbox/`'s leftover files). Likely a follow-up cleanup session moves the right `.af` files into `source/pieces/` (or `work/pieces/NNN/` once that path is conventionalized for working files), promotes inbox PNGs that should have landed in `source/pieces/`, etc.
 4. The asset-state track's downstream items (per-piece sidecar files, browser dashboard) stay queued until v0 has been used for a few sessions and the schema has had a chance to be wrong.
 5. Step 4 of the original plan (cheat sheet) shipped this session. Step 5 (per-piece sidecars + dashboard) is intentionally not started.
+
+## Addendum (~15:00) — piece 071 review surfaced two convention corrections
+
+Alan re-exported `inbox/071.svg` after adding `folds-valley` and `marks` layers in Affinity. Reviewing the export flushed out two errors in the docs that had to be fixed in this same session before the audit prompt is handed to Code:
+
+1. **Layer name was wrong in the docs.** The canonical "everything else from the print" layer is `marks`, not `marks-other`. `preview.html` already used `marks` (line 840 skipIds set), but `CLAUDE.md`, `LAYER-CONVENTIONS.md`, `work/SPEC-3D-VIEWER.md`, the asset-state CODE_PROMPT, and `work/pipeline/03-layer-split.py` all carried the wrong name. Fixed across all live files in one pass. Historical files (sessions/, archived prompts, `work/_archive/`) intentionally not touched. Worktree copies under `.claude/worktrees/` ignored.
+
+2. **Landing markers are settled language.** Alan's SVG had `<g id="marks">` with two child ellipses: `id="landing-c70"` and `id="landing-b70"`. These mark the panels on this piece that *receive* a tab from another piece (the inverse of a glue tab). The convention is now in `CLAUDE.md` Architectural Decisions table + File Naming Conventions section, broken out as a new section in `LAYER-CONVENTIONS.md`, and added as two checks in the asset-state CODE_PROMPT (`landing-marker-id-format` + `landing-markers-in-marks-only`). ID grammar: `landing-<tab-letter><piece-number>` where `<tab-letter>` is the lowercase letter from the print and `<piece-number>` is the bare numeric id (no zero-padding) to match the in-print notation. Letter-variant pieces format as `landing-a92a`.
+
+The cross-piece pairing — tab `c` on piece 70's `glue-zones` ⟷ `landing-c70` on piece 71's `marks` — is the connection-graph primitive the assembly engine (M4) will read. Nothing consumes it today, but it's worth authoring as you go because re-deriving it later is harder than capturing it once.
+
+This addendum is also a good real test of the linter-rule pattern the asset-state audit is built around: a new convention landed (landings) + an existing convention name was corrected (marks). Both changes propagated to docs + the audit's check registry without any per-piece migration. Existing SVGs will get re-flagged at next audit run.
+
+Files changed in the addendum:
+
+| File | Change |
+|---|---|
+| `CLAUDE.md` | rename marks-other → marks (2 spots); new Architectural Decisions row for marks-layer + landing convention; File Naming Conventions list extended with per-element ids inside `<g id="marks">` |
+| `LAYER-CONVENTIONS.md` | rename marks-other → marks (3 spots); broke out `marks` into its own section; added landing-marker grammar and cross-piece-pairing note |
+| `work/SPEC-3D-VIEWER.md` | rename marks-other → marks (2 spots in convention table + decal-bake step) |
+| `WORKPLAN.md` | rename marks-other → marks (1 spot in SVG-layer-authoring track) |
+| `CODE_PROMPT_asset-state-audit.md` | rename marks-other → marks in CANONICAL_LAYERS; added two landing-marker checks; added verification item 7a (071 has landing-c70 and landing-b70) |
+| `work/pipeline/03-layer-split.py` | rename marks-other → marks (3 spots: docstring, CANONICAL_LAYERS list, fallback assignment) |
 
 ## Commit Message
 

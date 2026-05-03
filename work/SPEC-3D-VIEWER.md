@@ -39,7 +39,7 @@ Authoring convention: one SVG per piece, with these named groups (Inkscape layer
 | `axles` | Point markers (small circles or `+`) at axle/pin-hole centers. | `+` glyph. | Used to align pieces sharing an axle; visually marked as a small recess in the front face. |
 | `glue-zones` | Closed paths for hatched glue-reception rectangles. | Hatched fill. | Decal on the front face only; not extruded. |
 | `labels` | Text glyphs: piece number, glue-tab letters with subscripts, instruction notes. | Print. | Decal on the front face. |
-| `marks-other` | Construction lines, dotted alignment guides, anything not in the above. | Dotted, etc. | Decal on the front face. |
+| `marks` | Construction lines, dotted alignment guides, anything not in the above. | Dotted, etc. | Decal on the front face. |
 
 Authoring rules: silhouette must be one path with even-odd fill; if the auto-trace produces multiple disjoint shapes (as on the sawtooth pieces 99, 33), they are merged in Inkscape with a path-union before save. Fold layers carry the fold's polarity in the layer name, never in stroke style — the viewer keys off the layer name. Text in the `labels` layer is preserved as `<text>` (not converted to paths) wherever the auto-trace produced glyph shapes, so the inspect panel can read the label text directly from the SVG.
 
@@ -102,7 +102,7 @@ At viewer load time:
 
 1. **Parse SVG.** Three.js's `SVGLoader` produces `THREE.Shape` objects from each path. The viewer inspects `inkscape:label` to bucket shapes by layer.
 2. **Extrude the silhouette.** `THREE.ExtrudeGeometry(silhouetteShape, { depth: extrudeMm, bevelEnabled: false })`. Cutouts go into the shape's `holes` array.
-3. **Bake decals.** A 2D canvas is set up at the silhouette's bounding-box resolution. The `folds-valley`, `folds-mountain`, `glue-zones`, `labels`, and `marks-other` layers are rendered into the canvas as flat ink. The canvas becomes a `CanvasTexture` mapped to the front face of the extrusion.
+3. **Bake decals.** A 2D canvas is set up at the silhouette's bounding-box resolution. The `folds-valley`, `folds-mountain`, `glue-zones`, `labels`, and `marks` layers are rendered into the canvas as flat ink. The canvas becomes a `CanvasTexture` mapped to the front face of the extrusion.
 4. **Material.** Front face: cream paper diffuse + the decal texture multiplied in. Back face: plain cream. Edges: slightly darker (paper edge). For pieces marked `cardboard-1mm`, swap the cream for a brown-board diffuse.
 5. **Hinges.** If the piece has any folds, the silhouette is partitioned along the fold lines into sub-meshes, each parented to a hinge `Object3D`. The hinge angle is part of the assembly transform (default 0° for a flat development; the assembly JSON sets the actual fold angle when the piece is in place).
 

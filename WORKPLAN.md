@@ -75,7 +75,7 @@ last_updated: 2026-05-03
 next_action: Decide which pendulum pieces to author next (in service of the regions + folding + grouping POC); use them to test the current convention.
 ```
 
-**Hypothesis.** The actual current bottleneck of the project. PNG capture is mostly done; turning each PNG into a layered SVG with the project's authoring conventions (silhouette + cutouts + folds-valley + folds-mountain + axles + glue-zones + labels + marks-other) is what's standing between the source archive and any of the downstream work (preview.html, eventual viewer, regions, folding, grouping, mechanism animation).
+**Hypothesis.** The actual current bottleneck of the project. PNG capture is mostly done; turning each PNG into a layered SVG with the project's authoring conventions (silhouette + cutouts + folds-valley + folds-mountain + axles + glue-zones + labels + marks) is what's standing between the source archive and any of the downstream work (preview.html, eventual viewer, regions, folding, grouping, mechanism animation).
 
 **Status detail.** Only a small handful of pieces have started down this pipeline. The conventions themselves are still iterating as new piece-types reveal new authoring requirements (the cut-layer convention and axles-with-north convention both shipped this past week as examples). Each new piece can both apply the convention and stress-test it.
 
@@ -88,7 +88,8 @@ next_action: Decide which pendulum pieces to author next (in service of the regi
 
 **Recent log.**
 
-- 2026-05-03: `LAYER-CONVENTIONS.md` shipped at repo root — distilled scannable cheat sheet for canonical layer names, the cut-layer / axles+north conventions, the faithful-trace direction, and the common authoring slips the audit catches. Designed to stay open on a second window while authoring in Affinity. See `sessions/2026-05-03-1400_cowork_asset-state-schema-and-audit.md`.
+- 2026-05-03 (afternoon): two convention corrections surfaced while reviewing piece 071's re-export. (1) The "everything else from the print" canonical layer is `marks`, not `marks-other` — the wrong name had been carried across the docs and is now fixed in `CLAUDE.md`, `LAYER-CONVENTIONS.md`, `work/SPEC-3D-VIEWER.md`, `work/pipeline/03-layer-split.py`, and the asset-state CODE_PROMPT. preview.html already used the correct name. (2) **Landing markers** are now formally part of the schema: inside `<g id="marks">`, an element with id `landing-<tab-letter><piece-number>` (e.g. `landing-c70`) marks a panel that receives a tab from another piece — the inverse of a glue tab. Cross-piece pairing (`tab-c` on 70 ⟷ `landing-c70` on 71) is the connection-graph primitive M4's assembly engine will read. New Architectural-Decisions row in `CLAUDE.md`; new section in `LAYER-CONVENTIONS.md`; two new checks queued in the asset-state CODE_PROMPT. Same session note.
+- 2026-05-03 (afternoon): `LAYER-CONVENTIONS.md` shipped at repo root — distilled scannable cheat sheet for canonical layer names, the cut-layer / axles+north conventions, the faithful-trace direction, and the common authoring slips the audit catches. Designed to stay open on a second window while authoring in Affinity. See `sessions/2026-05-03-1400_cowork_asset-state-schema-and-audit.md`.
 - 2026-05-02: cut-layer authoring convention settled and shipped through preview.html. See `sessions/2026-05-02-1500_cowork_preview-html-cut-layer-spec.md`.
 - 2026-05-02: axles-with-`id="north"` orientation cue convention settled and shipped through preview.html. See `sessions/2026-05-02-2330_cowork_preview-html-axle-rotation.md`.
 - 2026-05-02: faithful-trace + functional-sidecar direction settled (artifact stays human-drawn; mechanism geometry captured in optional `function` block).
@@ -235,6 +236,8 @@ next_action: Identify exact piece IDs for the pendulum bob + pendulum arm from e
 
 ---
 
-*Last updated: 2026-05-03 (afternoon) — asset-state schema settled and `CODE_PROMPT_asset-state-audit.md` handed off; `LAYER-CONVENTIONS.md` cheat sheet shipped at repo root in parallel. Asset-state track flipped queued → active. See `sessions/2026-05-03-1400_cowork_asset-state-schema-and-audit.md`.*
+*Last updated: 2026-05-03 (afternoon, addendum) — piece 071 review surfaced two convention corrections: `marks-other` was the wrong name in docs (canonical layer is `marks`) and the landing-marker convention (`landing-<tab><piece>` inside `<g id="marks">`) was settled. Both propagated to all live docs + the asset-state CODE_PROMPT's check registry. The linter-rule pattern absorbed the changes without any per-piece migration. See `sessions/2026-05-03-1400_cowork_asset-state-schema-and-audit.md` (Addendum section).*
+
+*Earlier 2026-05-03 (afternoon) — asset-state schema settled and `CODE_PROMPT_asset-state-audit.md` handed off; `LAYER-CONVENTIONS.md` cheat sheet shipped at repo root in parallel. Asset-state track flipped queued → active.*
 
 *Earlier 2026-05-03 (morning) — initial authoring. Eight tracks seeded from the multi-turn Cowork design conversation that introduced PROJECT-STATE.md + WORKPLAN.md. See `sessions/2026-05-03-0000_cowork_project-state-and-workplan.md`.*

@@ -196,7 +196,7 @@ Use `inkscape:label` as a fallback when `id` is missing on a top-level `<g>`. Re
 ```python
 CANONICAL_LAYERS = {
     "silhouette", "cutouts", "folds-valley", "folds-mountain",
-    "axles", "glue-zones", "labels", "marks-other",
+    "axles", "glue-zones", "labels", "marks",
 }
 ```
 
@@ -228,6 +228,8 @@ Initial check set:
 | `mask-elements-ignorable` | `mask` / `mask-N` ids appear only inside `<g id="silhouette">` (not at top level) | advisory |
 | `canonical-layer-names-only` | All top-level `<g>` ids are in CANONICAL_LAYERS or are `mask` / `mask-N` (visual frame) | advisory |
 | `no-stray-paths-at-root` | No `<path>` elements directly under `<svg>` (everything in a layered group) | advisory |
+| `landing-marker-id-format` | Inside `<g id="marks">`, any element with an id starting `landing-` matches the regex `^landing-[a-z][0-9]+[a-z]?$` (lowercase tab letter, bare piece number, optional letter variant). Settled in CLAUDE.md 2026-05-03. | advisory |
+| `landing-markers-in-marks-only` | Elements with id matching `^landing-` appear only inside `<g id="marks">`, not in other layers or at top level | advisory |
 
 Each check is one small function. Adding a new convention later = adding one function and one row to the registry list. **This is the uplift mechanic.**
 
@@ -376,6 +378,7 @@ Print the full PieceState for one piece in YAML-ish prose (or pretty-printed JSO
 5. `state.json["pieces"]["069"]` exists and has both `inbox/069.af` and `source/pieces/069.af` listed under `files.affinity` AND a `duplicate-affinity-file` anomaly.
 6. `state.json["pieces"]["069"]["svg_analysis"]["primary_svg"]` is the inbox path; `convention_checks` runs.
 7. `state.json["pieces"]["067"]["files"]["affinity"]` lists both `067.af` and `067-full.af` (with suffix `full` captured); no anomaly (variant suffix is informational only).
+7a. `state.json["pieces"]["071"]["svg_analysis"]["layer_id_inventory"]["marks"]` contains `["landing-c70", "landing-b70"]` and `landing-marker-id-format` passes for both.
 8. `python work/scripts/audit_state.py --piece 069` prints detail for piece 069 and does NOT touch `state.json`.
 9. `python work/scripts/audit_state.py --quiet` succeeds with no stdout summary.
 10. Running the script never modifies any file outside `work/state.json`. (Spot-check: `git status` after a run shows only `work/state.json` modified.)

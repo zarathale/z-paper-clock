@@ -19,7 +19,7 @@ Every per-piece SVG contains zero or more of these as top-level `<g>` elements. 
 | `axles` | Point markers (ellipse / circle) at axle / pin-hole centers. | Only on rotating pieces (gear train, anchor, hands) |
 | `glue-zones` | Closed paths for hatched glue-reception rectangles. | Only if the piece glues to another |
 | `labels` | Text labels and piece numbers as printed. | Optional; informational |
-| `marks-other` | Construction dotted lines, registration marks, anything else from the print. | Optional; informational |
+| `marks` | Landing markers (cross-piece tab-receives-tab references), construction dotted lines, registration marks, anything else from the print. | Required if any landing markers; otherwise optional |
 
 Anything outside this list will be flagged as off-spec by the audit. Extending the canonical set is a CLAUDE.md decision-table edit, not a unilateral one.
 
@@ -75,9 +75,22 @@ If a fold has an authored "default angle" (e.g. 90° for a folded-up sidewall), 
 
 ---
 
-## `glue-zones`, `labels`, `marks-other` — purely visual layers
+## `marks` layer — landings + everything else
 
-These layers are rendered into the front-face decal but don't drive geometry. Author them as you see them in the print — closed paths for glue-zones (so the hatch is the fill), text or text-as-paths for labels, anything else in `marks-other`.
+Inside `<g id="marks">`:
+
+- `id="landing-<tab-letter><piece-number>"` — **landing markers**. These mark a panel on this piece that receives a tab from another piece. Format: `landing-c70` reads as "this piece's landing for tab `c` from piece 70." Tab letter is the lowercase letter from the print (a, b, c, …); piece number is the bare numeric id (no zero-padding) to match the in-print notation. Letter-variant pieces (e.g. tab on 92a): `landing-a92a`. Multiple landings per piece are normal — the suffix is the cross-piece key.
+- Unidentified ellipse / circle / path / line elements — construction lines, dotted alignment guides, registration marks, anything else carried from the print. No id required.
+
+Authored as small ellipse / circle / path elements; the centroid is the landing point. Landings are points, not regions, for now (extend if a piece needs it).
+
+Cross-piece pairing: the tab `c` on piece 70's `glue-zones` layer ⟷ `landing-c70` on piece 71's `marks` layer. That pairing is the connection-graph primitive the assembly engine (M4) will read; nothing consumes it today, but it's worth authoring as you go because re-deriving it later from scanned annotations is harder than capturing it once.
+
+---
+
+## `glue-zones`, `labels` — purely visual layers
+
+These layers are rendered into the front-face decal but don't drive geometry. Author them as you see them in the print — closed paths for glue-zones (so the hatch is the fill), text or text-as-paths for labels.
 
 ---
 
@@ -114,4 +127,6 @@ Existing pieces don't migrate at convention-change time. The next audit run flag
 
 ---
 
-*Last updated: 2026-05-03 — initial authoring. Distilled from `CLAUDE.md` cut-layer convention row (2026-05-02), axles + north convention row (2026-05-02), faithful-trace direction (2026-04-30), and `work/SPEC-3D-VIEWER.md` §"Authoring/QA preview tool".*
+*Last updated: 2026-05-03 — landing-marker convention added; `marks` layer broken out into its own section (it's no longer purely visual now that it carries landings). The "everything else from the print" layer is named `marks` (not `marks-other`; that was an incorrect name in earlier drafts and has been corrected throughout the docs).*
+
+*Earlier 2026-05-03 — initial authoring. Distilled from `CLAUDE.md` cut-layer convention row (2026-05-02), axles + north convention row (2026-05-02), faithful-trace direction (2026-04-30), and `work/SPEC-3D-VIEWER.md` §"Authoring/QA preview tool".*
