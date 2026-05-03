@@ -115,6 +115,7 @@ next_action: Hand CODE_PROMPT_preview-html-v1b.md (status: ready-for-code, autho
 
 **Recent log.**
 
+- 2026-05-03 (evening): **`CODE_PROMPT_preview-html-source-of-truth.md` queued (status: ready-for-code).** Pairs with the same-day filesystem restructure. Adds a piece-id loader to `preview.html` so it always knows the canonical location for any piece's latest export — `work/pieces/NNN/NNN.svg`. Drag-drop retained as fallback for ad-hoc inspection. Optional reload + sidecar-surfacing nice-to-have. M0.6.14 in the roadmap. NOTE for the v1b prompt: its verification paths (`inbox/069.svg`, `inbox/066.svg`) get bumped to `work/pieces/069/069.svg` and `work/pieces/066/066.svg` as part of the filesystem restructure CODE_PROMPT.
 - 2026-05-03: clean-start `CODE_PROMPT_preview-html-v1b.md` authored at repo root (status: ready-for-code). Grounded in current `preview.html` (real signatures: `currentSlabPivot`, `buildSlab(polygon, thicknessMm)`, `extractSilhouette` Tier-1/2/3, `parsed.{folds,axles,north,rootCentroid}`, render-on-demand `requestRender()`, etc.) and `work/SPEC-REGIONS.md` (terminology + two-step algorithm: extend folds to silhouette boundary, then iteratively split via `polygon-clipping` half-plane intersection). Eight tasks; verification + manual tests scoped to 069 + 066. Rotation pivot wraps the whole fold tree; polarity in UI is implicit (default angle only). See `sessions/2026-05-03-0300_cowork_v1b-clean-start.md`.
 - 2026-05-03: original `CODE_PROMPT_preview-html-v1b.md` archived to `_archive/code-prompts/` (status flipped to `archived`, body preserved as design record). Re-tightening pass against v1a's session note alone was insufficient — the file's drift since v1a is too substantial; clean-start authored against the current `preview.html` is the next move. See `sessions/2026-05-03-0200_cowork_v1b-archive.md`.
 - 2026-05-02 (late evening): thickness extrusion fix + axle rotation shipped. See `sessions/2026-05-02-2300_*` and `sessions/2026-05-02-2330_*`.
@@ -128,18 +129,19 @@ next_action: Hand CODE_PROMPT_preview-html-v1b.md (status: ready-for-code, autho
 ```yaml
 status: active
 last_updated: 2026-05-03
-next_action: Inbox/ feels awkward; clarify its semantics or fold it into a cleaner staging convention once the asset-state audit script exists.
+next_action: Hand CODE_PROMPT_filesystem-restructure.md to a Code session — it executes the 2026-05-03 filesystem restructure: moves 14 .af files from source/pieces/ to work/pieces/NNN/NNN.af, moves 8 SVGs from inbox/ to work/pieces/NNN/NNN.svg, retires the 067-full.af variant, deletes inbox/, and repoints audit_state.py + the v1b verification paths.
 ```
 
-**Hypothesis.** The repo is high-velocity right now and accumulates organizational debt — files moving from folder to folder, structures evolving, archives left behind, transient working zones (`inbox/`) feeling unsettled. CLAUDE.md's doc-sweep discipline is reactive (catch it at session-end). The asset-state audit script (separate track) will make some of this proactive: visible repo state at a glance, "this piece has been in inbox/ for 5 days" surfacing automatically. Doc-sweep stays for the cases the audit can't see.
+**Hypothesis.** The repo is high-velocity right now and accumulates organizational debt — files moving from folder to folder, structures evolving, archives left behind, transient working zones (`inbox/`) feeling unsettled. CLAUDE.md's doc-sweep discipline is reactive (catch it at session-end). The asset-state audit script (separate track) makes some of this proactive: visible repo state at a glance, "this piece has been in inbox/ for 5 days" surfacing automatically. Doc-sweep stays for the cases the audit can't see.
 
 **Open questions.**
 
-- Whether `inbox/` stays or gets renamed/folded into a clearer pre-`source/` staging area once asset-state surfaces what's actually in it at any moment.
+- ~~Whether `inbox/` stays or gets renamed/folded into a clearer pre-`source/` staging area once asset-state surfaces what's actually in it at any moment.~~ **Resolved 2026-05-03 (evening): `inbox/` retired entirely.** Chunks land directly in `source/scans-chunks/`; SVG exports land directly in `work/pieces/NNN/NNN.svg`. See the 2026-05-03 evening recent-log entry below.
 - Whether the periodic repo-audit (last one: `sessions/2026-04-30-2100_cowork_repo-audit.md`) becomes a regular cadence — perhaps at each planning beat — or stays event-triggered.
 
 **Recent log.**
 
+- 2026-05-03 (evening): **filesystem restructure pass.** Settled the `.af` + `.svg` colocation question that had been festering as drift for weeks. Each piece now has a single working folder at `work/pieces/NNN/` containing `NNN.af` (authoring), `NNN.svg` (latest export), `NNN.json` (sidecar). `source/pieces/` locked to PNG scans only. The `inbox/` folder retired in the same pass — chunks go straight to `source/scans-chunks/` from the scanner, exports go straight to `work/pieces/NNN/` from Affinity. Filename convention drops the `piece-` prefix going forward (the folder name provides the context). Affinity lock files + editor backups added to `.gitignore`. Doc updates: CLAUDE.md (new Architectural-Decisions row + Repo Structure tree + File Naming Conventions + Known Issues + Last-updated note), `source/SCAN-INTAKE-CHECKLIST.md`, `source/pieces/README.md`, `LAYER-CONVENTIONS.md`, `work/SPEC-3D-VIEWER.md` (file/folder layout + preview.html source-of-truth note), `ROADMAP.md` (M0.6.14 row), this file. Two CODE_PROMPTs handed off: `CODE_PROMPT_filesystem-restructure.md` (the actual moves) and `CODE_PROMPT_preview-html-source-of-truth.md` (preview.html piece-id loader, paired). See `sessions/2026-05-03-2345_cowork_filesystem-restructure.md`.
 - 2026-05-03 (afternoon): `share/` folder no longer present at the repo root (cleaned up between sessions; the prior cowork turn observed it had 4 SVGs overlapping `inbox/`). `inbox/` still contains `069.af` (duplicate of `source/pieces/069.af`) plus 8 SVGs (001, 065, 066, 067, 069, 070, 071, 072) that the asset-state audit will flag once it ships. Audit-as-it-ships will surface what to do with each.
 - 2026-05-03 (morning): track opened. Inbox/-feels-awkward observation captured during the operations-layer design conversation.
 - 2026-04-30: repo audit caught downstream-doc drift after a high-velocity day of folder pivots.
@@ -240,7 +242,9 @@ next_action: Identify exact piece IDs for the pendulum bob + pendulum arm from e
 
 ---
 
-*Last updated: 2026-05-03 (afternoon, addendum) — piece 071 review surfaced two convention corrections: `marks-other` was the wrong name in docs (canonical layer is `marks`) and the landing-marker convention (`landing-<tab><piece>` inside `<g id="marks">`) was settled. Both propagated to all live docs + the asset-state CODE_PROMPT's check registry. The linter-rule pattern absorbed the changes without any per-piece migration. See `sessions/2026-05-03-1400_cowork_asset-state-schema-and-audit.md` (Addendum section).*
+*Last updated: 2026-05-03 (evening) — filesystem restructure pass. `.af` + `.svg` per-piece colocation at `work/pieces/NNN/`; `source/pieces/` locked to PNG; `inbox/` retired entirely. Two CODE_PROMPTs handed off (filesystem-restructure + preview-html-source-of-truth). Repo-hygiene track's open question on `inbox/` flipped to resolved. preview.html iteration track gained a pointer to the new source-of-truth prompt. See `sessions/2026-05-03-2345_cowork_filesystem-restructure.md`.*
+
+*Earlier 2026-05-03 (afternoon, addendum) — piece 071 review surfaced two convention corrections: `marks-other` was the wrong name in docs (canonical layer is `marks`) and the landing-marker convention (`landing-<tab><piece>` inside `<g id="marks">`) was settled. Both propagated to all live docs + the asset-state CODE_PROMPT's check registry. The linter-rule pattern absorbed the changes without any per-piece migration. See `sessions/2026-05-03-1400_cowork_asset-state-schema-and-audit.md` (Addendum section).*
 
 *Earlier 2026-05-03 (afternoon) — asset-state schema settled and `CODE_PROMPT_asset-state-audit.md` handed off; `LAYER-CONVENTIONS.md` cheat sheet shipped at repo root in parallel. Asset-state track flipped queued → active.*
 

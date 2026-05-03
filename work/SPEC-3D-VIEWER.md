@@ -173,10 +173,9 @@ Native `potrace` will be added to the build environment (the v2 test used pure-P
 Continuing the existing repo conventions:
 
 ```
-inbox/                           transient; in-flight chunk scans before promotion
 source/                          (read-only after intake; reference archive)
-  pieces/                        per-piece source archive (NEW): NNN.png, lossless, NNN[a].png; pipeline input
-  scans-chunks/                  multi-piece chunk captures kept as recovery references (NEW)
+  pieces/                        per-piece source archive: NNN.png, lossless, NNN[a].png; pipeline input
+  scans-chunks/                  multi-piece chunk captures kept as recovery references; saved here directly from the scanner
   scans-raw/                     legacy plate-oriented raw (kept; mostly unused)
   scans-clean/                   legacy plate-oriented clean (kept; mostly unused)
   scans-prepped/                 legacy plate-oriented prepped (kept; mostly unused)
@@ -186,10 +185,11 @@ source/                          (read-only after intake; reference archive)
   _archive/
     phone-scans-2025/            gen-1 (handheld phone) raw + clean + prepped, archived 2026-04-30
 work/
-  pieces/                        per-piece authoring (NEW; populates in M2+)
+  pieces/                        per-piece working folder; one folder per piece; populated as authoring proceeds
     NNN/
-      piece-NNN.svg              layered, hand-finalized
-      piece-NNN.json             sidecar
+      NNN.af                     authoring file (Affinity Designer; the editable source)
+      NNN.svg                    latest export (preview.html / pipeline / viewer all read this)
+      NNN.json                   sidecar
   assemblies/                    (NEW; populates in M4)
     framework.json
     motor-wheel.json
@@ -264,7 +264,7 @@ The tool entered the repo on 2026-05-02 (v1a foundation) and accumulated cut-lay
 
 ### What it consumes
 
-A single per-piece SVG, dropped onto the page. The SVG carries the embedded scan PNG (typically as `<image>` referenced through `<use xlink:href="#_ImageN">`, the pattern Affinity Designer exports) and uses the canonical layered structure documented in CLAUDE.md's File Naming Conventions. The tool reads:
+A single per-piece SVG, loaded by piece id from the canonical home `work/pieces/NNN/NNN.svg` (M0.6.14, queued) — with legacy drag-drop retained for ad-hoc inspection of any SVG outside the canonical tree. The SVG carries the embedded scan PNG (typically as `<image>` referenced through `<use xlink:href="#_ImageN">`, the pattern Affinity Designer exports) and uses the canonical layered structure documented in CLAUDE.md's File Naming Conventions. The tool reads:
 
 | Layer | What the tool does with it |
 |---|---|
@@ -307,6 +307,7 @@ The tool ships v1a + cut-layer + texture-flip + back-face-mirror + perf + thickn
 
 Other deferred work, in rough priority order:
 
+- **Source-of-truth piece-id loader (M0.6.14).** Today the tool only loads SVGs via drag-drop from arbitrary paths. With the 2026-05-03 filesystem restructure, every piece has a canonical home at `work/pieces/NNN/NNN.svg` — the tool should grow a piece-id input (text field with autocomplete, or dropdown populated from the directory listing) that loads `work/pieces/NNN/NNN.svg` directly, plus a "reload" button for the iterate-fast workflow after a fresh export from Affinity. A nice-to-have: also read `work/pieces/NNN/NNN.json` when present and surface `function`-block contents in the side panel. Drag-drop stays as a fallback for ad-hoc inspection of SVGs outside the canonical tree. Spec'd in `CODE_PROMPT_preview-html-source-of-truth.md`.
 - **Cutouts subtraction.** The `cutouts` layer is parsed-aware-of but not yet subtracted from the slab. A piece like 71 (with a center cell) renders as a solid slab today. The convention is locked in; the implementation isn't.
 - **Multi-cutaway slabs.** Pieces with `cutaway-1`, `cutaway-2`, … currently render only the first with a banner. Multi-slab support is a v1b+ concern.
 - **Rotated / skewed `<use>` transforms.** The scan-image transform parser reads `matrix(sx, 0, 0, sy, tx, ty)` only; rotation / skew components (b, c) are silently dropped (`TODO(070)` in code).

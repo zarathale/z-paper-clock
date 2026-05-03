@@ -14,14 +14,14 @@ Three-digit zero-padded piece number. Lowercase letter suffix only when the piec
 ## Workflow
 
 1. Capture multi-piece chunks on the flat-bed scanner (see `source/SCAN-INTAKE-CHECKLIST.md`).
-2. Crop each named piece from the chunk in your editor (Affinity / Photoshop / Preview / GIMP).
-3. Save the crop as `NNN.png` directly into this folder.
-4. Once all pieces in a chunk are extracted, archive the chunk file from `inbox/` to `source/scans-chunks/`.
-5. Run the ingest skill on demand to validate filenames against `work/pieces.csv`, run image-health checks, and report inventory status (which pieces are still missing).
+2. Save the chunk directly to `source/scans-chunks/` (canonical chunk filename: `NN_NN_NN.{jpeg,png}` listing the COMPLETE pieces inside, ascending).
+3. Crop each named piece from the chunk in your editor (Affinity / Photoshop / Preview / GIMP).
+4. Save the crop as `NNN.png` directly into this folder.
+5. Run the asset-state audit (`python work/scripts/audit_state.py`) to validate filenames against `work/pieces.csv`, run image-health checks, and report inventory status (which pieces are still missing).
 
 ## Notes
 
 - This folder is the source-of-truth granularity for the build. The pipeline (`02-trace.py` onward) reads from here.
-- Derivative artifacts (SVGs, JSONs, layered crops) live in `work/pieces/NNN/`, not here.
+- This folder holds **only `NNN.png` (and `NNNa.png`)** scans. Authoring files (`.af`) and derivative SVGs/JSONs live one folder over at `work/pieces/NNN/`. The audit flags strays.
 - The master piece list is `work/pieces.csv`. If a piece # in this folder isn't in the master list, it's a flag worth investigating before tracing.
 - Don't commit speculative pieces to this folder before they're scanned and validated.

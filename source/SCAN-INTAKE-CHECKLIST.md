@@ -8,13 +8,12 @@ The deliverable is `source/pieces/NNN.png` for every piece in `work/pieces.csv`,
 
 ## The chunk-and-crop loop, end to end
 
-1. **Scan a chunk.** Place the open book on the flat-bed and capture whatever pieces fit cleanly under the lid. Output → `inbox/`.
-2. **Verify which pieces are complete.** Run the per-file QC checks (below). A piece is "complete" if its full silhouette is visible and not edge-clipped.
-3. **Rename to canonical chunk form.** `NN_NN_NN.{jpeg,png}` listing the complete pieces inside, in ascending order. Single-piece chunks → `NN.{jpeg,png}`. Stitched composites → `NN_NN_stitched.png`. (See "Naming" below.)
-4. **(If needed) Stitch L+R captures.** When a piece is too long for the bed, scan as `NN_NN_l.jpeg` + `NN_NN_r.jpeg` and stitch in your editor → `NN_NN_stitched.png` (lossless PNG to preserve seam fidelity).
+1. **Scan a chunk.** Place the open book on the flat-bed and capture whatever pieces fit cleanly under the lid.
+2. **Verify which pieces are complete.** Run the per-file QC checks (below) before committing the chunk to the archive. A piece is "complete" if its full silhouette is visible and not edge-clipped.
+3. **Save with canonical chunk filename, directly into `source/scans-chunks/`.** `NN_NN_NN.{jpeg,png}` listing the complete pieces inside, in ascending order. Single-piece chunks → `NN.{jpeg,png}`. Stitched composites → `NN_NN_stitched.png`. (See "Naming" below.) There is no staging folder — chunks land in their canonical home from the start.
+4. **(If needed) Stitch L+R captures.** When a piece is too long for the bed, scan as `NN_NN_l.jpeg` + `NN_NN_r.jpeg` (saved into `source/scans-chunks/` as well) and stitch in your editor → `NN_NN_stitched.png` (lossless PNG to preserve seam fidelity), also in `source/scans-chunks/`.
 5. **Crop each named piece.** Open the chunk in your editor (Affinity / Photoshop / Preview / GIMP), crop tightly around each complete piece, save as `source/pieces/NNN.png` (lossless PNG, three-digit zero-padded). Letter variants → `NNNa.png`.
-6. **Archive the chunk.** Once all named pieces are extracted, move the chunk file (plus L/R partials and any stitched composite) from `inbox/` to `source/scans-chunks/`. The chunk lives there as the recovery path if a piece needs re-cropping later.
-7. **Audit.** Run the ingest skill (forthcoming — see `work/pieces.csv` for the master list it'll validate against). It checks filenames, image health, and reports inventory status.
+6. **Audit.** Run `python work/scripts/audit_state.py` against `work/pieces.csv`. It checks filenames, image health, and reports inventory status.
 
 ---
 
@@ -80,9 +79,9 @@ Lowercase only. PNG only. The pipeline reads from this folder directly.
 
 ---
 
-## Per-file QC checks (run before promoting a chunk from inbox/ → source/scans-chunks/)
+## Per-file QC checks (run before saving the chunk into source/scans-chunks/)
 
-Eyes-on checks. The book is still flat on the scanner glass at this point, so re-capturing is one click away.
+Eyes-on checks. The book is still flat on the scanner glass at this point, so re-capturing is one click away. Don't commit a chunk that fails these — re-scan instead.
 
 ### 1. Top edge of every named piece runs straight
 
@@ -130,18 +129,17 @@ If two chunks have the same piece complete, pick the cleaner one for the crop. T
 
 ---
 
-## Promotion: inbox → source/scans-chunks/ + source/pieces/
+## Naming + saving the chunk
 
-Once chunk QC passes and per-piece crops are saved:
+Once chunk QC passes, save the chunk directly into `source/scans-chunks/` with its canonical filename. There's no staging folder.
 
 ```bash
 cd ~/Documents/GitHub/z-paper-clock
 
-# Rename the chunk to canonical form (example for a 3-piece chunk)
-mv inbox/Scan_001.jpg inbox/43_44_45.jpeg
+# If the scanner saved with a generic name, rename in place to canonical form (example for a 3-piece chunk)
+mv source/scans-chunks/Scan_001.jpg source/scans-chunks/43_44_45.jpeg
 
-# After cropping pieces 43, 44, 45 to source/pieces/043.png etc., archive the chunk:
-mv inbox/43_44_45.jpeg source/scans-chunks/
+# Crop pieces 43, 44, 45 in your editor to source/pieces/043.png, 044.png, 045.png
 
 # Sanity check: pieces landed
 ls source/pieces/04[3-5].png
@@ -163,27 +161,23 @@ Pre-processing (flat-field, bleed suppression) becomes a per-piece operation if/
 # Daily scanning session
 cd ~/Documents/GitHub/z-paper-clock
 
-# 1. Scan chunk(s); output lands in inbox/
-# 2. QC each chunk (six checks above)
+# 1. Scan chunk(s); save directly into source/scans-chunks/
+# 2. QC each chunk (six checks above) — re-scan if any fail
 # 3. Rename to canonical chunk form:
-mv inbox/Scan_NNN.jpg inbox/<NN_NN_NN>.jpeg
+mv source/scans-chunks/Scan_NNN.jpg source/scans-chunks/<NN_NN_NN>.jpeg
 
-# 4. (If stitching needed) merge L+R in editor → inbox/<NN_NN>_stitched.png
+# 4. (If stitching needed) merge L+R in editor → source/scans-chunks/<NN_NN>_stitched.png
 # 5. Crop each named piece in editor → source/pieces/NNN.png (PNG, lossless)
-# 6. Archive the chunk:
-mv inbox/<NN_NN_NN>.jpeg source/scans-chunks/
-# (also move L/R partials + stitched composite if any)
-
-# 7. (Future) run the ingest skill to audit source/pieces/ against work/pieces.csv:
-#    "ingest pieces" or "audit piece archive"
+# 6. Run the audit:
+python work/scripts/audit_state.py
 ```
 
 ---
 
 ## Notes
 
-- The `inbox/` folder is the working zone for in-flight scans. Once a chunk is processed, it should not stay there. A chunk lingering in `inbox/` for more than a session is a sign that some piece in it needs a follow-up capture — flag it.
-- `inbox/_pending-rescan/` (gitignored) is a place to set aside scans that need a re-do without committing them to the archive.
+- There is no staging folder. Chunks go straight into `source/scans-chunks/` with their canonical filename. The audit catches anything off-pattern.
+- If a scan needs a re-do, just delete it and re-scan — don't park it in a holding folder. (Pre-2026-05-03 the workflow used a transient `inbox/` folder; that pattern was retired in the file-system restructure pass.)
 - Capturing a piece in *multiple* chunks is normal and useful. The first complete capture becomes the source for `source/pieces/NNN.png`; the rest are backups in `source/scans-chunks/`.
 - Don't re-author transcriptions. `source/transcriptions/*.md` are scan-independent and complete.
 - The master piece list is `work/pieces.csv`. If a piece you're cropping isn't in the master list, either you found a piece the transcriptions missed (rare) or you misread a label (more likely). Pause and verify before adding to `source/pieces/`.

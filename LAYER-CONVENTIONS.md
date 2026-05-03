@@ -107,7 +107,7 @@ This means a piece that looks slightly bowed or off-tooth in the SVG is correct 
 - Top-level `<g>` with a name that isn't on the canonical list (typos like `silhoutte`, `axle`, `fold-valley`)
 - An `<g id="silhouette">` with no `cutaway` or `cutaway-N` child
 - A bare `<path>` directly under `<svg>` (everything should live in a layered group)
-- An SVG saved into `source/pieces/` (per `source/pieces/README.md`, SVGs belong in `work/pieces/NNN/` or transiently in `inbox/`)
+- An SVG saved into `source/pieces/` (per `source/pieces/README.md`, SVGs belong in `work/pieces/NNN/` — there is no inbox)
 - A `cutout-letter-suffix` instead of `cutout-N` (audit currently advises numeric)
 - An `id="north"` without an axle in the same SVG
 
