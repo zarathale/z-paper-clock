@@ -1,0 +1,4021 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-03T16:11:21Z",
+  "repo_root": "/Users/mainstage/Documents/GitHub/z-paper-clock/.claude/worktrees/loving-davinci-3f38a4",
+  "audit_revision": "2026-05-03",
+  "summary": {
+    "total_pieces": 123,
+    "by_stage": {
+      "svg_validated": 5,
+      "affinity_started": 5,
+      "captured_only": 104,
+      "pending_capture": 6,
+      "svg_drafted": 3
+    },
+    "convention_pass_rates": {
+      "xml-well-formed": {
+        "pass": 8,
+        "fail": 0,
+        "skip": 0,
+        "error": 0,
+        "failing_pieces": []
+      },
+      "silhouette-layer-present": {
+        "pass": 5,
+        "fail": 3,
+        "skip": 0,
+        "error": 0,
+        "failing_pieces": [
+          "065",
+          "066",
+          "070"
+        ]
+      },
+      "silhouette-cutaway-id": {
+        "pass": 5,
+        "fail": 0,
+        "skip": 3,
+        "error": 0,
+        "failing_pieces": []
+      },
+      "cutouts-layer-format": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 7,
+        "error": 0,
+        "failing_pieces": []
+      },
+      "axles-layer-clean": {
+        "pass": 4,
+        "fail": 0,
+        "skip": 4,
+        "error": 0,
+        "failing_pieces": []
+      },
+      "axles-north-marker-shape": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 8,
+        "error": 0,
+        "failing_pieces": []
+      },
+      "mask-elements-ignorable": {
+        "pass": 8,
+        "fail": 0,
+        "skip": 0,
+        "error": 0,
+        "failing_pieces": []
+      },
+      "canonical-layer-names-only": {
+        "pass": 8,
+        "fail": 0,
+        "skip": 0,
+        "error": 0,
+        "failing_pieces": []
+      },
+      "no-stray-paths-at-root": {
+        "pass": 8,
+        "fail": 0,
+        "skip": 0,
+        "error": 0,
+        "failing_pieces": []
+      },
+      "landing-marker-id-format": {
+        "pass": 2,
+        "fail": 3,
+        "skip": 3,
+        "error": 0,
+        "failing_pieces": [
+          "065",
+          "066",
+          "069"
+        ]
+      },
+      "landing-markers-in-marks-only": {
+        "pass": 8,
+        "fail": 0,
+        "skip": 0,
+        "error": 0,
+        "failing_pieces": []
+      }
+    },
+    "repo_anomalies": []
+  },
+  "checks_registry": [
+    {
+      "id": "xml-well-formed",
+      "severity": "required",
+      "description": "SVG parses without XML error"
+    },
+    {
+      "id": "silhouette-layer-present",
+      "severity": "required",
+      "description": "<g id='silhouette'> exists"
+    },
+    {
+      "id": "silhouette-cutaway-id",
+      "severity": "required",
+      "description": "silhouette has cutaway or cutaway-N element"
+    },
+    {
+      "id": "cutouts-layer-format",
+      "severity": "advisory",
+      "description": "cutouts children use cutout-N ids (not cutout-letter)"
+    },
+    {
+      "id": "axles-layer-clean",
+      "severity": "advisory",
+      "description": "axles layer contains only ellipse/circle/path + optional north"
+    },
+    {
+      "id": "axles-north-marker-shape",
+      "severity": "advisory",
+      "description": "id='north' is a parseable shape if present"
+    },
+    {
+      "id": "mask-elements-ignorable",
+      "severity": "advisory",
+      "description": "mask/mask-N ids appear only inside silhouette"
+    },
+    {
+      "id": "canonical-layer-names-only",
+      "severity": "advisory",
+      "description": "All top-level <g> ids are canonical or mask/mask-N"
+    },
+    {
+      "id": "no-stray-paths-at-root",
+      "severity": "advisory",
+      "description": "No <path> elements directly under <svg>"
+    },
+    {
+      "id": "landing-marker-id-format",
+      "severity": "advisory",
+      "description": "landing-* ids match landing-<letter><piece-number>[variant] format"
+    },
+    {
+      "id": "landing-markers-in-marks-only",
+      "severity": "advisory",
+      "description": "landing-* ids appear only inside marks layer"
+    }
+  ],
+  "pieces": {
+    "001": {
+      "id": "001",
+      "csv_meta": {
+        "plate": "A",
+        "section": "framework",
+        "bucket": "",
+        "status": "reviewed",
+        "notes": "U-channel frame strip (long horizontal frame run, paired with 2/6/7 across panels A and B)"
+      },
+      "files": {
+        "source_png": "source/pieces/001.png",
+        "affinity": [
+          {
+            "path": "source/pieces/001.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [
+          {
+            "path": "inbox/001.svg",
+            "suffix": null
+          }
+        ],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": {
+        "primary_svg": "inbox/001.svg",
+        "primary_svg_mtime": "2026-05-03T15:58:29.914496+00:00",
+        "all_svgs": [
+          "inbox/001.svg"
+        ],
+        "xml_well_formed": true,
+        "view_box": "0 0 28975 4871",
+        "layers_present": [
+          "silhouette"
+        ],
+        "layer_id_inventory": {
+          "silhouette": [
+            "cutaway-7",
+            "cutaway-6",
+            "cutaway-5",
+            "cutaway-4",
+            "cutaway-3",
+            "cutaway-2",
+            "cutaway-1"
+          ]
+        },
+        "off_spec_layers": []
+      },
+      "convention_checks": [
+        {
+          "id": "xml-well-formed",
+          "description": "SVG parses without XML error",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Parsed successfully",
+          "message": null
+        },
+        {
+          "id": "silhouette-layer-present",
+          "description": "<g id='silhouette'> exists",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Found silhouette layer",
+          "message": null
+        },
+        {
+          "id": "silhouette-cutaway-id",
+          "description": "silhouette has cutaway or cutaway-N element",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Found: cutaway-7, cutaway-6, cutaway-5, cutaway-4, cutaway-3, cutaway-2, cutaway-1",
+          "message": null
+        },
+        {
+          "id": "cutouts-layer-format",
+          "description": "cutouts children use cutout-N ids (not cutout-letter)",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No cutouts layer present"
+        },
+        {
+          "id": "axles-layer-clean",
+          "description": "axles layer contains only ellipse/circle/path + optional north",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No axles layer present"
+        },
+        {
+          "id": "axles-north-marker-shape",
+          "description": "id='north' is a parseable shape if present",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No north marker in axles layer"
+        },
+        {
+          "id": "mask-elements-ignorable",
+          "description": "mask/mask-N ids appear only inside silhouette",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No mask ids found",
+          "message": null
+        },
+        {
+          "id": "canonical-layer-names-only",
+          "description": "All top-level <g> ids are canonical or mask/mask-N",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All top-level named groups are canonical",
+          "message": null
+        },
+        {
+          "id": "no-stray-paths-at-root",
+          "description": "No <path> elements directly under <svg>",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No stray paths at root",
+          "message": null
+        },
+        {
+          "id": "landing-marker-id-format",
+          "description": "landing-* ids match landing-<letter><piece-number>[variant] format",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No landing-* ids in marks layer"
+        },
+        {
+          "id": "landing-markers-in-marks-only",
+          "description": "landing-* ids appear only inside marks layer",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No landing ids found",
+          "message": null
+        }
+      ],
+      "stage": "svg_validated",
+      "anomalies": []
+    },
+    "002": {
+      "id": "002",
+      "csv_meta": {
+        "plate": "A",
+        "section": "framework",
+        "bucket": "",
+        "status": "reviewed",
+        "notes": "U-channel frame strip"
+      },
+      "files": {
+        "source_png": "source/pieces/002.png",
+        "affinity": [
+          {
+            "path": "source/pieces/002.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "affinity_started",
+      "anomalies": []
+    },
+    "003": {
+      "id": "003",
+      "csv_meta": {
+        "plate": "B",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Vertical frame strip (paired with 1)"
+      },
+      "files": {
+        "source_png": "source/pieces/003.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "004": {
+      "id": "004",
+      "csv_meta": {
+        "plate": "D",
+        "section": "framework",
+        "bucket": "hand-trace",
+        "status": "captured",
+        "notes": "Long main frame column (front center); axle holes; positioning guides for 91/92"
+      },
+      "files": {
+        "source_png": "source/pieces/004.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/004.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "005": {
+      "id": "005",
+      "csv_meta": {
+        "plate": "B",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Vertical frame strip (paired with 2)"
+      },
+      "files": {
+        "source_png": "source/pieces/005.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "006": {
+      "id": "006",
+      "csv_meta": {
+        "plate": "A",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "U-channel frame strip"
+      },
+      "files": {
+        "source_png": "source/pieces/006.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "007": {
+      "id": "007",
+      "csv_meta": {
+        "plate": "A",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "U-channel frame strip"
+      },
+      "files": {
+        "source_png": "source/pieces/007.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "008": {
+      "id": "008",
+      "csv_meta": {
+        "plate": "B",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Vertical frame strip (paired with 6)"
+      },
+      "files": {
+        "source_png": "source/pieces/008.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "009": {
+      "id": "009",
+      "csv_meta": {
+        "plate": "C",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Long vertical frame strip (paired with anchor beam)"
+      },
+      "files": {
+        "source_png": "source/pieces/009.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "010": {
+      "id": "010",
+      "csv_meta": {
+        "plate": "D",
+        "section": "framework",
+        "bucket": "hand-trace",
+        "status": "captured",
+        "notes": "Long main frame column (back center)"
+      },
+      "files": {
+        "source_png": "source/pieces/010.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/010.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "011": {
+      "id": "011",
+      "csv_meta": {
+        "plate": "C",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Long vertical frame strip"
+      },
+      "files": {
+        "source_png": "source/pieces/011.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "012": {
+      "id": "012",
+      "csv_meta": {
+        "plate": "B",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Bracket piece (12/13/14 top row)"
+      },
+      "files": {
+        "source_png": "source/pieces/012.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "013": {
+      "id": "013",
+      "csv_meta": {
+        "plate": "B",
+        "section": "framework",
+        "bucket": "",
+        "status": "pending",
+        "notes": "Bracket piece"
+      },
+      "files": {
+        "source_png": null,
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "pending_capture",
+      "anomalies": []
+    },
+    "014": {
+      "id": "014",
+      "csv_meta": {
+        "plate": "B",
+        "section": "framework",
+        "bucket": "",
+        "status": "pending",
+        "notes": "Bracket piece"
+      },
+      "files": {
+        "source_png": null,
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "pending_capture",
+      "anomalies": []
+    },
+    "015": {
+      "id": "015",
+      "csv_meta": {
+        "plate": "B",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Bracket piece (15/16/17 bottom row)"
+      },
+      "files": {
+        "source_png": "source/pieces/015.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "016": {
+      "id": "016",
+      "csv_meta": {
+        "plate": "B",
+        "section": "framework",
+        "bucket": "",
+        "status": "pending",
+        "notes": "Bracket piece"
+      },
+      "files": {
+        "source_png": null,
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "pending_capture",
+      "anomalies": []
+    },
+    "017": {
+      "id": "017",
+      "csv_meta": {
+        "plate": "B",
+        "section": "framework",
+        "bucket": "",
+        "status": "pending",
+        "notes": "Bracket piece"
+      },
+      "files": {
+        "source_png": null,
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "pending_capture",
+      "anomalies": []
+    },
+    "018": {
+      "id": "018",
+      "csv_meta": {
+        "plate": "D",
+        "section": "framework",
+        "bucket": "auto-trace-edit",
+        "status": "captured",
+        "notes": "Back-of-frame L-bracket; pinches pendulum blade"
+      },
+      "files": {
+        "source_png": "source/pieces/018.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/018.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "019": {
+      "id": "019",
+      "csv_meta": {
+        "plate": "D",
+        "section": "framework",
+        "bucket": "auto-trace-edit",
+        "status": "captured",
+        "notes": "Back-of-frame L-bracket; pinches pendulum blade"
+      },
+      "files": {
+        "source_png": "source/pieces/019.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/019.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "020": {
+      "id": "020",
+      "csv_meta": {
+        "plate": "C",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Long vertical frame strip"
+      },
+      "files": {
+        "source_png": "source/pieces/020.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "021": {
+      "id": "021",
+      "csv_meta": {
+        "plate": "C",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Folded bracket for wall-bracket assembly"
+      },
+      "files": {
+        "source_png": "source/pieces/021.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "022": {
+      "id": "022",
+      "csv_meta": {
+        "plate": "C",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Folded bracket; + center mark"
+      },
+      "files": {
+        "source_png": "source/pieces/022.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "023": {
+      "id": "023",
+      "csv_meta": {
+        "plate": "C",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Wall-bracket box development; tabs to 25"
+      },
+      "files": {
+        "source_png": "source/pieces/023.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "024": {
+      "id": "024",
+      "csv_meta": {
+        "plate": "C",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Wall-bracket box development; tabs to 25"
+      },
+      "files": {
+        "source_png": "source/pieces/024.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "025": {
+      "id": "025",
+      "csv_meta": {
+        "plate": "C",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Tall wall-bracket main panel"
+      },
+      "files": {
+        "source_png": "source/pieces/025.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "026": {
+      "id": "026",
+      "csv_meta": {
+        "plate": "D",
+        "section": "framework",
+        "bucket": "auto-trace-clean",
+        "status": "captured",
+        "notes": "Wall-bracket wedge; glue to strong cardboard"
+      },
+      "files": {
+        "source_png": "source/pieces/026.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/026.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "027": {
+      "id": "027",
+      "csv_meta": {
+        "plate": "C",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pendulum-support spacer (small piece carrying '28' label); also appears on plate G"
+      },
+      "files": {
+        "source_png": "source/pieces/027.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "028": {
+      "id": "028",
+      "csv_meta": {
+        "plate": "C",
+        "section": "framework",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pendulum-support spacer"
+      },
+      "files": {
+        "source_png": "source/pieces/028.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "029": {
+      "id": "029",
+      "csv_meta": {
+        "plate": "D",
+        "section": "framework",
+        "bucket": "auto-trace-edit",
+        "status": "captured",
+        "notes": "Cross-box flat development (connects 4/10)"
+      },
+      "files": {
+        "source_png": "source/pieces/029.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/029.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "030": {
+      "id": "030",
+      "csv_meta": {
+        "plate": "D",
+        "section": "framework",
+        "bucket": "auto-trace-edit",
+        "status": "captured",
+        "notes": "Small box development"
+      },
+      "files": {
+        "source_png": "source/pieces/030.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/030.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "031": {
+      "id": "031",
+      "csv_meta": {
+        "plate": "D",
+        "section": "framework",
+        "bucket": "auto-trace-clean",
+        "status": "captured",
+        "notes": "Flat oval/leaf tongue; glue back to back to 32"
+      },
+      "files": {
+        "source_png": "source/pieces/031.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/031.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "032": {
+      "id": "032",
+      "csv_meta": {
+        "plate": "D",
+        "section": "framework",
+        "bucket": "auto-trace-clean",
+        "status": "captured",
+        "notes": "Flat elongated oval (pairs with 31); also appears on plate G"
+      },
+      "files": {
+        "source_png": "source/pieces/032.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/032.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "033": {
+      "id": "033",
+      "csv_meta": {
+        "plate": "G",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Large disc with internal triangle (motor-wheel back face); a35 corner labels"
+      },
+      "files": {
+        "source_png": "source/pieces/033.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/033.jpeg",
+          "source/scans-chunks/033.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "034": {
+      "id": "034",
+      "csv_meta": {
+        "plate": "G",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Long zig-zag teeth strip (motor-wheel teeth); engages between 33 and 36"
+      },
+      "files": {
+        "source_png": "source/pieces/034.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/034.png",
+          "source/scans-chunks/34_35_l.jpeg",
+          "source/scans-chunks/34_35_r.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "035": {
+      "id": "035",
+      "csv_meta": {
+        "plate": "G",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Long zig-zag teeth strip; folds into cone braced by 33's triangle"
+      },
+      "files": {
+        "source_png": "source/pieces/035.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/035.png",
+          "source/scans-chunks/34_35_l.jpeg",
+          "source/scans-chunks/34_35_r.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "036": {
+      "id": "036",
+      "csv_meta": {
+        "plate": "G",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Large motor-wheel disc with crown-band of vertical hatching (teeth band)"
+      },
+      "files": {
+        "source_png": "source/pieces/036.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/036.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "037": {
+      "id": "037",
+      "csv_meta": {
+        "plate": "G",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Long thin strip with vertical-hatch (motor-wheel tooth strip)"
+      },
+      "files": {
+        "source_png": "source/pieces/037.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/037.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "038": {
+      "id": "038",
+      "csv_meta": {
+        "plate": "F",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Large motor-wheel front face; central star cut out"
+      },
+      "files": {
+        "source_png": "source/pieces/038.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "039": {
+      "id": "039",
+      "csv_meta": {
+        "plate": "E",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Accordion-pleated pulley column (glues to 38)"
+      },
+      "files": {
+        "source_png": "source/pieces/039.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "040": {
+      "id": "040",
+      "csv_meta": {
+        "plate": "G",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pulley cylinder; glue ends together, slip over 39 with arrow toward motor wheel"
+      },
+      "files": {
+        "source_png": "source/pieces/040.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/040.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "041": {
+      "id": "041",
+      "csv_meta": {
+        "plate": "G",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pulley shaft; marked end glues to 40 (a/b alignment)"
+      },
+      "files": {
+        "source_png": "source/pieces/041.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/041.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "042": {
+      "id": "042",
+      "csv_meta": {
+        "plate": "G",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pulley drum; covers wrapped end of 41; arrow toward motor wheel"
+      },
+      "files": {
+        "source_png": "source/pieces/042.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/042.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "043": {
+      "id": "043",
+      "csv_meta": {
+        "plate": "G",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pulley throat (with 44, per Fig. 13)"
+      },
+      "files": {
+        "source_png": "source/pieces/043.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/043.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "044": {
+      "id": "044",
+      "csv_meta": {
+        "plate": "G",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pulley bearing disc; pairs with 43 for pulley throat"
+      },
+      "files": {
+        "source_png": "source/pieces/044.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/044.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "045": {
+      "id": "045",
+      "csv_meta": {
+        "plate": "G",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Short straight strip; wraps around cylinder between 43 and 44"
+      },
+      "files": {
+        "source_png": "source/pieces/045.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/045.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "046": {
+      "id": "046",
+      "csv_meta": {
+        "plate": "F",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pulley plate (paired with 47, glue back to back)"
+      },
+      "files": {
+        "source_png": "source/pieces/046.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "047": {
+      "id": "047",
+      "csv_meta": {
+        "plate": "F",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pulley plate; partner to 46"
+      },
+      "files": {
+        "source_png": "source/pieces/047.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "048": {
+      "id": "048",
+      "csv_meta": {
+        "plate": "F",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Plain disc; glue to double cardboard"
+      },
+      "files": {
+        "source_png": "source/pieces/048.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "049": {
+      "id": "049",
+      "csv_meta": {
+        "plate": "F",
+        "section": "motor-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Small disc (plate cap); also appears on plate G"
+      },
+      "files": {
+        "source_png": "source/pieces/049.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "050": {
+      "id": "050",
+      "csv_meta": {
+        "plate": "G",
+        "section": "middle-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Large disc (back face of middle wheel); glue back to back with 51"
+      },
+      "files": {
+        "source_png": "source/pieces/050.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/050.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "051": {
+      "id": "051",
+      "csv_meta": {
+        "plate": "G",
+        "section": "middle-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Middle-wheel disc; partner to 50"
+      },
+      "files": {
+        "source_png": "source/pieces/051.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/051.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "052": {
+      "id": "052",
+      "csv_meta": {
+        "plate": "G",
+        "section": "middle-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Middle-wheel disc; glues to 51"
+      },
+      "files": {
+        "source_png": "source/pieces/052.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/052.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "053": {
+      "id": "053",
+      "csv_meta": {
+        "plate": "H",
+        "section": "middle-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Small disc with starred center (pinion-mount, middle wheel); also referenced on plate G"
+      },
+      "files": {
+        "source_png": "source/pieces/053.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/053.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "054": {
+      "id": "054",
+      "csv_meta": {
+        "plate": "G",
+        "section": "middle-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Star-cut pinion piece"
+      },
+      "files": {
+        "source_png": "source/pieces/054.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/054.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "055": {
+      "id": "055",
+      "csv_meta": {
+        "plate": "G",
+        "section": "middle-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pinion (with 54-57 stack); pushes through star-shaped hole"
+      },
+      "files": {
+        "source_png": "source/pieces/055.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/055.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "056": {
+      "id": "056",
+      "csv_meta": {
+        "plate": "G",
+        "section": "middle-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Star-cut pinion piece; slips over pinion 55"
+      },
+      "files": {
+        "source_png": "source/pieces/056.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/056.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "057": {
+      "id": "057",
+      "csv_meta": {
+        "plate": "G",
+        "section": "middle-wheel",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Star-cut pinion piece; presses against pinion top"
+      },
+      "files": {
+        "source_png": "source/pieces/057.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/057.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "058": {
+      "id": "058",
+      "csv_meta": {
+        "plate": "F",
+        "section": "escapement",
+        "bucket": "",
+        "status": "reviewed",
+        "notes": "Escapement-wheel disc; glue back to back to 59 before cutting"
+      },
+      "files": {
+        "source_png": "source/pieces/058.png",
+        "affinity": [
+          {
+            "path": "source/pieces/058.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "affinity_started",
+      "anomalies": []
+    },
+    "059": {
+      "id": "059",
+      "csv_meta": {
+        "plate": "F",
+        "section": "escapement",
+        "bucket": "",
+        "status": "reviewed",
+        "notes": "Escapement-wheel disc partner to 58"
+      },
+      "files": {
+        "source_png": "source/pieces/059.png",
+        "affinity": [
+          {
+            "path": "source/pieces/059.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "affinity_started",
+      "anomalies": []
+    },
+    "060": {
+      "id": "060",
+      "csv_meta": {
+        "plate": "E",
+        "section": "escapement",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pinion for escapement wheel (rolled cylinder)"
+      },
+      "files": {
+        "source_png": "source/pieces/060.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "061": {
+      "id": "061",
+      "csv_meta": {
+        "plate": "F",
+        "section": "escapement",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Star-cutout disc (pinion-stack)"
+      },
+      "files": {
+        "source_png": "source/pieces/061.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "062": {
+      "id": "062",
+      "csv_meta": {
+        "plate": "F",
+        "section": "escapement",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Star-cutout disc"
+      },
+      "files": {
+        "source_png": "source/pieces/062.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "063": {
+      "id": "063",
+      "csv_meta": {
+        "plate": "F",
+        "section": "escapement",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Star-cutout disc"
+      },
+      "files": {
+        "source_png": "source/pieces/063.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "064": {
+      "id": "064",
+      "csv_meta": {
+        "plate": "F",
+        "section": "escapement",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Star-cutout disc"
+      },
+      "files": {
+        "source_png": "source/pieces/064.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "065": {
+      "id": "065",
+      "csv_meta": {
+        "plate": "F",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "reviewed",
+        "notes": "Zig-zag anchor arm; 'axe R' label = rear axle"
+      },
+      "files": {
+        "source_png": "source/pieces/065.png",
+        "affinity": [
+          {
+            "path": "source/pieces/065.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [
+          {
+            "path": "inbox/065.svg",
+            "suffix": null
+          }
+        ],
+        "inbox_pngs": [
+          "inbox/065.png"
+        ],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": {
+        "primary_svg": "inbox/065.svg",
+        "primary_svg_mtime": "2026-05-03T15:58:29.939204+00:00",
+        "all_svgs": [
+          "inbox/065.svg"
+        ],
+        "xml_well_formed": true,
+        "view_box": "0 0 3925 7484",
+        "layers_present": [
+          "axles",
+          "marks"
+        ],
+        "layer_id_inventory": {
+          "marks": [
+            "landing-h",
+            "landing-g",
+            "landing-f",
+            "landing-e",
+            "landing-d",
+            "landing-c",
+            "landing-b"
+          ],
+          "axles": [
+            "anchor-pivot"
+          ]
+        },
+        "off_spec_layers": []
+      },
+      "convention_checks": [
+        {
+          "id": "xml-well-formed",
+          "description": "SVG parses without XML error",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Parsed successfully",
+          "message": null
+        },
+        {
+          "id": "silhouette-layer-present",
+          "description": "<g id='silhouette'> exists",
+          "severity": "required",
+          "result": "fail",
+          "evidence": null,
+          "message": "Top-level <g id='silhouette'> not found"
+        },
+        {
+          "id": "silhouette-cutaway-id",
+          "description": "silhouette has cutaway or cutaway-N element",
+          "severity": "required",
+          "result": "skip",
+          "evidence": null,
+          "message": "silhouette layer not present"
+        },
+        {
+          "id": "cutouts-layer-format",
+          "description": "cutouts children use cutout-N ids (not cutout-letter)",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No cutouts layer present"
+        },
+        {
+          "id": "axles-layer-clean",
+          "description": "axles layer contains only ellipse/circle/path + optional north",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All elements are ellipse/circle/path",
+          "message": null
+        },
+        {
+          "id": "axles-north-marker-shape",
+          "description": "id='north' is a parseable shape if present",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No north marker in axles layer"
+        },
+        {
+          "id": "mask-elements-ignorable",
+          "description": "mask/mask-N ids appear only inside silhouette",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No mask ids found",
+          "message": null
+        },
+        {
+          "id": "canonical-layer-names-only",
+          "description": "All top-level <g> ids are canonical or mask/mask-N",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All top-level named groups are canonical",
+          "message": null
+        },
+        {
+          "id": "no-stray-paths-at-root",
+          "description": "No <path> elements directly under <svg>",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No stray paths at root",
+          "message": null
+        },
+        {
+          "id": "landing-marker-id-format",
+          "description": "landing-* ids match landing-<letter><piece-number>[variant] format",
+          "severity": "advisory",
+          "result": "fail",
+          "evidence": null,
+          "message": "Malformed landing ids: landing-h, landing-g, landing-f, landing-e, landing-d, landing-c, landing-b"
+        },
+        {
+          "id": "landing-markers-in-marks-only",
+          "description": "landing-* ids appear only inside marks layer",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "7 landing id(s) in marks",
+          "message": null
+        }
+      ],
+      "stage": "svg_drafted",
+      "anomalies": [
+        "png-in-inbox: inbox/065.png"
+      ]
+    },
+    "066": {
+      "id": "066",
+      "csv_meta": {
+        "plate": "F",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pendulum-blade tube/casing development"
+      },
+      "files": {
+        "source_png": "source/pieces/066.png",
+        "affinity": [
+          {
+            "path": "source/pieces/066.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [
+          {
+            "path": "inbox/066.svg",
+            "suffix": null
+          }
+        ],
+        "inbox_pngs": [
+          "inbox/066.png"
+        ],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": {
+        "primary_svg": "inbox/066.svg",
+        "primary_svg_mtime": "2026-05-03T15:58:29.962033+00:00",
+        "all_svgs": [
+          "inbox/066.svg"
+        ],
+        "xml_well_formed": true,
+        "view_box": "0 0 2963 18867",
+        "layers_present": [
+          "axles",
+          "folds-mountain",
+          "folds-valley",
+          "marks"
+        ],
+        "layer_id_inventory": {
+          "marks": [
+            "tab-g",
+            "tab-f",
+            "tab-e",
+            "tab-d",
+            "tab-c",
+            "tab-b",
+            "tab-a",
+            "tab-aa",
+            "landing-j68",
+            "landing-h65",
+            "landing-g65",
+            "landing-f65",
+            "landing-e65",
+            "landing-d65",
+            "landing-c65",
+            "landing-b65",
+            "landing-aa"
+          ]
+        },
+        "off_spec_layers": []
+      },
+      "convention_checks": [
+        {
+          "id": "xml-well-formed",
+          "description": "SVG parses without XML error",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Parsed successfully",
+          "message": null
+        },
+        {
+          "id": "silhouette-layer-present",
+          "description": "<g id='silhouette'> exists",
+          "severity": "required",
+          "result": "fail",
+          "evidence": null,
+          "message": "Top-level <g id='silhouette'> not found"
+        },
+        {
+          "id": "silhouette-cutaway-id",
+          "description": "silhouette has cutaway or cutaway-N element",
+          "severity": "required",
+          "result": "skip",
+          "evidence": null,
+          "message": "silhouette layer not present"
+        },
+        {
+          "id": "cutouts-layer-format",
+          "description": "cutouts children use cutout-N ids (not cutout-letter)",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No cutouts layer present"
+        },
+        {
+          "id": "axles-layer-clean",
+          "description": "axles layer contains only ellipse/circle/path + optional north",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All elements are ellipse/circle/path",
+          "message": null
+        },
+        {
+          "id": "axles-north-marker-shape",
+          "description": "id='north' is a parseable shape if present",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No north marker in axles layer"
+        },
+        {
+          "id": "mask-elements-ignorable",
+          "description": "mask/mask-N ids appear only inside silhouette",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No mask ids found",
+          "message": null
+        },
+        {
+          "id": "canonical-layer-names-only",
+          "description": "All top-level <g> ids are canonical or mask/mask-N",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All top-level named groups are canonical",
+          "message": null
+        },
+        {
+          "id": "no-stray-paths-at-root",
+          "description": "No <path> elements directly under <svg>",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No stray paths at root",
+          "message": null
+        },
+        {
+          "id": "landing-marker-id-format",
+          "description": "landing-* ids match landing-<letter><piece-number>[variant] format",
+          "severity": "advisory",
+          "result": "fail",
+          "evidence": null,
+          "message": "Malformed landing ids: landing-aa"
+        },
+        {
+          "id": "landing-markers-in-marks-only",
+          "description": "landing-* ids appear only inside marks layer",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "9 landing id(s) in marks",
+          "message": null
+        }
+      ],
+      "stage": "svg_drafted",
+      "anomalies": [
+        "png-in-inbox: inbox/066.png"
+      ]
+    },
+    "067": {
+      "id": "067",
+      "csv_meta": {
+        "plate": "F",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Rear plate of the anchor; flap labels a-f"
+      },
+      "files": {
+        "source_png": "source/pieces/067.png",
+        "affinity": [
+          {
+            "path": "source/pieces/067-full.af",
+            "suffix": "full"
+          },
+          {
+            "path": "source/pieces/067.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [
+          {
+            "path": "inbox/067.svg",
+            "suffix": null
+          }
+        ],
+        "inbox_pngs": [
+          "inbox/067.png"
+        ],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": {
+        "primary_svg": "inbox/067.svg",
+        "primary_svg_mtime": "2026-05-03T15:58:29.975300+00:00",
+        "all_svgs": [
+          "inbox/067.svg"
+        ],
+        "xml_well_formed": true,
+        "view_box": "0 0 3613 7434",
+        "layers_present": [
+          "axles",
+          "marks",
+          "silhouette"
+        ],
+        "layer_id_inventory": {
+          "silhouette": [
+            "mask",
+            "cutaway"
+          ],
+          "marks": [
+            "landing-f69",
+            "landing-e69",
+            "landing-d69",
+            "landing-c69"
+          ],
+          "axles": [
+            "anchor-pivot"
+          ]
+        },
+        "off_spec_layers": []
+      },
+      "convention_checks": [
+        {
+          "id": "xml-well-formed",
+          "description": "SVG parses without XML error",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Parsed successfully",
+          "message": null
+        },
+        {
+          "id": "silhouette-layer-present",
+          "description": "<g id='silhouette'> exists",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Found silhouette layer",
+          "message": null
+        },
+        {
+          "id": "silhouette-cutaway-id",
+          "description": "silhouette has cutaway or cutaway-N element",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Found: cutaway",
+          "message": null
+        },
+        {
+          "id": "cutouts-layer-format",
+          "description": "cutouts children use cutout-N ids (not cutout-letter)",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No cutouts layer present"
+        },
+        {
+          "id": "axles-layer-clean",
+          "description": "axles layer contains only ellipse/circle/path + optional north",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All elements are ellipse/circle/path",
+          "message": null
+        },
+        {
+          "id": "axles-north-marker-shape",
+          "description": "id='north' is a parseable shape if present",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No north marker in axles layer"
+        },
+        {
+          "id": "mask-elements-ignorable",
+          "description": "mask/mask-N ids appear only inside silhouette",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "mask ids in silhouette only: mask",
+          "message": null
+        },
+        {
+          "id": "canonical-layer-names-only",
+          "description": "All top-level <g> ids are canonical or mask/mask-N",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All top-level named groups are canonical",
+          "message": null
+        },
+        {
+          "id": "no-stray-paths-at-root",
+          "description": "No <path> elements directly under <svg>",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No stray paths at root",
+          "message": null
+        },
+        {
+          "id": "landing-marker-id-format",
+          "description": "landing-* ids match landing-<letter><piece-number>[variant] format",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All 4 landing id(s) valid: landing-f69, landing-e69, landing-d69, landing-c69",
+          "message": null
+        },
+        {
+          "id": "landing-markers-in-marks-only",
+          "description": "landing-* ids appear only inside marks layer",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "4 landing id(s) in marks",
+          "message": null
+        }
+      ],
+      "stage": "svg_validated",
+      "anomalies": [
+        "png-in-inbox: inbox/067.png",
+        "affinity-variant-suffix: source/pieces/067-full.af (suffix='full')"
+      ]
+    },
+    "068": {
+      "id": "068",
+      "csv_meta": {
+        "plate": "H",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "reviewed",
+        "notes": "Anchor fork; passes over beam piece 9"
+      },
+      "files": {
+        "source_png": "source/pieces/068.png",
+        "affinity": [
+          {
+            "path": "source/pieces/068.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/068.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "affinity_started",
+      "anomalies": []
+    },
+    "069": {
+      "id": "069",
+      "csv_meta": {
+        "plate": "H",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "reviewed",
+        "notes": "Anchor-bearing box; + center mark"
+      },
+      "files": {
+        "source_png": "source/pieces/069.png",
+        "affinity": [
+          {
+            "path": "source/pieces/069.af",
+            "suffix": null
+          },
+          {
+            "path": "inbox/069.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [
+          {
+            "path": "inbox/069.svg",
+            "suffix": null
+          }
+        ],
+        "inbox_pngs": [
+          "inbox/069.png"
+        ],
+        "derivative_dir_files": [
+          "piece-069-viewer.html"
+        ],
+        "chunk_membership": [
+          "source/scans-chunks/069.jpeg"
+        ]
+      },
+      "svg_analysis": {
+        "primary_svg": "inbox/069.svg",
+        "primary_svg_mtime": "2026-05-03T15:58:29.991509+00:00",
+        "all_svgs": [
+          "inbox/069.svg"
+        ],
+        "xml_well_formed": true,
+        "view_box": "0 0 3417 3342",
+        "layers_present": [
+          "axles",
+          "folds-valley",
+          "marks",
+          "silhouette"
+        ],
+        "layer_id_inventory": {
+          "silhouette": [
+            "mask",
+            "cutaway"
+          ],
+          "marks": [
+            "tab-g",
+            "tab-f",
+            "tab-e",
+            "tab-d",
+            "tab-c",
+            "tab-b",
+            "tab-a",
+            "landing-h",
+            "landing-i",
+            "landing-b",
+            "landing-a"
+          ],
+          "axles": [
+            "anchor-pivot"
+          ]
+        },
+        "off_spec_layers": []
+      },
+      "convention_checks": [
+        {
+          "id": "xml-well-formed",
+          "description": "SVG parses without XML error",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Parsed successfully",
+          "message": null
+        },
+        {
+          "id": "silhouette-layer-present",
+          "description": "<g id='silhouette'> exists",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Found silhouette layer",
+          "message": null
+        },
+        {
+          "id": "silhouette-cutaway-id",
+          "description": "silhouette has cutaway or cutaway-N element",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Found: cutaway",
+          "message": null
+        },
+        {
+          "id": "cutouts-layer-format",
+          "description": "cutouts children use cutout-N ids (not cutout-letter)",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No cutouts layer present"
+        },
+        {
+          "id": "axles-layer-clean",
+          "description": "axles layer contains only ellipse/circle/path + optional north",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All elements are ellipse/circle/path",
+          "message": null
+        },
+        {
+          "id": "axles-north-marker-shape",
+          "description": "id='north' is a parseable shape if present",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No north marker in axles layer"
+        },
+        {
+          "id": "mask-elements-ignorable",
+          "description": "mask/mask-N ids appear only inside silhouette",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "mask ids in silhouette only: mask",
+          "message": null
+        },
+        {
+          "id": "canonical-layer-names-only",
+          "description": "All top-level <g> ids are canonical or mask/mask-N",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All top-level named groups are canonical",
+          "message": null
+        },
+        {
+          "id": "no-stray-paths-at-root",
+          "description": "No <path> elements directly under <svg>",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No stray paths at root",
+          "message": null
+        },
+        {
+          "id": "landing-marker-id-format",
+          "description": "landing-* ids match landing-<letter><piece-number>[variant] format",
+          "severity": "advisory",
+          "result": "fail",
+          "evidence": null,
+          "message": "Malformed landing ids: landing-h, landing-i, landing-b, landing-a"
+        },
+        {
+          "id": "landing-markers-in-marks-only",
+          "description": "landing-* ids appear only inside marks layer",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "4 landing id(s) in marks",
+          "message": null
+        }
+      ],
+      "stage": "svg_validated",
+      "anomalies": [
+        "duplicate-affinity-file",
+        "png-in-inbox: inbox/069.png"
+      ]
+    },
+    "070": {
+      "id": "070",
+      "csv_meta": {
+        "plate": "H",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "reviewed",
+        "notes": "Pendulum rod (long vertical strip); receives 71 at bottom"
+      },
+      "files": {
+        "source_png": "source/pieces/070.png",
+        "affinity": [
+          {
+            "path": "source/pieces/070.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [
+          {
+            "path": "inbox/070.svg",
+            "suffix": null
+          }
+        ],
+        "inbox_pngs": [
+          "inbox/070.png"
+        ],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/070.jpeg"
+        ]
+      },
+      "svg_analysis": {
+        "primary_svg": "inbox/070.svg",
+        "primary_svg_mtime": "2026-05-03T15:58:30.015397+00:00",
+        "all_svgs": [
+          "inbox/070.svg"
+        ],
+        "xml_well_formed": true,
+        "view_box": "0 0 20463 3355",
+        "layers_present": [],
+        "layer_id_inventory": {},
+        "off_spec_layers": []
+      },
+      "convention_checks": [
+        {
+          "id": "xml-well-formed",
+          "description": "SVG parses without XML error",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Parsed successfully",
+          "message": null
+        },
+        {
+          "id": "silhouette-layer-present",
+          "description": "<g id='silhouette'> exists",
+          "severity": "required",
+          "result": "fail",
+          "evidence": null,
+          "message": "Top-level <g id='silhouette'> not found"
+        },
+        {
+          "id": "silhouette-cutaway-id",
+          "description": "silhouette has cutaway or cutaway-N element",
+          "severity": "required",
+          "result": "skip",
+          "evidence": null,
+          "message": "silhouette layer not present"
+        },
+        {
+          "id": "cutouts-layer-format",
+          "description": "cutouts children use cutout-N ids (not cutout-letter)",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No cutouts layer present"
+        },
+        {
+          "id": "axles-layer-clean",
+          "description": "axles layer contains only ellipse/circle/path + optional north",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No axles layer present"
+        },
+        {
+          "id": "axles-north-marker-shape",
+          "description": "id='north' is a parseable shape if present",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No north marker in axles layer"
+        },
+        {
+          "id": "mask-elements-ignorable",
+          "description": "mask/mask-N ids appear only inside silhouette",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No mask ids found",
+          "message": null
+        },
+        {
+          "id": "canonical-layer-names-only",
+          "description": "All top-level <g> ids are canonical or mask/mask-N",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All top-level named groups are canonical",
+          "message": null
+        },
+        {
+          "id": "no-stray-paths-at-root",
+          "description": "No <path> elements directly under <svg>",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No stray paths at root",
+          "message": null
+        },
+        {
+          "id": "landing-marker-id-format",
+          "description": "landing-* ids match landing-<letter><piece-number>[variant] format",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No landing-* ids in marks layer"
+        },
+        {
+          "id": "landing-markers-in-marks-only",
+          "description": "landing-* ids appear only inside marks layer",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No landing ids found",
+          "message": null
+        }
+      ],
+      "stage": "svg_drafted",
+      "anomalies": [
+        "png-in-inbox: inbox/070.png"
+      ]
+    },
+    "071": {
+      "id": "071",
+      "csv_meta": {
+        "plate": "H",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Square ring; cut out center; glue between b/c of piece 70"
+      },
+      "files": {
+        "source_png": "source/pieces/071.png",
+        "affinity": [
+          {
+            "path": "source/pieces/071.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [
+          {
+            "path": "inbox/071.svg",
+            "suffix": null
+          }
+        ],
+        "inbox_pngs": [
+          "inbox/071.png"
+        ],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/071.jpeg"
+        ]
+      },
+      "svg_analysis": {
+        "primary_svg": "inbox/071.svg",
+        "primary_svg_mtime": "2026-05-03T15:58:30.026368+00:00",
+        "all_svgs": [
+          "inbox/071.svg"
+        ],
+        "xml_well_formed": true,
+        "view_box": "0 0 2334 6917",
+        "layers_present": [
+          "cutouts",
+          "folds-valley",
+          "marks",
+          "silhouette"
+        ],
+        "layer_id_inventory": {
+          "silhouette": [
+            "cutaway"
+          ],
+          "cutouts": [
+            "cutout-2",
+            "cutout-1"
+          ],
+          "marks": [
+            "landing-c70",
+            "landing-b70"
+          ]
+        },
+        "off_spec_layers": []
+      },
+      "convention_checks": [
+        {
+          "id": "xml-well-formed",
+          "description": "SVG parses without XML error",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Parsed successfully",
+          "message": null
+        },
+        {
+          "id": "silhouette-layer-present",
+          "description": "<g id='silhouette'> exists",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Found silhouette layer",
+          "message": null
+        },
+        {
+          "id": "silhouette-cutaway-id",
+          "description": "silhouette has cutaway or cutaway-N element",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Found: cutaway",
+          "message": null
+        },
+        {
+          "id": "cutouts-layer-format",
+          "description": "cutouts children use cutout-N ids (not cutout-letter)",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "2 cutout-N id(s) found",
+          "message": null
+        },
+        {
+          "id": "axles-layer-clean",
+          "description": "axles layer contains only ellipse/circle/path + optional north",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No axles layer present"
+        },
+        {
+          "id": "axles-north-marker-shape",
+          "description": "id='north' is a parseable shape if present",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No north marker in axles layer"
+        },
+        {
+          "id": "mask-elements-ignorable",
+          "description": "mask/mask-N ids appear only inside silhouette",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No mask ids found",
+          "message": null
+        },
+        {
+          "id": "canonical-layer-names-only",
+          "description": "All top-level <g> ids are canonical or mask/mask-N",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All top-level named groups are canonical",
+          "message": null
+        },
+        {
+          "id": "no-stray-paths-at-root",
+          "description": "No <path> elements directly under <svg>",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No stray paths at root",
+          "message": null
+        },
+        {
+          "id": "landing-marker-id-format",
+          "description": "landing-* ids match landing-<letter><piece-number>[variant] format",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All 2 landing id(s) valid: landing-c70, landing-b70",
+          "message": null
+        },
+        {
+          "id": "landing-markers-in-marks-only",
+          "description": "landing-* ids appear only inside marks layer",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "2 landing id(s) in marks",
+          "message": null
+        }
+      ],
+      "stage": "svg_validated",
+      "anomalies": [
+        "affinity-file-open-lock: 071.af~lock~",
+        "png-in-inbox: inbox/071.png"
+      ]
+    },
+    "072": {
+      "id": "072",
+      "csv_meta": {
+        "plate": "H",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "reviewed",
+        "notes": "Pendulum blade with mounting-pin hole; squeeze into 70's slot"
+      },
+      "files": {
+        "source_png": "source/pieces/072.png",
+        "affinity": [
+          {
+            "path": "source/pieces/072.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [
+          {
+            "path": "inbox/072.svg",
+            "suffix": null
+          }
+        ],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/072.jpeg"
+        ]
+      },
+      "svg_analysis": {
+        "primary_svg": "inbox/072.svg",
+        "primary_svg_mtime": "2026-05-03T15:58:30.029797+00:00",
+        "all_svgs": [
+          "inbox/072.svg"
+        ],
+        "xml_well_formed": true,
+        "view_box": "0 0 1450 6234",
+        "layers_present": [
+          "silhouette"
+        ],
+        "layer_id_inventory": {
+          "silhouette": [
+            "cutaway"
+          ]
+        },
+        "off_spec_layers": []
+      },
+      "convention_checks": [
+        {
+          "id": "xml-well-formed",
+          "description": "SVG parses without XML error",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Parsed successfully",
+          "message": null
+        },
+        {
+          "id": "silhouette-layer-present",
+          "description": "<g id='silhouette'> exists",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Found silhouette layer",
+          "message": null
+        },
+        {
+          "id": "silhouette-cutaway-id",
+          "description": "silhouette has cutaway or cutaway-N element",
+          "severity": "required",
+          "result": "pass",
+          "evidence": "Found: cutaway",
+          "message": null
+        },
+        {
+          "id": "cutouts-layer-format",
+          "description": "cutouts children use cutout-N ids (not cutout-letter)",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No cutouts layer present"
+        },
+        {
+          "id": "axles-layer-clean",
+          "description": "axles layer contains only ellipse/circle/path + optional north",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No axles layer present"
+        },
+        {
+          "id": "axles-north-marker-shape",
+          "description": "id='north' is a parseable shape if present",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No north marker in axles layer"
+        },
+        {
+          "id": "mask-elements-ignorable",
+          "description": "mask/mask-N ids appear only inside silhouette",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No mask ids found",
+          "message": null
+        },
+        {
+          "id": "canonical-layer-names-only",
+          "description": "All top-level <g> ids are canonical or mask/mask-N",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "All top-level named groups are canonical",
+          "message": null
+        },
+        {
+          "id": "no-stray-paths-at-root",
+          "description": "No <path> elements directly under <svg>",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No stray paths at root",
+          "message": null
+        },
+        {
+          "id": "landing-marker-id-format",
+          "description": "landing-* ids match landing-<letter><piece-number>[variant] format",
+          "severity": "advisory",
+          "result": "skip",
+          "evidence": null,
+          "message": "No landing-* ids in marks layer"
+        },
+        {
+          "id": "landing-markers-in-marks-only",
+          "description": "landing-* ids appear only inside marks layer",
+          "severity": "advisory",
+          "result": "pass",
+          "evidence": "No landing ids found",
+          "message": null
+        }
+      ],
+      "stage": "svg_validated",
+      "anomalies": []
+    },
+    "073": {
+      "id": "073",
+      "csv_meta": {
+        "plate": "F",
+        "section": "hands",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Star-shaped hands-assembly wheel; cut out center"
+      },
+      "files": {
+        "source_png": "source/pieces/073.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "074": {
+      "id": "074",
+      "csv_meta": {
+        "plate": "E",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Thin strip (hook form) at bottom of plate E; small fragment also visible on H"
+      },
+      "files": {
+        "source_png": "source/pieces/074.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "075": {
+      "id": "075",
+      "csv_meta": {
+        "plate": "F",
+        "section": "hands",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Star-shaped hands-assembly wheel"
+      },
+      "files": {
+        "source_png": "source/pieces/075.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "076": {
+      "id": "076",
+      "csv_meta": {
+        "plate": "F",
+        "section": "hands",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Small rectangular piece for minute-hand assembly"
+      },
+      "files": {
+        "source_png": "source/pieces/076.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "077": {
+      "id": "077",
+      "csv_meta": {
+        "plate": "F",
+        "section": "hands",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Minute-hand holder tube development"
+      },
+      "files": {
+        "source_png": "source/pieces/077.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "078": {
+      "id": "078",
+      "csv_meta": {
+        "plate": "E",
+        "section": "hands",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Hour-hand wheel; glue back to back to 79 before cutting teeth"
+      },
+      "files": {
+        "source_png": "source/pieces/078.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "079": {
+      "id": "079",
+      "csv_meta": {
+        "plate": "E",
+        "section": "hands",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Hour-hand wheel partner to 78"
+      },
+      "files": {
+        "source_png": "source/pieces/079.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "080": {
+      "id": "080",
+      "csv_meta": {
+        "plate": "F",
+        "section": "hands",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Small rectangle ('Push into wheel 78'); 'rear' label on one face"
+      },
+      "files": {
+        "source_png": "source/pieces/080.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/080.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "081": {
+      "id": "081",
+      "csv_meta": {
+        "plate": "F",
+        "section": "reduction-gear",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Reduction-gear stage piece"
+      },
+      "files": {
+        "source_png": "source/pieces/081.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "082": {
+      "id": "082",
+      "csv_meta": {
+        "plate": "E",
+        "section": "reduction-gear",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Reduction-gear accordion strip"
+      },
+      "files": {
+        "source_png": "source/pieces/082.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "083": {
+      "id": "083",
+      "csv_meta": {
+        "plate": "E",
+        "section": "reduction-gear",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Reduction-gear accordion strip"
+      },
+      "files": {
+        "source_png": "source/pieces/083.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "084": {
+      "id": "084",
+      "csv_meta": {
+        "plate": "F",
+        "section": "reduction-gear",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Reduction-gear stage piece"
+      },
+      "files": {
+        "source_png": "source/pieces/084.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "085": {
+      "id": "085",
+      "csv_meta": {
+        "plate": "F",
+        "section": "reduction-gear",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Rectangular strip; +++ along length"
+      },
+      "files": {
+        "source_png": "source/pieces/085.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "086": {
+      "id": "086",
+      "csv_meta": {
+        "plate": "F",
+        "section": "reduction-gear",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Reduction-gear stage piece"
+      },
+      "files": {
+        "source_png": "source/pieces/086.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "087": {
+      "id": "087",
+      "csv_meta": {
+        "plate": "F",
+        "section": "reduction-gear",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Reduction-gear disc; cut out center"
+      },
+      "files": {
+        "source_png": "source/pieces/087.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "088": {
+      "id": "088",
+      "csv_meta": {
+        "plate": "F",
+        "section": "reduction-gear",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pulley/gear stack disc"
+      },
+      "files": {
+        "source_png": "source/pieces/088.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "089": {
+      "id": "089",
+      "csv_meta": {
+        "plate": "F",
+        "section": "reduction-gear",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pulley disc for hands mechanism; also appears on plate H"
+      },
+      "files": {
+        "source_png": "source/pieces/089.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "090": {
+      "id": "090",
+      "csv_meta": {
+        "plate": "F",
+        "section": "reduction-gear",
+        "bucket": "",
+        "status": "pending",
+        "notes": "Pulley/gear stack disc"
+      },
+      "files": {
+        "source_png": null,
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "pending_capture",
+      "anomalies": []
+    },
+    "091": {
+      "id": "091",
+      "csv_meta": {
+        "plate": "D",
+        "section": "hands",
+        "bucket": "auto-trace-clean",
+        "status": "captured",
+        "notes": "Small square spacer; glue to 1mm cardboard; aligns to piece 4"
+      },
+      "files": {
+        "source_png": "source/pieces/091.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/091.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "092": {
+      "id": "092",
+      "csv_meta": {
+        "plate": "D",
+        "section": "hands",
+        "bucket": "auto-trace-clean",
+        "status": "captured",
+        "notes": "Disc spacer; glue to 1mm cardboard; aligns to piece 4"
+      },
+      "files": {
+        "source_png": "source/pieces/092.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/092.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "092a": {
+      "id": "092a",
+      "csv_meta": {
+        "plate": "H",
+        "section": "hands",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Narrow tongue piece; glues on top of 92 and 91 with axle holes coinciding. LETTER VARIANT."
+      },
+      "files": {
+        "source_png": "source/pieces/092a.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/092a.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "093": {
+      "id": "093",
+      "csv_meta": {
+        "plate": "B",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pendulum-bob inner brace; printed as 6 copies, glued in pairs to make 3 braces"
+      },
+      "files": {
+        "source_png": "source/pieces/093.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "094": {
+      "id": "094",
+      "csv_meta": {
+        "plate": "H",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pendulum-bob outer casing (long tapered tube)"
+      },
+      "files": {
+        "source_png": "source/pieces/094.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/94_l.jpeg",
+          "source/scans-chunks/94_r.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "095": {
+      "id": "095",
+      "csv_meta": {
+        "plate": "H",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Pendulum hook outer shape; receives 96 in bottom"
+      },
+      "files": {
+        "source_png": "source/pieces/095.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "096": {
+      "id": "096",
+      "csv_meta": {
+        "plate": "H",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Narrow cardboard reinforcement; glue to 1mm cardboard"
+      },
+      "files": {
+        "source_png": "source/pieces/096.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "097": {
+      "id": "097",
+      "csv_meta": {
+        "plate": "H",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "reviewed",
+        "notes": "Pendulum-bob front face (large round disc); 'apply no glue here' inner rectangle"
+      },
+      "files": {
+        "source_png": "source/pieces/097.png",
+        "affinity": [
+          {
+            "path": "source/pieces/097.af",
+            "suffix": null
+          }
+        ],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/097.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "affinity_started",
+      "anomalies": []
+    },
+    "098": {
+      "id": "098",
+      "csv_meta": {
+        "plate": "H",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Bowed retainer; glues to 97 (bowed when glued, holds bob in place)"
+      },
+      "files": {
+        "source_png": "source/pieces/098.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/098.jpeg"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "099": {
+      "id": "099",
+      "csv_meta": {
+        "plate": "H",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Saw-toothed crescent (decorative trim)"
+      },
+      "files": {
+        "source_png": "source/pieces/099.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/099.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "100": {
+      "id": "100",
+      "csv_meta": {
+        "plate": "H",
+        "section": "anchor-pendulum",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Bob-position disc with F (fast/up) and S (slow/down) arrows"
+      },
+      "files": {
+        "source_png": "source/pieces/100.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": [
+          "source/scans-chunks/100.png"
+        ]
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "101": {
+      "id": "101",
+      "csv_meta": {
+        "plate": "J",
+        "section": "weight",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Weight cylinder development (rectangular sheet, multiple horizontal folds)"
+      },
+      "files": {
+        "source_png": "source/pieces/101.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "102": {
+      "id": "102",
+      "csv_meta": {
+        "plate": "J",
+        "section": "weight",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Wide labeled strip wrapped around 101"
+      },
+      "files": {
+        "source_png": "source/pieces/102.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "103": {
+      "id": "103",
+      "csv_meta": {
+        "plate": "E",
+        "section": "reduction-gear",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Small reduction gear with central spiral pattern"
+      },
+      "files": {
+        "source_png": "source/pieces/103.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "104": {
+      "id": "104",
+      "csv_meta": {
+        "plate": "E",
+        "section": "weight",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Weight-cylinder lid disc; glue back to back to 106"
+      },
+      "files": {
+        "source_png": "source/pieces/104.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "105": {
+      "id": "105",
+      "csv_meta": {
+        "plate": "E",
+        "section": "weight",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Sawtooth gear-teeth strip"
+      },
+      "files": {
+        "source_png": "source/pieces/105.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "106": {
+      "id": "106",
+      "csv_meta": {
+        "plate": "E",
+        "section": "weight",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Weight-cylinder lid disc; partner to 104"
+      },
+      "files": {
+        "source_png": "source/pieces/106.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "107": {
+      "id": "107",
+      "csv_meta": {
+        "plate": "E",
+        "section": "reference",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Axle-dimension reference lines + legend (not a build piece)"
+      },
+      "files": {
+        "source_png": "source/pieces/107.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "108": {
+      "id": "108",
+      "csv_meta": {
+        "plate": "J",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Minute hand (solid black silhouette); glue on heavy cardboard"
+      },
+      "files": {
+        "source_png": "source/pieces/108.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "109": {
+      "id": "109",
+      "csv_meta": {
+        "plate": "J",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Hour hand (solid black silhouette); glue on heavy cardboard"
+      },
+      "files": {
+        "source_png": "source/pieces/109.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "110": {
+      "id": "110",
+      "csv_meta": {
+        "plate": "A",
+        "section": "face-case",
+        "bucket": "",
+        "status": "pending",
+        "notes": "Face-frame end rail; X/Y end-match markers to 111/112"
+      },
+      "files": {
+        "source_png": null,
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "pending_capture",
+      "anomalies": []
+    },
+    "111": {
+      "id": "111",
+      "csv_meta": {
+        "plate": "E",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Face-frame horizontal rail"
+      },
+      "files": {
+        "source_png": "source/pieces/111.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "112": {
+      "id": "112",
+      "csv_meta": {
+        "plate": "E",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Face-frame horizontal rail (mirror partner of 112a)"
+      },
+      "files": {
+        "source_png": "source/pieces/112.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "112a": {
+      "id": "112a",
+      "csv_meta": {
+        "plate": "E",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Face-frame horizontal rail (mirror partner of 112). LETTER VARIANT."
+      },
+      "files": {
+        "source_png": "source/pieces/112a.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "113": {
+      "id": "113",
+      "csv_meta": {
+        "plate": "B",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Cross-shaped brace piece for face frame (1 of 4: 113-116)"
+      },
+      "files": {
+        "source_png": "source/pieces/113.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "114": {
+      "id": "114",
+      "csv_meta": {
+        "plate": "B",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Cross-shaped brace piece for face frame"
+      },
+      "files": {
+        "source_png": "source/pieces/114.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "115": {
+      "id": "115",
+      "csv_meta": {
+        "plate": "B",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Cross-shaped brace piece for face frame"
+      },
+      "files": {
+        "source_png": "source/pieces/115.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "116": {
+      "id": "116",
+      "csv_meta": {
+        "plate": "B",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Cross-shaped brace piece for face frame"
+      },
+      "files": {
+        "source_png": "source/pieces/116.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "117": {
+      "id": "117",
+      "csv_meta": {
+        "plate": "J",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Case top with chamfered corners; central 'front' tab"
+      },
+      "files": {
+        "source_png": "source/pieces/117.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "118": {
+      "id": "118",
+      "csv_meta": {
+        "plate": "I",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Case-side panel; * pin-hole markers; glues to b119/c119 underside of 117"
+      },
+      "files": {
+        "source_png": "source/pieces/118.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "119": {
+      "id": "119",
+      "csv_meta": {
+        "plate": "I",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Case-side panel; * pin-hole markers; glues to b118/c118 underside of 117"
+      },
+      "files": {
+        "source_png": "source/pieces/119.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "120": {
+      "id": "120",
+      "csv_meta": {
+        "plate": "F",
+        "section": "reference",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Axle-mount cardboard square (model for all mounting squares)"
+      },
+      "files": {
+        "source_png": "source/pieces/120.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    },
+    "121": {
+      "id": "121",
+      "csv_meta": {
+        "plate": "M",
+        "section": "face-case",
+        "bucket": "",
+        "status": "captured",
+        "notes": "Clock face: tan/brown border, off-white field, numbers 1-12, minute marks. Not numbered in print; assigned ID 121 for build authoring (closes the gap in non-contiguous source numbering)."
+      },
+      "files": {
+        "source_png": "source/pieces/121.png",
+        "affinity": [],
+        "svgs": [],
+        "inbox_pngs": [],
+        "derivative_dir_files": [],
+        "chunk_membership": []
+      },
+      "svg_analysis": null,
+      "convention_checks": [],
+      "stage": "captured_only",
+      "anomalies": []
+    }
+  }
+}
