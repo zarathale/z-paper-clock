@@ -3,13 +3,10 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# Set-aside zone for scans that need a re-do; never committed
-inbox/_pending-rescan/
+# Affinity Designer working files — lock files (open documents) and editor backups
+.~lock.*.af#
+*.af~
 
 # Claude Code internals — keep settings.json (committed), ignore worktree state and per-machine overrides
 .claude/worktrees/
 .claude/settings.local.json
-
-# Affinity lock + backup files
-.~lock.*.af#
-*.af~
