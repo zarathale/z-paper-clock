@@ -1,0 +1,323 @@
+# work/expected_layers.yaml
+# Section defaults + per-piece overrides for the audit's expected-layers check.
+#
+# Read by work/scripts/audit_state.py. For each piece, the audit:
+#   1. Looks up defaults_by_section[piece.section] -> starting expected layers
+#      (empty set if the section isn't listed; this is how `reference` is excluded
+#      from defaults — see per_piece for 107 / 120).
+#   2. Applies per_piece[<id>].add — extends the expected set.
+#   3. Applies per_piece[<id>].remove — subtracts from the expected set.
+#   4. Diffs against layers actually present in the piece's primary SVG.
+#   5. Surfaces the diff as `expected_layers` + `missing_layers` per piece,
+#      plus a convention check `expected-layers-present` (advisory) so the
+#      failure shows up in the dashboard's bucket-chip menu automatically.
+#
+# Editing convention: defaults are coarse, per_piece is fine.
+# Adding a layer to a section default flags every piece in that section that
+# lacks it — that's the uplift mechanic. Per-piece add/remove is the escape
+# hatch for known exceptions.
+#
+# This file is a v0 seed. It is INTENTIONALLY incomplete in per_piece. Pieces
+# that don't match their section default will surface through the audit as
+# they're authored, and get added here. Don't try to pre-author every exception.
+#
+# Layer name vocabulary — must match LAYER-CONVENTIONS.md and the audit's
+# CANONICAL_LAYERS set:
+#   silhouette  cutouts  folds-valley  folds-mountain
+#   axles       glue-zones  labels  marks
+#
+# Section keys come straight from work/pieces.csv `section` column. Ten values:
+#   framework  motor-wheel  middle-wheel  escapement  reduction-gear
+#   anchor-pendulum  hands  weight  face-case  reference
+# `reference` is intentionally absent from defaults_by_section — see per_piece
+# entries for 107 and 120 for the policy on those.
+
+defaults_by_section:
+
+  # §II.A The Framework
+  # Plates A-D mostly. U-channel frame strips, vertical strips, brackets,
+  # wall-bracket box developments, pendulum-support spacers. Heavy fold + glue
+  # work; landings (in `marks`) common because the framework is what other
+  # pieces attach to. Axles only on the two main columns (4, 10).
+  framework:        [silhouette, folds-valley, folds-mountain, glue-zones, marks]
+
+  # §II.B The Mechanism
+  # pieces.csv splits §II.B into four sub-sections; each gets its own default.
+  # All four center on gear / pulley axles. Folds are common in motor-wheel
+  # (pulleys, teeth strips) but rarer in the other three (mostly flat discs
+  # with star-cut pinions). So motor-wheel keeps folds in the default; the
+  # other three drop folds and add them per-piece.
+
+  motor-wheel:      [silhouette, folds-valley, folds-mountain, glue-zones, axles, marks]
+  middle-wheel:     [silhouette, axles, glue-zones, marks]
+  escapement:       [silhouette, axles, glue-zones, marks]
+  reduction-gear:   [silhouette, axles, glue-zones, marks]
+
+  # §II.C The Anchor and the Pendulum
+  # Anchor arm + bearing, pendulum rod + bob casing. Mix of folds (rod, bob
+  # casing, anchor-bearing box), axles (anchor pivot at 65 / 69, pendulum
+  # mount at 70 / 72), glue, and a few flat reinforcement pieces (93, 96, 99).
+  # Default the high-frequency layers; per-piece handles the flats.
+  anchor-pendulum:  [silhouette, folds-valley, folds-mountain, glue-zones, axles, marks]
+
+  # §II.D Mechanism of the Hands
+  # Hour-hand wheel, minute-hand wheel, hands tubes, small spacers. Axle-centric.
+  # Some pieces have folds (tubes 76 / 77 / 80) and cutouts (star-cut wheels
+  # 73 / 75; teeth on 78 / 79). Default the common case; per-piece for tubes,
+  # star-cuts, and the flat spacers (91, 92).
+  hands:            [silhouette, axles, glue-zones, marks]
+
+  # §II.E The Weight
+  # Weight cylinder + lid. Cylinder (101) and wrap (102) are folded; lid discs
+  # (104 / 106) and the sawtooth strip (105) are flatter. Mostly folds in the
+  # default; per-piece removes for the lids.
+  weight:           [silhouette, folds-valley, folds-mountain, glue-zones, marks]
+
+  # §II.F The Face and the Case
+  # Face frame, case top + sides, clock face, hand silhouettes. Frame rails
+  # (110 / 111 / 112 / 112a) and case (117 / 118 / 119) are folded; flat
+  # exceptions (108 / 109 / 113-116 / 121) get per-piece removes.
+  face-case:        [silhouette, folds-valley, folds-mountain, glue-zones, marks]
+
+  # `reference` (pieces 107, 120) is intentionally NOT here. These are non-build
+  # references — 107 is the axle-dimension reference + legend, 120 is the
+  # cardboard axle-mount square (model for all mounting squares). Their
+  # expected-layers are set explicitly in per_piece below.
+
+
+per_piece:
+
+  # ============================================================================
+  # framework — axle holders + flat exceptions
+  # ============================================================================
+
+  "004":
+    add: [axles]
+    # Long main frame column (front center); axle holes for piece 91/92.
+
+  "010":
+    add: [axles]
+    # Long main frame column (back center); same role as 004 on the back.
+
+  "026":
+    remove: [folds-valley, folds-mountain]
+    # Wall-bracket wedge — flat, glued to strong cardboard.
+
+  "031":
+    remove: [folds-valley, folds-mountain]
+    # Flat oval/leaf tongue; glued back-to-back to 32. No folds.
+
+  "032":
+    remove: [folds-valley, folds-mountain]
+    # Flat elongated oval; partner to 31.
+
+  # ============================================================================
+  # motor-wheel — central cutout (38) + flat pulley plates
+  # ============================================================================
+
+  "038":
+    add: [cutouts]
+    # Large motor-wheel front face; central star CUT OUT.
+
+  "046":
+    remove: [folds-valley, folds-mountain]
+    # Pulley plate; glue back-to-back to 47. Flat.
+
+  "047":
+    remove: [folds-valley, folds-mountain]
+    # Pulley plate; partner to 46. Flat.
+
+  "048":
+    remove: [folds-valley, folds-mountain]
+    # Plain disc; glued to a double thickness of cardboard. Flat.
+
+  "049":
+    remove: [folds-valley, folds-mountain]
+    # Small disc (plate cap). Flat.
+
+  # ============================================================================
+  # middle-wheel — star-cut pinion stack (54-57) + the rolled pinion (55)
+  # ============================================================================
+
+  "053":
+    add: [cutouts]
+    # Small disc with starred center (pinion-mount).
+
+  "054":
+    add: [cutouts]
+    # Star-cut pinion piece.
+
+  "055":
+    add: [folds-valley, folds-mountain]
+    # Pinion: rolled cylinder pushed through 54's star.
+
+  "056":
+    add: [cutouts]
+    # Star-cut pinion piece.
+
+  "057":
+    add: [cutouts]
+    # Star-cut pinion piece.
+
+  # ============================================================================
+  # escapement — pinion roll (60) + star-cut pinion stack (61-64)
+  # ============================================================================
+
+  "060":
+    add: [folds-valley, folds-mountain]
+    # Pinion (rolled cylinder) for the escapement wheel.
+
+  "061":
+    add: [cutouts]
+    # Star-cutout disc (pinion-stack).
+
+  "062":
+    add: [cutouts]
+    # Star-cutout disc.
+
+  "063":
+    add: [cutouts]
+    # Star-cutout disc.
+
+  "064":
+    add: [cutouts]
+    # Star-cutout disc.
+
+  # ============================================================================
+  # reduction-gear — accordion strips (82, 83) + center-cut disc (87)
+  # ============================================================================
+
+  "082":
+    add: [folds-valley, folds-mountain]
+    # Reduction-gear accordion strip.
+
+  "083":
+    add: [folds-valley, folds-mountain]
+    # Reduction-gear accordion strip.
+
+  "087":
+    add: [cutouts]
+    # Reduction-gear disc; cut out center.
+
+  # ============================================================================
+  # anchor-pendulum — central cutout (71) + flat reinforcements (93, 96, 99, 100)
+  # ============================================================================
+
+  "071":
+    add: [cutouts]
+    remove: [folds-valley, folds-mountain]
+    # Square ring; cut out center; flat ring glued between b/c of piece 70.
+
+  "093":
+    remove: [folds-valley, folds-mountain, axles]
+    # Pendulum-bob inner brace (flat; printed as 6 copies, glued in pairs).
+
+  "096":
+    remove: [folds-valley, folds-mountain, axles]
+    # Narrow cardboard reinforcement; glued to 1mm cardboard.
+
+  "099":
+    remove: [folds-valley, folds-mountain, axles]
+    # Saw-toothed crescent (decorative trim).
+
+  "100":
+    remove: [folds-valley, folds-mountain, axles]
+    add: [labels]
+    # Bob-position disc with F (fast/up) and S (slow/down) arrows;
+    # flat with letters → labels.
+
+  # ============================================================================
+  # hands — star-cut wheels + tube developments + flat spacers
+  # ============================================================================
+
+  "073":
+    add: [cutouts]
+    # Star-shaped hands-assembly wheel; cut out center.
+
+  "075":
+    add: [cutouts]
+    # Star-shaped hands-assembly wheel.
+
+  "077":
+    add: [folds-valley, folds-mountain]
+    # Minute-hand holder tube development.
+
+  "078":
+    add: [cutouts]
+    # Hour-hand wheel; teeth cut after gluing back-to-back to 79.
+
+  "079":
+    add: [cutouts]
+    # Hour-hand wheel; partner to 78.
+
+  "080":
+    add: [folds-valley, folds-mountain, labels]
+    # Tube ('Push into wheel 78'); 'rear' label on one face.
+
+  "091":
+    remove: [axles, glue-zones, marks]
+    # Small square spacer (cardboard shim only); align to piece 4.
+
+  "092":
+    remove: [axles, glue-zones, marks]
+    # Disc spacer (cardboard shim only); align to piece 4.
+
+  # ============================================================================
+  # weight — flat lid discs
+  # ============================================================================
+
+  "104":
+    remove: [folds-valley, folds-mountain]
+    # Weight-cylinder lid disc; glue back-to-back to 106.
+
+  "106":
+    remove: [folds-valley, folds-mountain]
+    # Weight-cylinder lid disc; partner to 104.
+
+  # ============================================================================
+  # face-case — flat hand silhouettes (108, 109), flat braces (113-116), flat face (121)
+  # ============================================================================
+
+  "108":
+    remove: [folds-valley, folds-mountain, glue-zones, marks]
+    # Minute hand (solid black silhouette); glue on heavy cardboard. Just a shape.
+
+  "109":
+    remove: [folds-valley, folds-mountain, glue-zones, marks]
+    # Hour hand (solid black silhouette); glue on heavy cardboard. Just a shape.
+
+  "113":
+    remove: [folds-valley, folds-mountain]
+    # Cross-shaped face-brace (1 of 4: 113-116). Flat. Has * pin-hole markers in marks.
+
+  "114":
+    remove: [folds-valley, folds-mountain]
+    # Cross-shaped face-brace.
+
+  "115":
+    remove: [folds-valley, folds-mountain]
+    # Cross-shaped face-brace.
+
+  "116":
+    remove: [folds-valley, folds-mountain]
+    # Cross-shaped face-brace.
+
+  "121":
+    remove: [folds-valley, folds-mountain, glue-zones]
+    add: [labels]
+    # Clock face: tan/brown border, off-white field, numbers 1-12, minute marks.
+    # Decorative; numerals → labels. Not numbered in print; ID assigned for build.
+
+  # ============================================================================
+  # reference — non-build pieces (no section default; explicit minimal expectation)
+  # ============================================================================
+
+  "107":
+    add: [silhouette]
+    # Axle-dimension reference lines + legend. Not a build piece; minimum
+    # expectation = a silhouette outline so the dashboard has something to render.
+
+  "120":
+    add: [silhouette]
+    # Axle-mount cardboard square (model for all mounting squares).
+    # Same minimum expectation as 107.

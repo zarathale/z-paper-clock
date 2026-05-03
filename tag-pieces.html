@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>tag-pieces — z-paper-clock</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --fg: #1a1a1a;
+    --muted: #666;
+    --line: #d8d4ce;
+    --accent: #2d5e8b;
+    --accent-fg: #fff;
+    --warn: #b8651c;
+    --done: #2f7a3e;
+    --skip: #888;
+    --card-bg: #fff;
+    --hover: #ecebe5;
+    --selected: #e6efff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--fg);
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 20px; border-bottom: 1px solid var(--line);
+    background: #fff;
+  }
+  header h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  header .progress { font-size: 13px; color: var(--muted); }
+  header .progress strong { color: var(--fg); font-weight: 600; }
+
+  .legend {
+    display: grid; grid-template-columns: repeat(10, 1fr);
+    gap: 6px; padding: 10px 20px; background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+  .arch-btn {
+    border: 1px solid var(--line); background: #fff; color: var(--fg);
+    padding: 8px 6px; border-radius: 6px; cursor: pointer; text-align: center;
+    font: inherit; transition: background 0.1s, border-color 0.1s;
+  }
+  .arch-btn:hover { background: var(--hover); }
+  .arch-btn.selected { background: var(--selected); border-color: var(--accent); }
+  .arch-btn .key { display: block; font-size: 11px; color: var(--muted); font-weight: 600; }
+  .arch-btn .name { display: block; font-size: 12px; line-height: 1.2; margin-top: 2px; }
+
+  main {
+    display: grid; grid-template-columns: 1fr 280px;
+    gap: 20px; padding: 20px; max-width: 1400px; margin: 0 auto;
+  }
+
+  .piece-card {
+    background: var(--card-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 18px; min-height: 70vh;
+  }
+  .piece-meta {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 10px;
+  }
+  .piece-id { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .piece-tags { font-size: 12px; color: var(--muted); }
+  .piece-tags .pill {
+    display: inline-block; padding: 1px 7px; border-radius: 10px;
+    background: #efeee9; color: var(--fg); margin-left: 4px; font-weight: 500;
+  }
+  .piece-status {
+    font-size: 12px; padding: 4px 10px; border-radius: 4px;
+    display: inline-block; margin-left: auto;
+  }
+  .piece-status.pristine { background: #f0eee8; color: var(--muted); }
+  .piece-status.tagged { background: #e0f0e3; color: var(--done); }
+  .piece-status.uncertain { background: #fbe7d2; color: var(--warn); }
+  .piece-status.skipped { background: #e8e8e8; color: var(--skip); }
+
+  .piece-image-wrap {
+    background: #f4f3ee; border: 1px dashed var(--line); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 380px; max-height: 60vh; overflow: hidden; padding: 10px;
+    margin-bottom: 12px;
+  }
+  .piece-image-wrap img { max-width: 100%; max-height: 60vh; object-fit: contain; display: block; }
+  .piece-image-wrap .placeholder { color: var(--muted); font-style: italic; text-align: center; padding: 20px; }
+
+  .piece-notes {
+    font-size: 14px; color: #333; padding: 8px 10px;
+    background: #faf9f5; border-left: 3px solid var(--line); border-radius: 0 4px 4px 0;
+    margin-bottom: 12px; white-space: pre-wrap;
+  }
+  .piece-current-tag {
+    font-size: 13px; color: var(--muted); margin-bottom: 8px;
+  }
+  .piece-current-tag .tag-name { color: var(--fg); font-weight: 600; }
+
+  .per-piece-note {
+    width: 100%; min-height: 50px; padding: 8px; font: inherit;
+    border: 1px solid var(--line); border-radius: 4px; resize: vertical;
+    background: #fff;
+  }
+  .per-piece-note:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .nav-row {
+    display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+  }
+  .nav-btn {
+    border: 1px solid var(--line); background: #fff; color: var(--fg);
+    padding: 7px 14px; border-radius: 6px; cursor: pointer; font: inherit;
+  }
+  .nav-btn:hover { background: var(--hover); }
+  .nav-btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+  .nav-btn.primary:hover { filter: brightness(1.08); }
+  .nav-btn .key {
+    display: inline-block; padding: 1px 5px; border-radius: 3px;
+    background: rgba(0,0,0,0.08); margin-left: 6px; font-size: 11px; font-weight: 600;
+  }
+
+  .sidebar {
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .panel {
+    background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 14px;
+  }
+  .panel h2 { font-size: 13px; font-weight: 600; margin: 0 0 10px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); }
+  .filter-list { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+  .filter-list label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .filter-list label .count { color: var(--muted); margin-left: auto; font-size: 12px; }
+  .panel select { width: 100%; padding: 6px; border: 1px solid var(--line); border-radius: 4px; background: #fff; font: inherit; }
+  .panel button { width: 100%; margin-top: 8px; padding: 7px; font: inherit; border: 1px solid var(--line); background: #fff; border-radius: 4px; cursor: pointer; }
+  .panel button:hover { background: var(--hover); }
+  .panel button.danger { color: #a13434; }
+  .panel .help { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+  /* Export modal */
+  .export-modal {
+    display: none;
+    position: fixed; top: 5vh; left: 50%; transform: translateX(-50%);
+    width: 90%; max-width: 800px; max-height: 90vh; overflow: auto;
+    background: #fff; border: 1px solid var(--line); border-radius: 8px;
+    padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); z-index: 100;
+  }
+  .export-modal.open { display: block; }
+  .export-modal h2 { margin-top: 0; }
+  .export-modal textarea { width: 100%; height: 50vh; font: 13px/1.4 ui-monospace, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 10px; background: #fafaf7; }
+  .export-modal .actions { display: flex; gap: 8px; margin-top: 10px; }
+  .modal-bg {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 99;
+  }
+  .modal-bg.open { display: block; }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #1a1a1a; color: #fff; padding: 8px 16px; border-radius: 4px;
+    opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 200;
+    font-size: 13px;
+  }
+  .toast.show { opacity: 1; }
+
+  kbd {
+    display: inline-block; padding: 1px 5px; border-radius: 3px;
+    background: #efeee9; border: 1px solid var(--line); font-size: 11px; font-family: ui-monospace, monospace;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>tag-pieces · z-paper-clock</h1>
+  <div class="progress" id="progress">loading…</div>
+</header>
+
+<section class="legend" id="legend"></section>
+
+<main>
+  <article class="piece-card" id="card">
+    <div class="piece-meta">
+      <div>
+        <span class="piece-id" id="pieceId">—</span>
+        <span class="piece-tags">
+          plate <span class="pill" id="piecePlate">—</span>
+          section <span class="pill" id="pieceSection">—</span>
+          status <span class="pill" id="pieceStatus">—</span>
+        </span>
+      </div>
+      <span class="piece-status pristine" id="tagStatus">pristine</span>
+    </div>
+    <div class="piece-image-wrap" id="imageWrap">
+      <span class="placeholder">no piece selected</span>
+    </div>
+    <div class="piece-notes" id="pieceNotes">—</div>
+    <div class="piece-current-tag" id="currentTagLine">Current tag: <span class="tag-name">none</span></div>
+    <textarea class="per-piece-note" id="perPieceNote" placeholder="Optional note for this piece (auto-saves)"></textarea>
+    <div class="nav-row">
+      <button class="nav-btn" id="prevBtn">← Prev <span class="key">←</span></button>
+      <button class="nav-btn" id="nextBtn">Next → <span class="key">→</span></button>
+      <button class="nav-btn" id="skipBtn">Skip <span class="key">s</span></button>
+      <button class="nav-btn" id="uncertainBtn">Uncertain <span class="key">u</span></button>
+      <button class="nav-btn" id="jumpBtn">Jump <span class="key">j</span></button>
+      <button class="nav-btn" id="clearBtn">Clear tag <span class="key">x</span></button>
+    </div>
+  </article>
+
+  <aside class="sidebar">
+    <div class="panel">
+      <h2>Filter</h2>
+      <div class="filter-list" id="filterList">
+        <label><input type="radio" name="filter" value="all" checked> All <span class="count" id="cntAll">—</span></label>
+        <label><input type="radio" name="filter" value="untagged"> Untagged only <span class="count" id="cntUntagged">—</span></label>
+        <label><input type="radio" name="filter" value="uncertain"> Uncertain only <span class="count" id="cntUncertain">—</span></label>
+        <label><input type="radio" name="filter" value="tagged"> Tagged (any) <span class="count" id="cntTagged">—</span></label>
+        <label><input type="radio" name="filter" value="skipped"> Skipped only <span class="count" id="cntSkipped">—</span></label>
+      </div>
+      <select id="sectionFilter" style="margin-top: 12px">
+        <option value="">All sections</option>
+      </select>
+    </div>
+    <div class="panel">
+      <h2>Output</h2>
+      <button id="exportBtn">Export YAML</button>
+      <button id="resetBtn" class="danger">Reset all tags…</button>
+    </div>
+    <div class="panel">
+      <h2>Keys</h2>
+      <div class="help">
+        <kbd>1</kbd>–<kbd>0</kbd> tag with archetype<br>
+        <kbd>u</kbd> mark uncertain<br>
+        <kbd>s</kbd> skip<br>
+        <kbd>x</kbd> clear current tag<br>
+        <kbd>n</kbd> focus note box<br>
+        <kbd>j</kbd> jump to ID<br>
+        <kbd>←</kbd> <kbd>→</kbd> prev / next<br>
+        <em>Auto-saves to localStorage on every action.</em>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div class="modal-bg" id="modalBg"></div>
+<section class="export-modal" id="exportModal">
+  <h2>Export · piece_characters.yaml</h2>
+  <p style="color: var(--muted); font-size: 13px;">Copy or download. Tags are saved continuously to localStorage; this is the snapshot.</p>
+  <textarea id="exportText" readonly></textarea>
+  <div class="actions">
+    <button class="nav-btn" id="copyBtn">Copy to clipboard</button>
+    <button class="nav-btn" id="downloadBtn">Download .yaml</button>
+    <button class="nav-btn" id="closeExportBtn">Close</button>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Archetype taxonomy ─────────────────────────────────────────────────────
+// 10 archetypes mapped to keys 1-9 + 0. Order matches keyboard mapping.
+const ARCHETYPES = [
+  { slug: "flat-laminate",        key: "1", desc: "flat, glued back-to-back or onto cardboard" },
+  { slug: "flat-decorative",      key: "2", desc: "flat, visible final surface" },
+  { slug: "folded-tube",          key: "3", desc: "flat → cylinder" },
+  { slug: "folded-box",           key: "4", desc: "flat → 3D enclosure" },
+  { slug: "frame-channel",        key: "5", desc: "long strip, U/L cross-section" },
+  { slug: "gear-disc",            key: "6", desc: "flat disc, gear/wheel stack, axle hole" },
+  { slug: "pinion-stack-disc",    key: "7", desc: "small star-cut disc on rolled pinion" },
+  { slug: "gear-teeth-strip",     key: "8", desc: "long strip wrapping for teeth" },
+  { slug: "anchor-pendulum-mixed",key: "9", desc: "heterogeneous §II.C piece" },
+  { slug: "reference",            key: "0", desc: "non-build reference (107, 120)" },
+];
+const KEY_TO_ARCH = Object.fromEntries(ARCHETYPES.map(a => [a.key, a.slug]));
+
+// ─── Pieces — embedded from work/pieces.csv ─────────────────────────────────
+// Schema: { id, plate, section, status (csv), notes }
+const PIECES = [
+  {id:"001",plate:"A",section:"framework",status:"reviewed",notes:"U-channel frame strip (long horizontal frame run, paired with 2/6/7 across panels A and B)"},
+  {id:"002",plate:"A",section:"framework",status:"reviewed",notes:"U-channel frame strip"},
+  {id:"006",plate:"A",section:"framework",status:"captured",notes:"U-channel frame strip"},
+  {id:"007",plate:"A",section:"framework",status:"captured",notes:"U-channel frame strip"},
+  {id:"110",plate:"A",section:"face-case",status:"pending",notes:"Face-frame end rail; X/Y end-match markers to 111/112"},
+  {id:"003",plate:"B",section:"framework",status:"captured",notes:"Vertical frame strip (paired with 1)"},
+  {id:"005",plate:"B",section:"framework",status:"captured",notes:"Vertical frame strip (paired with 2)"},
+  {id:"008",plate:"B",section:"framework",status:"captured",notes:"Vertical frame strip (paired with 6)"},
+  {id:"012",plate:"B",section:"framework",status:"captured",notes:"Bracket piece (12/13/14 top row)"},
+  {id:"013",plate:"B",section:"framework",status:"pending",notes:"Bracket piece"},
+  {id:"014",plate:"B",section:"framework",status:"pending",notes:"Bracket piece"},
+  {id:"015",plate:"B",section:"framework",status:"captured",notes:"Bracket piece (15/16/17 bottom row)"},
+  {id:"016",plate:"B",section:"framework",status:"pending",notes:"Bracket piece"},
+  {id:"017",plate:"B",section:"framework",status:"pending",notes:"Bracket piece"},
+  {id:"093",plate:"B",section:"anchor-pendulum",status:"captured",notes:"Pendulum-bob inner brace; printed as 6 copies, glued in pairs to make 3 braces"},
+  {id:"113",plate:"B",section:"face-case",status:"captured",notes:"Cross-shaped brace piece for face frame (1 of 4: 113-116)"},
+  {id:"114",plate:"B",section:"face-case",status:"captured",notes:"Cross-shaped brace piece for face frame"},
+  {id:"115",plate:"B",section:"face-case",status:"captured",notes:"Cross-shaped brace piece for face frame"},
+  {id:"116",plate:"B",section:"face-case",status:"captured",notes:"Cross-shaped brace piece for face frame"},
+  {id:"009",plate:"C",section:"framework",status:"captured",notes:"Long vertical frame strip (paired with anchor beam)"},
+  {id:"011",plate:"C",section:"framework",status:"captured",notes:"Long vertical frame strip"},
+  {id:"020",plate:"C",section:"framework",status:"captured",notes:"Long vertical frame strip"},
+  {id:"021",plate:"C",section:"framework",status:"captured",notes:"Folded bracket for wall-bracket assembly"},
+  {id:"022",plate:"C",section:"framework",status:"captured",notes:"Folded bracket; + center mark"},
+  {id:"023",plate:"C",section:"framework",status:"captured",notes:"Wall-bracket box development; tabs to 25"},
+  {id:"024",plate:"C",section:"framework",status:"captured",notes:"Wall-bracket box development; tabs to 25"},
+  {id:"025",plate:"C",section:"framework",status:"captured",notes:"Tall wall-bracket main panel"},
+  {id:"027",plate:"C",section:"framework",status:"captured",notes:"Pendulum-support spacer (small piece carrying '28' label); also appears on plate G"},
+  {id:"028",plate:"C",section:"framework",status:"captured",notes:"Pendulum-support spacer"},
+  {id:"004",plate:"D",section:"framework",status:"captured",notes:"Long main frame column (front center); axle holes; positioning guides for 91/92"},
+  {id:"010",plate:"D",section:"framework",status:"captured",notes:"Long main frame column (back center)"},
+  {id:"018",plate:"D",section:"framework",status:"captured",notes:"Back-of-frame L-bracket; pinches pendulum blade"},
+  {id:"019",plate:"D",section:"framework",status:"captured",notes:"Back-of-frame L-bracket; pinches pendulum blade"},
+  {id:"026",plate:"D",section:"framework",status:"captured",notes:"Wall-bracket wedge; glue to strong cardboard"},
+  {id:"029",plate:"D",section:"framework",status:"captured",notes:"Cross-box flat development (connects 4/10)"},
+  {id:"030",plate:"D",section:"framework",status:"captured",notes:"Small box development"},
+  {id:"031",plate:"D",section:"framework",status:"captured",notes:"Flat oval/leaf tongue; glue back to back to 32"},
+  {id:"032",plate:"D",section:"framework",status:"captured",notes:"Flat elongated oval (pairs with 31); also appears on plate G"},
+  {id:"091",plate:"D",section:"hands",status:"captured",notes:"Small square spacer; glue to 1mm cardboard; aligns to piece 4"},
+  {id:"092",plate:"D",section:"hands",status:"captured",notes:"Disc spacer; glue to 1mm cardboard; aligns to piece 4"},
+  {id:"039",plate:"E",section:"motor-wheel",status:"captured",notes:"Accordion-pleated pulley column (glues to 38)"},
+  {id:"060",plate:"E",section:"escapement",status:"captured",notes:"Pinion for escapement wheel (rolled cylinder)"},
+  {id:"074",plate:"E",section:"anchor-pendulum",status:"captured",notes:"Thin strip (hook form) at bottom of plate E; small fragment also visible on H"},
+  {id:"078",plate:"E",section:"hands",status:"captured",notes:"Hour-hand wheel; glue back to back to 79 before cutting teeth"},
+  {id:"079",plate:"E",section:"hands",status:"captured",notes:"Hour-hand wheel partner to 78"},
+  {id:"082",plate:"E",section:"reduction-gear",status:"captured",notes:"Reduction-gear accordion strip"},
+  {id:"083",plate:"E",section:"reduction-gear",status:"captured",notes:"Reduction-gear accordion strip"},
+  {id:"103",plate:"E",section:"reduction-gear",status:"captured",notes:"Small reduction gear with central spiral pattern"},
+  {id:"104",plate:"E",section:"weight",status:"captured",notes:"Weight-cylinder lid disc; glue back to back to 106"},
+  {id:"105",plate:"E",section:"weight",status:"captured",notes:"Sawtooth gear-teeth strip"},
+  {id:"106",plate:"E",section:"weight",status:"captured",notes:"Weight-cylinder lid disc; partner to 104"},
+  {id:"107",plate:"E",section:"reference",status:"captured",notes:"Axle-dimension reference lines + legend (not a build piece)"},
+  {id:"111",plate:"E",section:"face-case",status:"captured",notes:"Face-frame horizontal rail"},
+  {id:"112",plate:"E",section:"face-case",status:"captured",notes:"Face-frame horizontal rail (mirror partner of 112a)"},
+  {id:"112a",plate:"E",section:"face-case",status:"captured",notes:"Face-frame horizontal rail (mirror partner of 112). LETTER VARIANT."},
+  {id:"038",plate:"F",section:"motor-wheel",status:"captured",notes:"Large motor-wheel front face; central star cut out"},
+  {id:"046",plate:"F",section:"motor-wheel",status:"captured",notes:"Pulley plate (paired with 47, glue back to back)"},
+  {id:"047",plate:"F",section:"motor-wheel",status:"captured",notes:"Pulley plate; partner to 46"},
+  {id:"048",plate:"F",section:"motor-wheel",status:"captured",notes:"Plain disc; glue to double cardboard"},
+  {id:"049",plate:"F",section:"motor-wheel",status:"captured",notes:"Small disc (plate cap); also appears on plate G"},
+  {id:"058",plate:"F",section:"escapement",status:"reviewed",notes:"Escapement-wheel disc; glue back to back to 59 before cutting"},
+  {id:"059",plate:"F",section:"escapement",status:"reviewed",notes:"Escapement-wheel disc partner to 58"},
+  {id:"061",plate:"F",section:"escapement",status:"captured",notes:"Star-cutout disc (pinion-stack)"},
+  {id:"062",plate:"F",section:"escapement",status:"captured",notes:"Star-cutout disc"},
+  {id:"063",plate:"F",section:"escapement",status:"captured",notes:"Star-cutout disc"},
+  {id:"064",plate:"F",section:"escapement",status:"captured",notes:"Star-cutout disc"},
+  {id:"065",plate:"F",section:"anchor-pendulum",status:"reviewed",notes:"Zig-zag anchor arm; 'axe R' label = rear axle"},
+  {id:"066",plate:"F",section:"anchor-pendulum",status:"captured",notes:"Pendulum-blade tube/casing development"},
+  {id:"067",plate:"F",section:"anchor-pendulum",status:"captured",notes:"Rear plate of the anchor; flap labels a-f"},
+  {id:"073",plate:"F",section:"hands",status:"captured",notes:"Star-shaped hands-assembly wheel; cut out center"},
+  {id:"075",plate:"F",section:"hands",status:"captured",notes:"Star-shaped hands-assembly wheel"},
+  {id:"076",plate:"F",section:"hands",status:"captured",notes:"Small rectangular piece for minute-hand assembly"},
+  {id:"077",plate:"F",section:"hands",status:"captured",notes:"Minute-hand holder tube development"},
+  {id:"080",plate:"F",section:"hands",status:"captured",notes:"Small rectangle ('Push into wheel 78'); 'rear' label on one face"},
+  {id:"081",plate:"F",section:"reduction-gear",status:"captured",notes:"Reduction-gear stage piece"},
+  {id:"084",plate:"F",section:"reduction-gear",status:"captured",notes:"Reduction-gear stage piece"},
+  {id:"085",plate:"F",section:"reduction-gear",status:"captured",notes:"Rectangular strip; +++ along length"},
+  {id:"086",plate:"F",section:"reduction-gear",status:"captured",notes:"Reduction-gear stage piece"},
+  {id:"087",plate:"F",section:"reduction-gear",status:"captured",notes:"Reduction-gear disc; cut out center"},
+  {id:"088",plate:"F",section:"reduction-gear",status:"captured",notes:"Pulley/gear stack disc"},
+  {id:"089",plate:"F",section:"reduction-gear",status:"captured",notes:"Pulley disc for hands mechanism; also appears on plate H"},
+  {id:"090",plate:"F",section:"reduction-gear",status:"pending",notes:"Pulley/gear stack disc"},
+  {id:"120",plate:"F",section:"reference",status:"captured",notes:"Axle-mount cardboard square (model for all mounting squares)"},
+  {id:"033",plate:"G",section:"motor-wheel",status:"captured",notes:"Large disc with internal triangle (motor-wheel back face); a35 corner labels"},
+  {id:"034",plate:"G",section:"motor-wheel",status:"captured",notes:"Long zig-zag teeth strip (motor-wheel teeth); engages between 33 and 36"},
+  {id:"035",plate:"G",section:"motor-wheel",status:"captured",notes:"Long zig-zag teeth strip; folds into cone braced by 33's triangle"},
+  {id:"036",plate:"G",section:"motor-wheel",status:"captured",notes:"Large motor-wheel disc with crown-band of vertical hatching (teeth band)"},
+  {id:"037",plate:"G",section:"motor-wheel",status:"captured",notes:"Long thin strip with vertical-hatch (motor-wheel tooth strip)"},
+  {id:"040",plate:"G",section:"motor-wheel",status:"captured",notes:"Pulley cylinder; glue ends together, slip over 39 with arrow toward motor wheel"},
+  {id:"041",plate:"G",section:"motor-wheel",status:"captured",notes:"Pulley shaft; marked end glues to 40 (a/b alignment)"},
+  {id:"042",plate:"G",section:"motor-wheel",status:"captured",notes:"Pulley drum; covers wrapped end of 41; arrow toward motor wheel"},
+  {id:"043",plate:"G",section:"motor-wheel",status:"captured",notes:"Pulley throat (with 44, per Fig. 13)"},
+  {id:"044",plate:"G",section:"motor-wheel",status:"captured",notes:"Pulley bearing disc; pairs with 43 for pulley throat"},
+  {id:"045",plate:"G",section:"motor-wheel",status:"captured",notes:"Short straight strip; wraps around cylinder between 43 and 44"},
+  {id:"050",plate:"G",section:"middle-wheel",status:"captured",notes:"Large disc (back face of middle wheel); glue back to back with 51"},
+  {id:"051",plate:"G",section:"middle-wheel",status:"captured",notes:"Middle-wheel disc; partner to 50"},
+  {id:"052",plate:"G",section:"middle-wheel",status:"captured",notes:"Middle-wheel disc; glues to 51"},
+  {id:"054",plate:"G",section:"middle-wheel",status:"captured",notes:"Star-cut pinion piece"},
+  {id:"055",plate:"G",section:"middle-wheel",status:"captured",notes:"Pinion (with 54-57 stack); pushes through star-shaped hole"},
+  {id:"056",plate:"G",section:"middle-wheel",status:"captured",notes:"Star-cut pinion piece; slips over pinion 55"},
+  {id:"057",plate:"G",section:"middle-wheel",status:"captured",notes:"Star-cut pinion piece; presses against pinion top"},
+  {id:"053",plate:"H",section:"middle-wheel",status:"captured",notes:"Small disc with starred center (pinion-mount, middle wheel); also referenced on plate G"},
+  {id:"068",plate:"H",section:"anchor-pendulum",status:"reviewed",notes:"Anchor fork; passes over beam piece 9"},
+  {id:"069",plate:"H",section:"anchor-pendulum",status:"reviewed",notes:"Anchor-bearing box; + center mark"},
+  {id:"070",plate:"H",section:"anchor-pendulum",status:"reviewed",notes:"Pendulum rod (long vertical strip); receives 71 at bottom"},
+  {id:"071",plate:"H",section:"anchor-pendulum",status:"captured",notes:"Square ring; cut out center; glue between b/c of piece 70"},
+  {id:"072",plate:"H",section:"anchor-pendulum",status:"reviewed",notes:"Pendulum blade with mounting-pin hole; squeeze into 70's slot"},
+  {id:"092a",plate:"H",section:"hands",status:"captured",notes:"Narrow tongue piece; glues on top of 92 and 91 with axle holes coinciding. LETTER VARIANT."},
+  {id:"094",plate:"H",section:"anchor-pendulum",status:"captured",notes:"Pendulum-bob outer casing (long tapered tube)"},
+  {id:"095",plate:"H",section:"anchor-pendulum",status:"captured",notes:"Pendulum hook outer shape; receives 96 in bottom"},
+  {id:"096",plate:"H",section:"anchor-pendulum",status:"captured",notes:"Narrow cardboard reinforcement; glue to 1mm cardboard"},
+  {id:"097",plate:"H",section:"anchor-pendulum",status:"reviewed",notes:"Pendulum-bob front face (large round disc); 'apply no glue here' inner rectangle"},
+  {id:"098",plate:"H",section:"anchor-pendulum",status:"captured",notes:"Bowed retainer; glues to 97 (bowed when glued, holds bob in place)"},
+  {id:"099",plate:"H",section:"anchor-pendulum",status:"captured",notes:"Saw-toothed crescent (decorative trim)"},
+  {id:"100",plate:"H",section:"anchor-pendulum",status:"captured",notes:"Bob-position disc with F (fast/up) and S (slow/down) arrows"},
+  {id:"118",plate:"I",section:"face-case",status:"captured",notes:"Case-side panel; * pin-hole markers; glues to b119/c119 underside of 117"},
+  {id:"119",plate:"I",section:"face-case",status:"captured",notes:"Case-side panel; * pin-hole markers; glues to b118/c118 underside of 117"},
+  {id:"101",plate:"J",section:"weight",status:"captured",notes:"Weight cylinder development (rectangular sheet, multiple horizontal folds)"},
+  {id:"102",plate:"J",section:"weight",status:"captured",notes:"Wide labeled strip wrapped around 101"},
+  {id:"108",plate:"J",section:"face-case",status:"captured",notes:"Minute hand (solid black silhouette); glue on heavy cardboard"},
+  {id:"109",plate:"J",section:"face-case",status:"captured",notes:"Hour hand (solid black silhouette); glue on heavy cardboard"},
+  {id:"117",plate:"J",section:"face-case",status:"captured",notes:"Case top with chamfered corners; central 'front' tab"},
+  {id:"121",plate:"M",section:"face-case",status:"captured",notes:"Clock face: tan/brown border, off-white field, numbers 1-12, minute marks. Not numbered in print; assigned ID 121 for build authoring (closes the gap in non-contiguous source numbering)."},
+];
+const PIECE_BY_ID = Object.fromEntries(PIECES.map(p => [p.id, p]));
+
+// ─── State (persisted to localStorage) ──────────────────────────────────────
+const STORAGE_KEY = "z-paper-clock-tag-pieces-v1";
+// tag entry shape: { character: string|null, status: "tagged"|"uncertain"|"skipped"|"pristine", note: string }
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return (parsed && typeof parsed === "object") ? parsed : {};
+  } catch (e) { return {}; }
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+function entry(id) {
+  return state[id] || { character: null, status: "pristine", note: "" };
+}
+
+// ─── Filter and cursor ──────────────────────────────────────────────────────
+let cursor = 0;
+let currentFilter = "all";
+let currentSection = "";
+let visiblePieces = PIECES.slice();
+
+function applyFilter() {
+  visiblePieces = PIECES.filter(p => {
+    if (currentSection && p.section !== currentSection) return false;
+    const e = entry(p.id);
+    switch (currentFilter) {
+      case "untagged":  return e.status === "pristine";
+      case "uncertain": return e.status === "uncertain";
+      case "tagged":    return e.status === "tagged" || e.status === "uncertain";
+      case "skipped":   return e.status === "skipped";
+      default:          return true;
+    }
+  });
+  if (visiblePieces.length === 0) cursor = 0;
+  else cursor = Math.min(cursor, visiblePieces.length - 1);
+}
+
+function currentPiece() {
+  return visiblePieces[cursor] || null;
+}
+
+// ─── Rendering ──────────────────────────────────────────────────────────────
+function renderLegend() {
+  const legend = document.getElementById("legend");
+  legend.innerHTML = "";
+  ARCHETYPES.forEach(a => {
+    const btn = document.createElement("button");
+    btn.className = "arch-btn";
+    btn.dataset.slug = a.slug;
+    btn.title = a.desc;
+    btn.innerHTML = `<span class="key">${a.key}</span><span class="name">${a.slug}</span>`;
+    btn.addEventListener("click", () => tagCurrent(a.slug, "tagged"));
+    legend.appendChild(btn);
+  });
+}
+
+function renderProgress() {
+  const counts = { tagged: 0, uncertain: 0, skipped: 0, pristine: 0 };
+  PIECES.forEach(p => { counts[entry(p.id).status]++; });
+  document.getElementById("progress").innerHTML =
+    `<strong>${counts.tagged}</strong>/${PIECES.length} tagged · ` +
+    `<strong>${counts.uncertain}</strong> uncertain · ` +
+    `<strong>${counts.skipped}</strong> skipped · ` +
+    `<strong>${counts.pristine}</strong> pristine`;
+
+  document.getElementById("cntAll").textContent = PIECES.length;
+  document.getElementById("cntUntagged").textContent = counts.pristine;
+  document.getElementById("cntUncertain").textContent = counts.uncertain;
+  document.getElementById("cntTagged").textContent = counts.tagged + counts.uncertain;
+  document.getElementById("cntSkipped").textContent = counts.skipped;
+}
+
+function renderCard() {
+  const p = currentPiece();
+  const wrap = document.getElementById("imageWrap");
+  if (!p) {
+    document.getElementById("pieceId").textContent = "—";
+    document.getElementById("piecePlate").textContent = "—";
+    document.getElementById("pieceSection").textContent = "—";
+    document.getElementById("pieceStatus").textContent = "—";
+    document.getElementById("pieceNotes").textContent = "(no piece matches the current filter)";
+    document.getElementById("currentTagLine").innerHTML = "Current tag: <span class=\"tag-name\">none</span>";
+    document.getElementById("perPieceNote").value = "";
+    document.getElementById("tagStatus").className = "piece-status pristine";
+    document.getElementById("tagStatus").textContent = "—";
+    wrap.innerHTML = '<span class="placeholder">no piece in current filter</span>';
+    return;
+  }
+  document.getElementById("pieceId").textContent = p.id;
+  document.getElementById("piecePlate").textContent = p.plate;
+  document.getElementById("pieceSection").textContent = p.section;
+  document.getElementById("pieceStatus").textContent = p.status;
+  document.getElementById("pieceNotes").textContent = p.notes;
+
+  const e = entry(p.id);
+  const tagLine = document.getElementById("currentTagLine");
+  if (e.character) {
+    tagLine.innerHTML = `Current tag: <span class="tag-name">${e.character}</span>`;
+  } else if (e.status === "skipped") {
+    tagLine.innerHTML = `Current tag: <span class="tag-name" style="color:var(--skip)">(skipped)</span>`;
+  } else {
+    tagLine.innerHTML = `Current tag: <span class="tag-name">none</span>`;
+  }
+  const statusEl = document.getElementById("tagStatus");
+  statusEl.className = `piece-status ${e.status}`;
+  statusEl.textContent = e.status;
+
+  document.getElementById("perPieceNote").value = e.note || "";
+
+  // Image: try src/pieces/NNN.png; show placeholder on error or for known-pending
+  const isPending = (p.status === "pending");
+  if (isPending) {
+    wrap.innerHTML = '<span class="placeholder">pending capture · tag from notes if you can, or skip</span>';
+  } else {
+    const img = new Image();
+    img.alt = `piece ${p.id}`;
+    img.src = `source/pieces/${p.id}.png`;
+    img.onerror = () => {
+      wrap.innerHTML = '<span class="placeholder">no PNG found at source/pieces/' + p.id + '.png</span>';
+    };
+    wrap.innerHTML = "";
+    wrap.appendChild(img);
+  }
+
+  // Highlight selected archetype button
+  document.querySelectorAll(".arch-btn").forEach(btn => {
+    btn.classList.toggle("selected", btn.dataset.slug === e.character);
+  });
+}
+
+function render() {
+  applyFilter();
+  renderProgress();
+  renderCard();
+}
+
+function fullRender() {
+  renderLegend();
+  populateSectionFilter();
+  render();
+}
+
+// ─── Actions ────────────────────────────────────────────────────────────────
+function tagCurrent(character, status) {
+  const p = currentPiece();
+  if (!p) return;
+  const prev = entry(p.id);
+  state[p.id] = {
+    character: character,
+    status: status,
+    note: prev.note || "",
+  };
+  saveState();
+  advanceAfterMutation(p.id);
+  toast(`${p.id} → ${character} (${status})`);
+}
+
+// After a mutation that may drop the current piece from the filter, advance
+// to the next piece without skipping. If the just-mutated piece is still in
+// view, move past it; if it dropped out, cursor already points at the next.
+function advanceAfterMutation(prevId) {
+  applyFilter();
+  const newIdx = visiblePieces.findIndex(vp => vp.id === prevId);
+  if (newIdx !== -1 && visiblePieces.length > 0) {
+    cursor = (newIdx + 1) % visiblePieces.length;
+  }
+  renderProgress();
+  renderCard();
+}
+
+function markUncertain() {
+  const p = currentPiece();
+  if (!p) return;
+  const prev = entry(p.id);
+  if (!prev.character) {
+    // No character yet; mark uncertain anyway so it shows up as "needs second pass".
+    state[p.id] = { character: null, status: "uncertain", note: prev.note || "" };
+  } else {
+    state[p.id] = { ...prev, status: prev.status === "uncertain" ? "tagged" : "uncertain" };
+  }
+  saveState();
+  render();
+  toast(`${p.id} marked ${state[p.id].status}`);
+}
+
+function skipCurrent() {
+  const p = currentPiece();
+  if (!p) return;
+  const prev = entry(p.id);
+  state[p.id] = { character: null, status: "skipped", note: prev.note || "" };
+  saveState();
+  advanceAfterMutation(p.id);
+  toast(`${p.id} skipped`);
+}
+
+function clearCurrent() {
+  const p = currentPiece();
+  if (!p) return;
+  const prev = entry(p.id);
+  state[p.id] = { character: null, status: "pristine", note: prev.note || "" };
+  saveState();
+  render();
+  toast(`${p.id} cleared`);
+}
+
+function advance(direction) {
+  if (visiblePieces.length === 0) return;
+  cursor = (cursor + direction + visiblePieces.length) % visiblePieces.length;
+  render();
+}
+
+function jumpToId() {
+  const id = prompt("Jump to piece ID (e.g. 069 or 092a):");
+  if (!id) return;
+  const trimmed = id.trim();
+  if (!PIECE_BY_ID[trimmed]) { toast(`unknown id: ${trimmed}`); return; }
+  // Jump regardless of filter — switch to "all" if filter would hide it.
+  const target = PIECE_BY_ID[trimmed];
+  const idxInVisible = visiblePieces.findIndex(p => p.id === target.id);
+  if (idxInVisible === -1) {
+    document.querySelector('input[name="filter"][value="all"]').checked = true;
+    currentFilter = "all";
+    document.getElementById("sectionFilter").value = "";
+    currentSection = "";
+    applyFilter();
+    cursor = visiblePieces.findIndex(p => p.id === target.id);
+  } else {
+    cursor = idxInVisible;
+  }
+  render();
+}
+
+function populateSectionFilter() {
+  const sel = document.getElementById("sectionFilter");
+  const sections = [...new Set(PIECES.map(p => p.section))].sort();
+  sections.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s; opt.textContent = s;
+    sel.appendChild(opt);
+  });
+}
+
+// ─── Note saving ────────────────────────────────────────────────────────────
+let noteSaveTimer = null;
+document.getElementById("perPieceNote").addEventListener("input", e => {
+  const p = currentPiece();
+  if (!p) return;
+  clearTimeout(noteSaveTimer);
+  const value = e.target.value;
+  noteSaveTimer = setTimeout(() => {
+    const prev = entry(p.id);
+    state[p.id] = {
+      character: prev.character,
+      status: prev.status === "pristine" && value ? "pristine" : prev.status,
+      note: value,
+    };
+    saveState();
+  }, 250);
+});
+
+// ─── Buttons + filters ──────────────────────────────────────────────────────
+document.getElementById("prevBtn").addEventListener("click", () => advance(-1));
+document.getElementById("nextBtn").addEventListener("click", () => advance(1));
+document.getElementById("skipBtn").addEventListener("click", skipCurrent);
+document.getElementById("uncertainBtn").addEventListener("click", markUncertain);
+document.getElementById("jumpBtn").addEventListener("click", jumpToId);
+document.getElementById("clearBtn").addEventListener("click", clearCurrent);
+
+document.querySelectorAll('input[name="filter"]').forEach(input => {
+  input.addEventListener("change", e => {
+    currentFilter = e.target.value;
+    cursor = 0;
+    render();
+  });
+});
+document.getElementById("sectionFilter").addEventListener("change", e => {
+  currentSection = e.target.value;
+  cursor = 0;
+  render();
+});
+
+// ─── Keyboard ───────────────────────────────────────────────────────────────
+document.addEventListener("keydown", e => {
+  // Don't interfere with typing in textarea / input / prompt.
+  const tag = (e.target.tagName || "").toUpperCase();
+  if (tag === "TEXTAREA" || tag === "INPUT") {
+    if (e.key === "Escape") e.target.blur();
+    return;
+  }
+  if (KEY_TO_ARCH[e.key]) {
+    e.preventDefault();
+    tagCurrent(KEY_TO_ARCH[e.key], "tagged");
+    return;
+  }
+  switch (e.key) {
+    case "ArrowLeft":  e.preventDefault(); advance(-1); break;
+    case "ArrowRight": e.preventDefault(); advance(1);  break;
+    case "u": case "U": e.preventDefault(); markUncertain(); break;
+    case "s": case "S": e.preventDefault(); skipCurrent(); break;
+    case "x": case "X": e.preventDefault(); clearCurrent(); break;
+    case "j": case "J": e.preventDefault(); jumpToId(); break;
+    case "n": case "N": e.preventDefault(); document.getElementById("perPieceNote").focus(); break;
+  }
+});
+
+// ─── Export ─────────────────────────────────────────────────────────────────
+function buildExportYaml() {
+  const lines = [
+    `# work/piece_characters.yaml`,
+    `# Generated by tag-pieces.html on ${new Date().toISOString()}.`,
+    `# Eventual destination: a 'character' column in work/pieces.csv.`,
+    `# 'uncertain' pieces flagged for second pass; 'skipped' deliberately not tagged.`,
+    `# 'note' fields preserved for context that doesn't fit the archetype slug.`,
+    ``,
+  ];
+  const counts = { tagged: 0, uncertain: 0, skipped: 0, pristine: 0 };
+  PIECES.forEach(p => counts[entry(p.id).status]++);
+  lines.push(`# tagged: ${counts.tagged} · uncertain: ${counts.uncertain} · skipped: ${counts.skipped} · pristine: ${counts.pristine}`);
+  lines.push("");
+  lines.push("characters:");
+  PIECES.forEach(p => {
+    const e = entry(p.id);
+    if (e.status === "pristine") return;
+    const id = p.id;
+    if (e.character) {
+      lines.push(`  "${id}":`);
+      lines.push(`    character: ${e.character}`);
+      if (e.status === "uncertain") lines.push(`    confidence: uncertain`);
+      if (e.note) lines.push(`    note: ${JSON.stringify(e.note)}`);
+    } else if (e.status === "skipped") {
+      lines.push(`  "${id}":`);
+      lines.push(`    character: null`);
+      lines.push(`    status: skipped`);
+      if (e.note) lines.push(`    note: ${JSON.stringify(e.note)}`);
+    } else if (e.status === "uncertain") {
+      // Uncertain without a character — flagged but no archetype yet
+      lines.push(`  "${id}":`);
+      lines.push(`    character: null`);
+      lines.push(`    status: uncertain`);
+      if (e.note) lines.push(`    note: ${JSON.stringify(e.note)}`);
+    }
+  });
+  return lines.join("\n") + "\n";
+}
+
+function openExport() {
+  const text = buildExportYaml();
+  document.getElementById("exportText").value = text;
+  document.getElementById("exportModal").classList.add("open");
+  document.getElementById("modalBg").classList.add("open");
+}
+function closeExport() {
+  document.getElementById("exportModal").classList.remove("open");
+  document.getElementById("modalBg").classList.remove("open");
+}
+document.getElementById("exportBtn").addEventListener("click", openExport);
+document.getElementById("closeExportBtn").addEventListener("click", closeExport);
+document.getElementById("modalBg").addEventListener("click", closeExport);
+
+document.getElementById("copyBtn").addEventListener("click", async () => {
+  const text = document.getElementById("exportText").value;
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("copied to clipboard");
+  } catch (err) {
+    // Fallback: select for manual copy
+    const ta = document.getElementById("exportText");
+    ta.select(); document.execCommand("copy");
+    toast("copied (fallback)");
+  }
+});
+
+document.getElementById("downloadBtn").addEventListener("click", () => {
+  const text = document.getElementById("exportText").value;
+  const blob = new Blob([text], { type: "text/yaml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "piece_characters.yaml";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast("downloaded piece_characters.yaml");
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (!confirm("Reset all tags and notes? This cannot be undone (export first if you want a backup).")) return;
+  state = {};
+  saveState();
+  render();
+  toast("all tags reset");
+});
+
+// ─── Toast ──────────────────────────────────────────────────────────────────
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 1400);
+}
+
+// ─── Boot ───────────────────────────────────────────────────────────────────
+fullRender();
+</script>
+</body>
+</html>
