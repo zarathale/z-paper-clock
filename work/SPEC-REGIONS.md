@@ -121,7 +121,7 @@ The pendulum arm (§II.C; exact piece ID to be confirmed against `embedded-label
 ## Relation to other docs
 
 - **`SPEC-3D-VIEWER.md`** — the production viewer's hinge step ("If the piece has any folds, the silhouette is partitioned along the fold lines into sub-meshes, each parented to a hinge `Object3D`") is the upstream promise that this spec fulfils. When the viewer lands in M3+, this spec is the implementation contract for that step.
-- **`CODE_PROMPT_preview-html-v1b.md`** — v1b's polygon-cut + adjacency BFS + hinge hierarchy in `preview.html` is the first implementation of this spec. That prompt should reference this document.
+- **The v1b prompt for `preview.html`** (clean-start authoring pending; the original draft was archived 2026-05-03 to `_archive/code-prompts/CODE_PROMPT_preview-html-v1b.md`) — v1b's polygon-cut + adjacency BFS + hinge hierarchy in `preview.html` is the first implementation of this spec. That prompt should reference this document.
 - **Pendulum POC track** (`WORKPLAN.md`) — the pendulum arm and bob are the first pieces that will be authored with fold lines populated and a root marker, making them the empirical test of this spec.
 
 ---

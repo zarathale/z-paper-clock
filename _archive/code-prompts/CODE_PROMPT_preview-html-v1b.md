@@ -1,13 +1,15 @@
 ---
-status: draft
+status: archived
 started: 2026-05-02
+archived: 2026-05-03
+archived_reason: superseded by clean-start v1b restart
 owner: Zarathale (Alan)
 target: preview-html-v1b
 parent: preview-html-v1
 depends_on: preview-html-v1a
 ---
 
-_Draft. This prompt presumes v1a's structure but doesn't yet know v1a's actual function signatures, variable names, or the precise shape of the `parsed` object. Re-tighten this prompt against v1a's session note (specifically the "function/variable names that v1b should reuse" section) before flipping `status` to `ready-for-code`. Edit targets in Tasks 1, 4, 6, 7 are the most likely to need adjustment._
+_Archived 2026-05-03 without shipping. Between v1a's ship and this prompt's intended re-tightening, six follow-up passes landed on `preview.html` (cut-layer convention, texture flip, back-face mirror, render-on-demand performance loop, thickness extrusion fix, axle rotation slider with silver-cylinder + brass-gold north-orientation cue). The cumulative drift outpaced this prompt's design assumptions — most visibly, the axle rotation pivot group now sits between the scene and the slab, the silhouette extraction priority chain changed shape, and the axle marker convention moved from "magenta sphere" to "silver cylinder anchored outside the rotation pivot." The intended v1b work (polygon cut + adjacency BFS + hinge hierarchy + per-fold sliders) is being restarted from scratch in a clean prompt authored against the current state of `preview.html`, with `work/SPEC-REGIONS.md` as the upstream concept doc. This file stays as the design record of the original v1b approach. Refer to `CLAUDE.md` / `ROADMAP.md` / `WORKPLAN.md` for current state; refer to the new v1b prompt (when authored) for the active task list._
 
 ## What You Are Doing and Why
 
