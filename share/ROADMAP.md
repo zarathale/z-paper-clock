@@ -4,8 +4,6 @@ This is the detail-layer plan for building the 3D viewer described in `work/SPEC
 
 Companion docs:
 
-- `PROJECT-STATE.md` — slow-moving framing on what this project actually is, what exists today, and how to read its other docs. Read this if you're loading fresh context.
-- `WORKPLAN.md` — the active stance: open tracks, next actions, blockers, recent log. The roadmap is the long arc (where we're going); the workplan is the current stance (what we're doing).
 - `work/SPEC-3D-VIEWER.md` — design source of truth (per-piece data model, viewer behavior, tech stack, milestones at a high level).
 - `CLAUDE.md` — working conventions (Cowork/Code lanes, sessions/, git workflow, versioning). The status table in CLAUDE.md is the high-level mirror of this roadmap; this doc is the detail.
 - `CODE_PROMPT_*.md` (per task) — the per-milestone or per-version handoff to Code mode. Not a substitute for this doc; it's the executable form of one row.

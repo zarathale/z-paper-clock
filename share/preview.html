@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SVG 3D Preview</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<!-- polygon-clipping loaded now; not used in v1a, required by v1b -->
+<script src="https://unpkg.com/polygon-clipping@0.15.7/dist/polygon-clipping.umd.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; background:#1a1a1a; color:#ddd; font-family:system-ui,sans-serif; font-size:13px; }
+
+#panel {
+  position:fixed; top:0; left:0; bottom:0; width:320px;
+  background:#222; border-right:1px solid #333;
+  overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px;
+}
+
+#canvas-host {
+  position:fixed; top:0; left:320px; right:0; bottom:0;
+}
+#canvas-host canvas { width:100%!important; height:100%!important; display:block; }
+
+#dropzone {
+  border:2px dashed #555; border-radius:6px; padding:20px 12px; text-align:center;
+  color:#888; cursor:pointer; transition:border-color .15s;
+}
+#dropzone.drag-over { border-color:#7af; color:#adf; }
+#dropzone.loaded { border-style:solid; border-color:#484; color:#aea; }
+
+#banners { display:flex; flex-direction:column; gap:4px; min-height:0; }
+.banner {
+  border-radius:4px; padding:5px 8px; font-size:12px; line-height:1.4;
+}
+.banner-warn  { background:#3a2800; border:1px solid #a76000; color:#f5c060; }
+.banner-error { background:#2e0e0e; border:1px solid #a03030; color:#f08080; }
+.banner-ok    { background:#0d2a12; border:1px solid #2a7040; color:#7ec894; }
+
+#fold-controls {
+  border:1px solid #333; border-radius:4px; padding:10px;
+  color:#666; font-style:italic; font-size:12px;
+}
+
+#thickness-section,
+#rotation-section { display:flex; flex-direction:column; gap:6px; }
+#rotation-section[hidden] { display:none; }
+.slider-row { display:flex; align-items:center; gap:8px; }
+.slider-row label { color:#aaa; min-width:70px; }
+.slider-row input[type=range] { flex:1; accent-color:#c9a96e; }
+.slider-row .val { min-width:46px; text-align:right; color:#e8e3da; }
+
+button {
+  background:#2e2e2e; border:1px solid #444; color:#ccc; border-radius:4px;
+  padding:6px 10px; cursor:pointer; font-size:12px;
+}
+button:hover { background:#383838; }
+
+#hint {
+  position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,.55); color:#777; font-size:11px;
+  padding:4px 14px; border-radius:20px; pointer-events:none;
+  transition:opacity .3s;
+}
+</style>
+</head>
+<body>
+
+<div id="panel">
+  <div id="dropzone" tabindex="0" role="button"
+       aria-label="Drop an SVG here or click to pick a file">
+    Drop an SVG here, or click to pick a file.
+  </div>
+  <input type="file" id="fileInput" accept=".svg" style="display:none">
+
+  <div id="banners"></div>
+
+  <div id="fold-controls">
+    <!-- populated in v1b: global fold slider + per-fold sliders -->
+    Fold controls — added in v1b
+  </div>
+
+  <div id="thickness-section">
+    <div class="slider-row">
+      <label>Thickness</label>
+      <input type="range" id="thickSlider" min="0.3" max="4.0" step="0.1" value="0.4">
+      <span class="val" id="thickVal">0.4 mm</span>
+    </div>
+    <button id="resetBtn">Reset thickness</button>
+  </div>
+
+  <div id="rotation-section" hidden>
+    <div class="slider-row">
+      <label>Rotation</label>
+      <input type="range" id="rotateSlider" min="-180" max="180" step="1" value="0">
+      <span class="val" id="rotateVal">0°</span>
+    </div>
+    <button id="resetRotateBtn">Reset rotation</button>
+  </div>
+</div>
+
+<div id="canvas-host"></div>
+<div id="hint">Drag to orbit · Scroll to zoom · Right-drag to pan</div>
+
+<script>
+'use strict';
+
+// ─── Three.js scene globals ───────────────────────────────────────────────────
+let renderer, camera, scene, controls;
+let currentSlabPivot = null;
+let currentAxleWires = [];
+
+// Render-on-demand: only call renderer.render() when the scene or camera changed.
+// Set true via requestRender() after any scene mutation; OrbitControls' 'change'
+// event also flips it. Damping is preserved because controls.update() returns
+// truthy while damping is still settling, and that path also triggers a render.
+let needsRender = true;
+function requestRender() { needsRender = true; }
+
+// ─── Parsed data (set by parseSVG, read by renderScene) ──────────────────────
+let parsed = null;
+// parsed = {
+//   filename, viewBox: {x,y,w,h},
+//   scanPng: HTMLImageElement | null,
+//   scanWidth: px, scanHeight: px, imageScale: {sx,sy,tx,ty},
+//   folds: [{layer, id, start:[x,y], end:[x,y], defaultAngle}],
+//   axles: [{cx,cy}],
+//   rootCentroid: {x,y} | null,
+//   thicknessMm: number, thicknessSource: 'text-layer'|'default'
+// }
+
+let MM_PER_UNIT = null;   // set after scan image loads (mm per viewBox unit)
+let VB = null;             // shorthand for parsed.viewBox
+
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
+const dropzone   = document.getElementById('dropzone');
+const fileInput  = document.getElementById('fileInput');
+const bannersEl  = document.getElementById('banners');
+const thickSlider = document.getElementById('thickSlider');
+const thickVal   = document.getElementById('thickVal');
+const resetBtn   = document.getElementById('resetBtn');
+const rotateSlider    = document.getElementById('rotateSlider');
+const rotateVal       = document.getElementById('rotateVal');
+const resetRotateBtn  = document.getElementById('resetRotateBtn');
+const rotationSection = document.getElementById('rotation-section');
+const canvasHost = document.getElementById('canvas-host');
+
+// ─── Init three.js scene ──────────────────────────────────────────────────────
+function initScene() {
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  // On Retina macs DPR is already 2; on 4K externals or fractional-scaling configs
+  // it can be 3+, which makes the fragment shader 2.25× more expensive per frame
+  // for no perceptible quality gain on a static slab render.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x1a1a1a, 1);
+  canvasHost.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+
+  const w = canvasHost.clientWidth;
+  const h = canvasHost.clientHeight;
+  camera = new THREE.PerspectiveCamera(60, w / h, 0.01, 100000);
+  camera.position.set(0, 0, 100);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const dl1 = new THREE.DirectionalLight(0xffffff, 0.5);
+  dl1.position.set(1, 1, 1);
+  scene.add(dl1);
+  const dl2 = new THREE.DirectionalLight(0xffffff, 0.5);
+  dl2.position.set(-1, -1, 1);
+  scene.add(dl2);
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.addEventListener('change', requestRender);
+
+  window.addEventListener('resize', onResize);
+  onResize();
+
+  (function animate() {
+    requestAnimationFrame(animate);
+    // controls.update() returns true while damping is still settling.
+    const damping = controls.update();
+    if (needsRender || damping) {
+      renderer.render(scene, camera);
+      needsRender = false;
+    }
+  })();
+}
+
+function onResize() {
+  const w = canvasHost.clientWidth;
+  const h = canvasHost.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  requestRender();
+}
+
+// ─── Banner helpers ───────────────────────────────────────────────────────────
+function clearBanners() { bannersEl.innerHTML = ''; }
+function addBanner(text, type = 'warn') {
+  const el = document.createElement('div');
+  el.className = 'banner banner-' + type;
+  el.textContent = text;
+  bannersEl.appendChild(el);
+}
+
+// ─── UI: drop zone and file input ─────────────────────────────────────────────
+let lastFileText = null;
+let lastFilename = null;
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) readFile(file);
+});
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) readFile(fileInput.files[0]);
+});
+
+function readFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    lastFileText = e.target.result;
+    lastFilename = file.name;
+    onFileLoaded(lastFileText, lastFilename);
+  };
+  reader.readAsText(file);
+}
+
+function onFileLoaded(text, filename) {
+  // Update drop zone UI
+  dropzone.classList.add('loaded');
+  dropzone.innerHTML =
+    `<strong>Loaded: ${filename}</strong><br>` +
+    `<button id="reloadBtn" style="margin-top:6px">Reload</button>` +
+    `<button id="pickBtn" style="margin-top:4px;margin-left:6px">Pick another file</button>`;
+  document.getElementById('reloadBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    if (lastFileText) onFileLoaded(lastFileText, lastFilename);
+  });
+  document.getElementById('pickBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    fileInput.click();
+  });
+
+  clearBanners();
+  loadSVG(text, filename);
+}
+
+// ─── Main entry: parse + render ───────────────────────────────────────────────
+function loadSVG(text, filename) {
+  parsed = parseSVG(text, filename);
+  if (!parsed) return; // parse failure already bannered
+
+  thickSlider.value = parsed.thicknessMm;
+  thickVal.textContent = parsed.thicknessMm.toFixed(1) + ' mm';
+
+  // Reset rotation on every new file. Thickness rebuilds (debouncedRebuild)
+  // skip this path so the rotation persists across thickness slider tweaks.
+  rotateSlider.value = 0;
+  rotateVal.textContent = '0°';
+
+  // Derive MM_PER_UNIT once scan image dimensions are known
+  derivePPM(parsed, () => renderScene(parsed));
+}
+
+// ─── SVG parsing ──────────────────────────────────────────────────────────────
+function parseSVG(text, filename) {
+  const dom = new DOMParser().parseFromString(text, 'image/svg+xml');
+  const svgEl = dom.querySelector('svg');
+  if (!svgEl) { addBanner('No <svg> element found.', 'error'); return null; }
+
+  // viewBox
+  const vbAttr = svgEl.getAttribute('viewBox');
+  if (!vbAttr) { addBanner('SVG has no viewBox attribute — cannot scale.', 'error'); return null; }
+  const [vx, vy, vw, vh] = vbAttr.trim().split(/[\s,]+/).map(Number);
+  if ([vx, vy, vw, vh].some(isNaN)) { addBanner('Could not parse viewBox.', 'error'); return null; }
+  const viewBox = { x: vx, y: vy, w: vw, h: vh };
+
+  // Embedded scan PNG
+  // Pattern: <use xlink:href="#_ImageN" transform="matrix(...)"> + <image id="_ImageN" xlink:href="data:...">
+  let scanPng = null;
+  let scanWidth = 0, scanHeight = 0;
+  let imageScale = { sx: 1, sy: 1, tx: 0, ty: 0 };
+
+  const useEl = dom.querySelector('use[*|href], use[xlink\\:href]');
+  if (useEl) {
+    const href = useEl.getAttribute('xlink:href') || useEl.getAttribute('href') || '';
+    const imgId = href.replace('#', '');
+    const imgEl = dom.getElementById(imgId);
+    if (imgEl) {
+      const dataUrl = imgEl.getAttribute('xlink:href') || imgEl.getAttribute('href') || '';
+      if (dataUrl.startsWith('data:image/png;base64,') || dataUrl.startsWith('data:image/')) {
+        const wAttr = imgEl.getAttribute('width') || '';
+        const hAttr = imgEl.getAttribute('height') || '';
+        scanWidth  = parseFloat(wAttr)  || 0;
+        scanHeight = parseFloat(hAttr) || 0;
+
+        const tfm = useEl.getAttribute('transform') || '';
+        const mMatch = tfm.match(/matrix\(([^)]+)\)/);
+        if (mMatch) {
+          const [a, b, c, d, e, f] = mMatch[1].split(/[\s,]+/).map(Number);
+          // TODO(070): handle rotated/skewed transforms (b ≠ 0 or c ≠ 0).
+          // Current code only reads sx=a, sy=d, tx=e, ty=f and silently drops rotation.
+          // TODO(uv-offsets): account for <use> x/y/width/height and imageScale offsets
+          // in buildSlab's front-face UVs (currently assumes PNG covers exactly
+          // [0, VB.w] × [0, VB.h]; ~7px slip on 067, sub-pixel on 069).
+          imageScale = { sx: a, sy: d, tx: e || 0, ty: f || 0 };
+        }
+
+        scanPng = new Image();
+        scanPng.src = dataUrl;
+      }
+    }
+  }
+  // Fallback: direct <image> in the SVG body
+  if (!scanPng) {
+    const imgEls = dom.querySelectorAll('image');
+    for (const img of imgEls) {
+      const src = img.getAttribute('xlink:href') || img.getAttribute('href') || '';
+      if (src.startsWith('data:image/')) {
+        scanWidth  = parseFloat(img.getAttribute('width'))  || 0;
+        scanHeight = parseFloat(img.getAttribute('height')) || 0;
+        const tfm = img.getAttribute('transform') || '';
+        const mMatch = tfm.match(/matrix\(([^)]+)\)/);
+        if (mMatch) {
+          const [a, b, c, d, e, f] = mMatch[1].split(/[\s,]+/).map(Number);
+          // TODO(070): handle rotated/skewed transforms (b ≠ 0 or c ≠ 0).
+          // Current code only reads sx=a, sy=d, tx=e, ty=f and silently drops rotation.
+          // TODO(uv-offsets): account for <use> x/y/width/height and imageScale offsets
+          // in buildSlab's front-face UVs (currently assumes PNG covers exactly
+          // [0, VB.w] × [0, VB.h]; ~7px slip on 067, sub-pixel on 069).
+          imageScale = { sx: a, sy: d, tx: e || 0, ty: f || 0 };
+        }
+        scanPng = new Image();
+        scanPng.src = src;
+        break;
+      }
+    }
+  }
+
+  if (!scanPng) addBanner('No embedded scan found — silhouette will use SVG path fallback.', 'warn');
+
+  // Per-layer extraction
+  function getLayer(id) {
+    return dom.getElementById(id) || dom.querySelector(`[id="${id}"]`);
+  }
+
+  const layerValley   = getLayer('folds-valley');
+  const layerMountain = getLayer('folds-mountain');
+  const layerAxles    = getLayer('axles');
+  const layerRoot     = getLayer('root');
+  const layerThick    = getLayer('thickness');
+
+  // Folds
+  const folds = [];
+  function parseFoldLayer(layerEl, layerName, defaultAngle) {
+    if (!layerEl) return;
+    for (const path of layerEl.querySelectorAll('path')) {
+      const d = path.getAttribute('d') || '';
+      const seg = parseFoldPath(d);
+      if (!seg) { console.warn('[preview.html] skipping non-straight fold path:', d.slice(0, 60)); continue; }
+      const id = path.getAttribute('id') || '';
+      let angle = defaultAngle;
+      const angleMatch = id.match(/^fold([-+])(\d+(?:\.\d+)?)$/);
+      if (angleMatch) angle = (angleMatch[1] === '-' ? -1 : 1) * parseFloat(angleMatch[2]);
+      folds.push({ layer: layerName, id, start: seg.start, end: seg.end, defaultAngle: angle });
+    }
+  }
+  parseFoldLayer(layerValley,   'folds-valley',   -90);
+  parseFoldLayer(layerMountain, 'folds-mountain', +90);
+
+  const hasValley   = layerValley   && layerValley.querySelectorAll('path').length   > 0;
+  const hasMountain = layerMountain && layerMountain.querySelectorAll('path').length > 0;
+  if (!hasValley && !hasMountain) {
+    addBanner('No fold-valley or fold-mountain layers — rendering flat.', 'warn');
+  } else if (!hasValley) {
+    addBanner('No fold-valley layer.', 'warn');
+  } else if (!hasMountain) {
+    // mountain absent is expected on many pieces; no banner
+  }
+
+  // Axles + optional `north` marker (orientation cue).
+  // Convention (settled 2026-05-02): inside <g id="axles">, an element with
+  // id="north" anywhere in the layer defines the +0° direction via the vector
+  // from the active axle (axles[0]) to the north marker's centroid. Element
+  // type can be ellipse / circle / rect / path — anything elementCentroid()
+  // handles. Optional; pieces without it still rotate, just no orientation
+  // cue is rendered. The marker rotates with the piece (it's part of the
+  // slab visually) so it gives live feedback as the user drags the rotation
+  // slider.
+  const axles = [];
+  let north = null;
+  if (layerAxles) {
+    const northEl = layerAxles.querySelector('[id="north"]');
+    if (northEl) {
+      north = elementCentroid(northEl);
+      if (!north) addBanner('north marker found but its centroid could not be parsed.', 'warn');
+    }
+    for (const el of layerAxles.querySelectorAll('ellipse, circle')) {
+      if (el.getAttribute('id') === 'north') continue;
+      const cx = parseFloat(el.getAttribute('cx') || el.getAttribute('x') || 0);
+      const cy = parseFloat(el.getAttribute('cy') || el.getAttribute('y') || 0);
+      if (!isNaN(cx) && !isNaN(cy)) axles.push({ cx, cy });
+    }
+  }
+  if (!layerAxles || axles.length === 0) addBanner('Axles empty — no pivot marker.', 'warn');
+  if (north && axles.length === 0) addBanner('north marker authored without an axle — orientation cue ignored.', 'warn');
+
+  // Root marker
+  let rootCentroid = null;
+  if (layerRoot) {
+    const child = layerRoot.firstElementChild;
+    if (child) {
+      const tag = child.tagName.toLowerCase();
+      if (tag === 'ellipse' || tag === 'circle') {
+        rootCentroid = {
+          x: parseFloat(child.getAttribute('cx') || 0),
+          y: parseFloat(child.getAttribute('cy') || 0)
+        };
+      } else if (tag === 'rect') {
+        const rx = parseFloat(child.getAttribute('x') || 0);
+        const ry = parseFloat(child.getAttribute('y') || 0);
+        const rw = parseFloat(child.getAttribute('width') || 0);
+        const rh = parseFloat(child.getAttribute('height') || 0);
+        rootCentroid = { x: rx + rw / 2, y: ry + rh / 2 };
+      } else if (tag === 'path') {
+        const verts = parsePathVertices(child.getAttribute('d') || '');
+        if (verts.length) {
+          const sx = verts.reduce((s, v) => s + v[0], 0) / verts.length;
+          const sy = verts.reduce((s, v) => s + v[1], 0) / verts.length;
+          rootCentroid = { x: sx, y: sy };
+        }
+      }
+    }
+  }
+
+  // Thickness
+  let thicknessMm = 0.4;
+  let thicknessSource = 'default';
+  if (layerThick) {
+    const textEl = layerThick.querySelector('text');
+    if (textEl) {
+      const val = parseFloat(textEl.textContent);
+      if (!isNaN(val) && val > 0) { thicknessMm = val; thicknessSource = 'text-layer'; }
+    }
+  }
+  if (thicknessSource === 'default') addBanner('Thickness layer missing — using 0.4 mm default.', 'warn');
+
+  return {
+    filename, viewBox,
+    scanPng, scanWidth, scanHeight, imageScale,
+    folds,
+    axles,
+    north,         // {x, y} in viewBox coords, or null if no orientation marker authored
+    rootCentroid,
+    thicknessMm, thicknessDefault: thicknessMm, thicknessSource,
+    _svgText: text   // kept for silhouette fallback path parsing
+  };
+}
+
+// Centroid of a single SVG element. Handles ellipse/circle (cx,cy), rect
+// (bbox midpoint), and path (mean of sampled vertices). Returns null on
+// unrecognised tag or unparseable geometry. Used for the optional `north`
+// orientation marker inside <g id="axles">.
+function elementCentroid(el) {
+  if (!el) return null;
+  const tag = el.tagName.toLowerCase();
+  if (tag === 'ellipse' || tag === 'circle') {
+    return {
+      x: parseFloat(el.getAttribute('cx') || 0),
+      y: parseFloat(el.getAttribute('cy') || 0)
+    };
+  }
+  if (tag === 'rect') {
+    const rx = parseFloat(el.getAttribute('x') || 0);
+    const ry = parseFloat(el.getAttribute('y') || 0);
+    const rw = parseFloat(el.getAttribute('width') || 0);
+    const rh = parseFloat(el.getAttribute('height') || 0);
+    return { x: rx + rw / 2, y: ry + rh / 2 };
+  }
+  if (tag === 'path') {
+    const verts = parsePathVertices(el.getAttribute('d') || '');
+    if (verts.length) {
+      const sx = verts.reduce((s, v) => s + v[0], 0) / verts.length;
+      const sy = verts.reduce((s, v) => s + v[1], 0) / verts.length;
+      return { x: sx, y: sy };
+    }
+  }
+  return null;
+}
+
+// Parse a fold path d-attribute: handles M sx,sy l dx,dy  and  M sx,sy L ex,ey
+function parseFoldPath(d) {
+  d = d.trim();
+  // Match: M <sx>,<sy> (l|L) <ex_or_dx>,<ey_or_dy>
+  const mRel = d.match(/^M\s*([-\d.]+)[,\s]([-\d.]+)\s*l\s*([-\d.]+)[,\s]([-\d.]+)/i);
+  if (mRel) {
+    const sx = parseFloat(mRel[1]), sy = parseFloat(mRel[2]);
+    const dx = parseFloat(mRel[3]), dy = parseFloat(mRel[4]);
+    return { start: [sx, sy], end: [sx + dx, sy + dy] };
+  }
+  const mAbs = d.match(/^M\s*([-\d.]+)[,\s]([-\d.]+)\s*L\s*([-\d.]+)[,\s]([-\d.]+)/i);
+  if (mAbs) {
+    return {
+      start: [parseFloat(mAbs[1]), parseFloat(mAbs[2])],
+      end:   [parseFloat(mAbs[3]), parseFloat(mAbs[4])]
+    };
+  }
+  return null;
+}
+
+// Extract all vertices from a path d.
+// Handles: M/m L/l H/h V/v C/c Q/q Z/z
+// Curves sampled at 8 points (cubic) or 6 points (quadratic) — enough fidelity for
+// silhouette outlines; the downstream RDP pass collapses collinear samples.
+function parsePathVertices(d) {
+  const verts = [];
+  let cx = 0, cy = 0;
+  let subpathStartX = 0, subpathStartY = 0;
+  const tokens = d.trim().split(/(?=[MmLlHhVvCcQqZz])/);
+  for (const tok of tokens) {
+    const cmd = tok[0];
+    const nums = tok.slice(1).trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+    if (cmd === 'M') {
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        cx = nums[i]; cy = nums[i + 1];
+        if (i === 0) { subpathStartX = cx; subpathStartY = cy; }
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'm') {
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        cx += nums[i]; cy += nums[i + 1];
+        if (i === 0) { subpathStartX = cx; subpathStartY = cy; }
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'L') {
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        cx = nums[i]; cy = nums[i + 1];
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'l') {
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        cx += nums[i]; cy += nums[i + 1];
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'H') {
+      for (let i = 0; i < nums.length; i++) {
+        cx = nums[i];
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'h') {
+      for (let i = 0; i < nums.length; i++) {
+        cx += nums[i];
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'V') {
+      for (let i = 0; i < nums.length; i++) {
+        cy = nums[i];
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'v') {
+      for (let i = 0; i < nums.length; i++) {
+        cy += nums[i];
+        verts.push([cx, cy]);
+      }
+    } else if (cmd === 'C') {
+      for (let i = 0; i + 5 < nums.length; i += 6) {
+        const x1 = nums[i], y1 = nums[i+1], x2 = nums[i+2], y2 = nums[i+3];
+        const ex = nums[i+4], ey = nums[i+5];
+        for (let s = 1; s <= 8; s++) {
+          const t = s / 8;
+          const u = 1 - t;
+          verts.push([
+            u*u*u*cx + 3*u*u*t*x1 + 3*u*t*t*x2 + t*t*t*ex,
+            u*u*u*cy + 3*u*u*t*y1 + 3*u*t*t*y2 + t*t*t*ey
+          ]);
+        }
+        cx = ex; cy = ey;
+      }
+    } else if (cmd === 'c') {
+      for (let i = 0; i + 5 < nums.length; i += 6) {
+        const x1 = cx + nums[i], y1 = cy + nums[i+1];
+        const x2 = cx + nums[i+2], y2 = cy + nums[i+3];
+        const ex = cx + nums[i+4], ey = cy + nums[i+5];
+        for (let s = 1; s <= 8; s++) {
+          const t = s / 8;
+          const u = 1 - t;
+          verts.push([
+            u*u*u*cx + 3*u*u*t*x1 + 3*u*t*t*x2 + t*t*t*ex,
+            u*u*u*cy + 3*u*u*t*y1 + 3*u*t*t*y2 + t*t*t*ey
+          ]);
+        }
+        cx = ex; cy = ey;
+      }
+    } else if (cmd === 'Q') {
+      for (let i = 0; i + 3 < nums.length; i += 4) {
+        const x1 = nums[i], y1 = nums[i+1], ex = nums[i+2], ey = nums[i+3];
+        for (let s = 1; s <= 6; s++) {
+          const t = s / 6;
+          const u = 1 - t;
+          verts.push([u*u*cx + 2*u*t*x1 + t*t*ex, u*u*cy + 2*u*t*y1 + t*t*ey]);
+        }
+        cx = ex; cy = ey;
+      }
+    } else if (cmd === 'q') {
+      for (let i = 0; i + 3 < nums.length; i += 4) {
+        const x1 = cx + nums[i], y1 = cy + nums[i+1];
+        const ex = cx + nums[i+2], ey = cy + nums[i+3];
+        for (let s = 1; s <= 6; s++) {
+          const t = s / 6;
+          const u = 1 - t;
+          verts.push([u*u*cx + 2*u*t*x1 + t*t*ex, u*u*cy + 2*u*t*y1 + t*t*ey]);
+        }
+        cx = ex; cy = ey;
+      }
+    } else if (cmd === 'Z' || cmd === 'z') {
+      verts.push([subpathStartX, subpathStartY]);
+      cx = subpathStartX; cy = subpathStartY;
+    }
+  }
+  return verts;
+}
+
+// ─── Scale derivation ─────────────────────────────────────────────────────────
+// MM_PER_UNIT = (viewBox diagonal in mm) / (viewBox diagonal in viewBox units)
+// Result: multiply a viewBox measurement by MM_PER_UNIT to get mm (= three.js units,
+// since we set 1 three.js unit = 1 mm).
+function derivePPM(p, callback) {
+  const vbDiag = Math.hypot(p.viewBox.w, p.viewBox.h);
+
+  if (p.scanPng && p.scanWidth > 0 && p.scanHeight > 0) {
+    const pngDiagPx  = Math.hypot(p.scanWidth, p.scanHeight);
+    const pngDiagMm  = pngDiagPx / 600 * 25.4;   // assume 600 DPI
+    MM_PER_UNIT = pngDiagMm / vbDiag;
+    console.log('[preview.html] MM_PER_UNIT:', MM_PER_UNIT.toFixed(6), '(source: derived-from-scan)');
+    callback();
+  } else {
+    MM_PER_UNIT = 1;
+    addBanner('Scale unknown (no scan dims) — thickness shown in viewBox units.', 'warn');
+    console.log('[preview.html] MM_PER_UNIT: 1 (source: fallback-1)');
+    callback();
+  }
+}
+
+// ─── Silhouette extraction ────────────────────────────────────────────────────
+
+// Tier 1 silhouette source: the authored <g id="silhouette"> layer.
+// Convention (settled 2026-05-02 after authoring 069.svg + reviewing piece 071):
+//   inside <g id="silhouette">:
+//     id="cutaway"   or id="cutaway-N"  → silhouette polygon
+//     id="mask"      or id="mask-N"     → visual authoring frame, ignored
+//     anything else                     → unrecognised, console.warn
+//   <g id="cutouts"> is a SIBLING layer (interior holes); v1a-fix does NOT consume it.
+//
+// Returns array of [vx, vy] in viewBox coords, or null if layer absent / no cutaways found.
+function extractSilhouetteFromLayer(p) {
+  const dom = new DOMParser().parseFromString(p._svgText, 'image/svg+xml');
+  const layer = dom.querySelector('g#silhouette');
+  if (!layer) return null;
+
+  const cutawayRe = /^cutaway(-\d+)?$/;
+  const maskRe    = /^mask(-\d+)?$/;
+
+  const cutaways = [];
+  let unrecognisedCount = 0;
+  // querySelectorAll('*') returns all element descendants in document order,
+  // transparently handling Affinity's unnamed wrapper <g> elements.
+  for (const el of layer.querySelectorAll('*')) {
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'g') continue;  // structural wrapper; descendants iterated separately
+
+    const id = el.getAttribute('id') || '';
+    if (cutawayRe.test(id)) {
+      const poly = shapeToPolygon(el);
+      if (poly && poly.length >= 3) {
+        cutaways.push({ id, poly });
+      } else {
+        addBanner(`<g id="silhouette"> #${id} could not be parsed as a closed shape.`, 'warn');
+      }
+    } else if (maskRe.test(id)) {
+      // visual authoring frame — ignore silently
+    } else {
+      unrecognisedCount++;
+      console.warn('[preview.html] <g id="silhouette"> contains <' + tag + '>' +
+                   (id ? ' id="' + id + '"' : '') +
+                   ' — unrecognised, ignoring. Use id="cutaway" / "cutaway-N" or "mask".');
+    }
+  }
+
+  if (cutaways.length === 0) {
+    if (unrecognisedCount > 0) {
+      addBanner(
+        `<g id="silhouette"> found, but no <path id="cutaway"> inside ` +
+        `(${unrecognisedCount} unrecognised element${unrecognisedCount > 1 ? 's' : ''} ignored). ` +
+        `Falling through to alpha/path-fallback. Tag the cut polygon id="cutaway".`,
+        'warn'
+      );
+    }
+    return null;
+  }
+
+  if (cutaways.length > 1) {
+    addBanner(
+      `Found ${cutaways.length} cutaways (${cutaways.map(c => c.id).join(', ')}); ` +
+      `v1a renders only the first. Multi-slab support is pending.`,
+      'warn'
+    );
+  }
+
+  const chosen = cutaways[0];
+  const simplified = rdp(chosen.poly, 1.0);
+  console.log('[preview.html] Silhouette: from <g id="silhouette"> #' + chosen.id + ',',
+              chosen.poly.length, 'verts →', simplified.length,
+              'simplified, area', polyArea(simplified).toFixed(0), 'units² (source: layer)');
+  return simplified;
+}
+
+// Convert a leaf shape element to [[vx, vy], ...] in its own local viewBox coords.
+// Per-element transforms are NOT applied — current SVGs don't author them on
+// silhouette children.
+function shapeToPolygon(el) {
+  const tag = el.tagName.toLowerCase();
+  if (tag === 'path') {
+    const d = el.getAttribute('d') || '';
+    return d ? parsePathVertices(d) : null;
+  }
+  if (tag === 'polygon') {
+    const pts = (el.getAttribute('points') || '').trim().split(/[\s,]+/).map(Number);
+    const verts = [];
+    for (let i = 0; i + 1 < pts.length; i += 2) verts.push([pts[i], pts[i + 1]]);
+    return verts;
+  }
+  if (tag === 'rect') {
+    const x = parseFloat(el.getAttribute('x') || '0');
+    const y = parseFloat(el.getAttribute('y') || '0');
+    const w = parseFloat(el.getAttribute('width') || '0');
+    const h = parseFloat(el.getAttribute('height') || '0');
+    if (w > 0 && h > 0) return [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
+  }
+  return null;
+}
+
+async function extractSilhouette(p) {
+  // Tier 1: authored <g id="silhouette"> layer (canonical, per CLAUDE.md)
+  const fromLayer = extractSilhouetteFromLayer(p);
+  if (fromLayer) return fromLayer;
+
+  // Layer absent or empty — fall through with a banner so authoring misses never
+  // silently corrupt a render.
+  if (p.scanPng) {
+    // Decode PNG to canvas
+    const img = p.scanPng;
+    await new Promise(res => {
+      if (img.complete) { res(); return; }
+      img.onload = res;
+      img.onerror = res;
+    });
+
+    const offW = img.naturalWidth  || p.scanWidth;
+    const offH = img.naturalHeight || p.scanHeight;
+
+    if (offW > 0 && offH > 0) {
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width  = offW;
+      offCanvas.height = offH;
+      const ctx = offCanvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      let data;
+      try { data = ctx.getImageData(0, 0, offW, offH).data; }
+      catch (e) { addBanner('Could not read scan pixels (CORS/tainting) — using path fallback.', 'warn'); }
+
+      if (data) {
+        // Count opaque pixels
+        let opaque = 0;
+        const total = offW * offH;
+        for (let i = 3; i < data.length; i += 4) if (data[i] > 250) opaque++;
+        const opaqueFrac = opaque / total;
+
+        if (opaqueFrac < 0.99) {
+          // Tier 2: PNG alpha (legacy; less authoritative than authored layer)
+          addBanner('No <g id="silhouette"> layer — falling back to PNG alpha mask. ' +
+                    'Author a silhouette layer to make the cut authoritative.', 'warn');
+
+          const rawSegs = marchingSquares(data, offW, offH, 0.5);
+          const rawPoly = chainSegments(rawSegs);
+          if (rawPoly && rawPoly.length >= 3) {
+            // Scale from PNG-pixel space to viewBox space
+            const sx = p.imageScale.sx || 1;
+            const sy = p.imageScale.sy || 1;
+            const tx = p.imageScale.tx || 0;
+            const ty = p.imageScale.ty || 0;
+            const vbPoly = rawPoly.map(([x, y]) => [x * sx + tx, y * sy + ty]);
+            const simplified = rdp(vbPoly, 1.0);
+            console.log('[preview.html] Silhouette: raw', rawPoly.length, 'verts → simplified',
+                        simplified.length, 'verts, area', polyArea(simplified).toFixed(0),
+                        'units² (source: alpha)');
+            return simplified;
+          }
+          addBanner('Marching squares produced no contour — falling back to SVG path.', 'error');
+        }
+      }
+    }
+  }
+
+  // Tier 3: largest closed colored path in the SVG body (heuristic)
+  addBanner('No <g id="silhouette"> and no usable PNG alpha — falling back to ' +
+            'largest colored path heuristic. This may pick the wrong shape.', 'warn');
+  return extractSilhouettePath(p);
+}
+
+function extractSilhouettePath(p) {
+  // Look for a closed colored path in the SVG body
+  const dom = new DOMParser().parseFromString(p._svgText, 'image/svg+xml');
+  // Exclude known metadata layers; also exclude authored cut layers so the
+  // heuristic never accidentally matches mask/cutaway/cutout paths.
+  const skipIds = new Set([
+    'folds-valley', 'folds-mountain', 'axles', 'marks', 'root', 'thickness', 'Background',
+    'silhouette', 'cutouts'
+  ]);
+  let bestPath = null;
+  let bestLen  = 0;
+
+  const allPaths = dom.querySelectorAll('path');
+  for (const path of allPaths) {
+    // Check it's not inside a metadata or cut layer
+    let parent = path.parentElement;
+    let skip = false;
+    while (parent && parent !== dom.documentElement) {
+      if (skipIds.has(parent.id)) { skip = true; break; }
+      parent = parent.parentElement;
+    }
+    if (skip) continue;
+
+    const style = path.getAttribute('style') || '';
+    const fill  = path.getAttribute('fill')  || '';
+    // Accept any path with a non-none, non-transparent fill
+    if (style.includes('fill:none') || fill === 'none') continue;
+    const d = path.getAttribute('d') || '';
+    if (!d) continue;
+
+    const verts = parsePathVertices(d);
+    if (verts.length > bestLen) { bestLen = verts.length; bestPath = verts; }
+  }
+
+  if (!bestPath || bestPath.length < 3) {
+    addBanner(
+      'No silhouette source found — author <g id="silhouette"> with a <path id="cutaway"> ' +
+      '(or polygon/rect with id starting "cutaway"), or provide an alpha-bearing scan.',
+      'error'
+    );
+    return null;
+  }
+
+  console.log('[preview.html] Silhouette: SVG-path fallback,', bestPath.length, 'verts, area',
+              polyArea(bestPath).toFixed(0), 'units² (source: path-fallback)');
+  return bestPath;
+}
+
+// ─── Marching squares ─────────────────────────────────────────────────────────
+// Returns an array of segments: each segment is [x1, y1, x2, y2] in PNG-pixel coords.
+// Corners: TL=bit3, TR=bit2, BR=bit1, BL=bit0
+const MS_SEGS = [
+  [],                    // 0
+  [[3, 2]],              // 1:  W→S
+  [[2, 1]],              // 2:  S→E
+  [[3, 1]],              // 3:  W→E
+  [[0, 1]],              // 4:  N→E
+  [[0, 1], [2, 3]],      // 5:  N→E, S→W  (TR+BL saddle)
+  [[0, 2]],              // 6:  N→S
+  [[0, 3]],              // 7:  N→W
+  [[0, 3]],              // 8:  N→W
+  [[0, 2]],              // 9:  N→S
+  [[0, 3], [1, 2]],      // 10: N→W, E→S  (TL+BR saddle)
+  [[0, 1]],              // 11: N→E
+  [[3, 1]],              // 12: W→E
+  [[1, 2]],              // 13: E→S
+  [[2, 3]],              // 14: S→W
+  [],                    // 15
+];
+// Edge midpoints per cell (col, row):
+// 0=N: (col+0.5, row),  1=E: (col+1, row+0.5),
+// 2=S: (col+0.5, row+1), 3=W: (col, row+0.5)
+function edgeMid(edge, col, row) {
+  if (edge === 0) return [col + 0.5, row];
+  if (edge === 1) return [col + 1,   row + 0.5];
+  if (edge === 2) return [col + 0.5, row + 1];
+  return              [col,         row + 0.5];
+}
+
+function marchingSquares(rgba, W, H, threshold) {
+  const alpha = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) alpha[i] = rgba[i * 4 + 3] / 255;
+
+  function a(col, row) {
+    if (col < 0 || row < 0 || col >= W || row >= H) return 0;
+    return alpha[row * W + col] > threshold ? 1 : 0;
+  }
+
+  const segments = [];
+  for (let row = 0; row < H - 1; row++) {
+    for (let col = 0; col < W - 1; col++) {
+      const tl = a(col,   row);
+      const tr = a(col+1, row);
+      const br = a(col+1, row+1);
+      const bl = a(col,   row+1);
+      const c  = (tl << 3) | (tr << 2) | (br << 1) | bl;
+      for (const [e1, e2] of MS_SEGS[c]) {
+        const [x1, y1] = edgeMid(e1, col, row);
+        const [x2, y2] = edgeMid(e2, col, row);
+        segments.push([x1, y1, x2, y2]);
+      }
+    }
+  }
+  return segments;
+}
+
+// ─── Segment chaining ─────────────────────────────────────────────────────────
+// Chains segments into the largest closed polygon.
+function chainSegments(segments) {
+  if (segments.length === 0) return null;
+
+  // Quantize to half-pixel to ensure endpoint matching
+  function key(x, y) { return Math.round(x * 2) + ',' + Math.round(y * 2); }
+
+  // Build adjacency: key → [{toX, toY, used}]
+  const adj = new Map();
+  function addEdge(x1, y1, x2, y2) {
+    const k1 = key(x1, y1);
+    const k2 = key(x2, y2);
+    if (!adj.has(k1)) adj.set(k1, []);
+    if (!adj.has(k2)) adj.set(k2, []);
+    const e1 = { x: x2, y: y2, used: false };
+    const e2 = { x: x1, y: y1, used: false };
+    adj.get(k1).push(e1);
+    adj.get(k2).push(e2);
+    // link them so marking one marks the other
+    e1.pair = e2; e2.pair = e1;
+  }
+  for (const [x1, y1, x2, y2] of segments) addEdge(x1, y1, x2, y2);
+
+  // Find largest closed polygon
+  let best = null;
+  for (const [startKey, neighbors] of adj) {
+    if (neighbors.every(n => n.used)) continue;
+    const poly = [];
+    let curKey = startKey;
+    const startPt = startKey.split(',').map(n => parseInt(n) / 2);
+    poly.push(startPt);
+
+    let steps = 0;
+    while (steps++ < 200000) {
+      const nexts = adj.get(curKey) || [];
+      const next  = nexts.find(n => !n.used);
+      if (!next) break;
+      next.used = true;
+      if (next.pair) next.pair.used = true;
+      poly.push([next.x, next.y]);
+      curKey = key(next.x, next.y);
+      if (curKey === startKey) break;
+    }
+
+    if (poly.length > (best ? best.length : 0)) best = poly;
+  }
+  return best;
+}
+
+// ─── Ramer-Douglas-Peucker simplification ────────────────────────────────────
+function rdp(pts, eps) {
+  if (pts.length <= 2) return pts;
+  let maxDist = 0, maxIdx = 0;
+  const [x1, y1] = pts[0];
+  const [x2, y2] = pts[pts.length - 1];
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.hypot(dx, dy);
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [px, py] = pts[i];
+    const d = len > 0
+      ? Math.abs(dy * px - dx * py + x2 * y1 - y2 * x1) / len
+      : Math.hypot(px - x1, py - y1);
+    if (d > maxDist) { maxDist = d; maxIdx = i; }
+  }
+  if (maxDist > eps) {
+    const l = rdp(pts.slice(0, maxIdx + 1), eps);
+    const r = rdp(pts.slice(maxIdx),        eps);
+    return [...l.slice(0, -1), ...r];
+  }
+  return [pts[0], pts[pts.length - 1]];
+}
+
+// ─── Polygon helpers ──────────────────────────────────────────────────────────
+function polyBbox(poly) {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const [x, y] of poly) {
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  }
+  return { minX, maxX, minY, maxY, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
+}
+
+function polyArea(poly) {
+  let a = 0;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    a += (poly[j][0] + poly[i][0]) * (poly[j][1] - poly[i][1]);
+  }
+  return Math.abs(a) / 2;
+}
+
+// ─── Axle wire builder ────────────────────────────────────────────────────────
+// Renders the axle as a thin shiny silver cylinder, perpendicular to the slab,
+// passing through the axle point. The wire is world-anchored — the slab+pivot
+// rotates around it, the wire itself does not move. This matches the physical
+// clock: the wire is a fixed shaft mounted in the framework, and the piece
+// (with a future glued-on knitting-needle-segment bearing) rotates around it.
+//
+// Future extension: a `buildBearing(...)` paired with this and added INSIDE
+// the rotation pivot group will render the knitting-needle bearing — hollow
+// tube around the wire, glued to the piece, rotating with it.
+const AXLE_WIRE_RADIUS = 0.5;     // mm (1 mm diameter)
+const AXLE_WIRE_OVERHANG = 4.0;   // mm beyond each face — visible "wire poking through"
+function buildAxleWire(axleX_3js, axleY_3js, slabT_mm) {
+  const length = slabT_mm + 2 * AXLE_WIRE_OVERHANG;
+  const geo = new THREE.CylinderGeometry(
+    AXLE_WIRE_RADIUS, AXLE_WIRE_RADIUS, length, 24
+  );
+  // Default cylinder runs along Y; rotate so it runs along Z (perpendicular to slab).
+  geo.rotateX(Math.PI / 2);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xc8cdd0,
+    metalness: 0.9,
+    roughness: 0.25
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(axleX_3js, axleY_3js, 0);
+  return mesh;
+}
+
+// ─── Scene render ─────────────────────────────────────────────────────────────
+async function renderScene(p) {
+  // Clear previous slab + axle markers, disposing their GPU resources.
+  // The scan texture is cached in _scanTexCache and disposed there; the slab's
+  // material references it via `map`, so we don't dispose the texture here —
+  // disposing the material is enough to release the JS-side reference.
+  if (currentSlabPivot) {
+    scene.remove(currentSlabPivot);
+    currentSlabPivot.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) obj.material.dispose();
+    });
+    currentSlabPivot = null;
+  }
+  for (const m of currentAxleWires) {
+    scene.remove(m);
+    if (m.geometry) m.geometry.dispose();
+    if (m.material) m.material.dispose();
+  }
+  currentAxleWires = [];
+
+  // Extract silhouette — cached on p._polygon so thickness rebuilds skip re-extraction
+  if (!p._polygon) p._polygon = await extractSilhouette(p);
+  const poly = p._polygon;
+  if (!poly) return;
+
+  VB = p.viewBox;
+
+  // Build slab
+  const slab = buildSlab(poly, p.thicknessMm);
+  const bb = polyBbox(poly);
+  // T is in three.js units (= mm). thicknessMm is already mm — do NOT multiply
+  // by MM_PER_UNIT (that's the vb-units → mm scale, used for the XY conversions
+  // below). Multiplying produced T ≈ thicknessMm × 0.01 on real pieces, which is
+  // why the slab looked completely flat regardless of slider position.
+  const T = p.thicknessMm;
+
+  // Wrap the slab in a rotation pivot. The pivot sits at the active axle's
+  // world position; the slab inside is offset so visually it stays at the same
+  // spot at rotation = 0. Rotating pivot.rotation.z then swings the slab
+  // around the axle line (Z-axis through the axle point). Single-axle
+  // assumption per design: axles[0] is the active rotation axle. Multi-axle
+  // support deferred until needed.
+  const pivot = new THREE.Group();
+  let activeAxle3js = null;  // {x, y} in three.js coords, or null if no axles
+  if (p.axles.length > 0) {
+    const a = p.axles[0];
+    activeAxle3js = {
+      x:  (a.cx - bb.cx) * MM_PER_UNIT,
+      y: -(a.cy - bb.cy) * MM_PER_UNIT
+    };
+    pivot.position.set(activeAxle3js.x, activeAxle3js.y, 0);
+    slab.position.set(-activeAxle3js.x, -activeAxle3js.y, 0);
+  }
+  pivot.add(slab);
+  scene.add(pivot);
+  currentSlabPivot = pivot;
+
+  // Render every axle as a world-anchored silver wire passing through the
+  // axle point perpendicular to the slab. Wires sit OUTSIDE the pivot — they
+  // do not rotate with the piece, matching the physical clock where the wire
+  // is fixed to the framework.
+  for (const { cx, cy } of p.axles) {
+    const wire = buildAxleWire(
+      (cx - bb.cx) * MM_PER_UNIT,
+      -(cy - bb.cy) * MM_PER_UNIT,
+      T
+    );
+    scene.add(wire);
+    currentAxleWires.push(wire);
+  }
+
+  // Optional north marker — orientation cue. Brass-gold sphere INSIDE the
+  // rotation pivot, so it rotates with the piece and visually communicates
+  // the current angle relative to the as-authored 0°. Distinct color from
+  // the silver axle wire so the two read as separate elements.
+  if (p.north && activeAxle3js) {
+    const NORTH_R = 1.0;
+    const ngeo = new THREE.SphereGeometry(NORTH_R, 16, 12);
+    const nmat = new THREE.MeshStandardMaterial({
+      color: 0xb89e5b, metalness: 0.7, roughness: 0.35
+    });
+    const nmesh = new THREE.Mesh(ngeo, nmat);
+    // World position when rotation = 0:
+    const nwx =  (p.north.x - bb.cx) * MM_PER_UNIT;
+    const nwy = -(p.north.y - bb.cy) * MM_PER_UNIT;
+    // Local position inside the pivot (which is positioned at activeAxle3js):
+    nmesh.position.set(
+      nwx - activeAxle3js.x,
+      nwy - activeAxle3js.y,
+      T / 2 + NORTH_R + 0.1
+    );
+    pivot.add(nmesh);  // disposed via currentSlabPivot.traverse() at next teardown
+  }
+
+  // Show / hide the rotation slider section based on whether this piece has
+  // an axle to rotate around.
+  rotationSection.hidden = (p.axles.length === 0);
+
+  // Apply the rotation slider's current value. On a fresh file load this is 0
+  // (loadSVG resets the slider). On a thickness rebuild we preserve whatever
+  // the user has the slider set to so the in-progress rotation doesn't jump.
+  // Sign: CW positive convention (Alan's choice 2026-05-02). three.js's
+  // rotation.z is CCW-positive (right-hand rule around +Z, which points
+  // toward viewer), so we negate.
+  if (p.axles.length > 0) {
+    const deg = parseFloat(rotateSlider.value) || 0;
+    pivot.rotation.z = -deg * Math.PI / 180;
+  }
+
+  // Frame camera
+  const diagUnits = Math.hypot(
+    (bb.maxX - bb.minX) * MM_PER_UNIT,
+    (bb.maxY - bb.minY) * MM_PER_UNIT
+  );
+  const fovRad = camera.fov * Math.PI / 180;
+  const dist   = (diagUnits / 2) / Math.tan(fovRad / 2) * 1.3;
+  camera.position.set(0, 0, dist);
+  camera.near = dist * 0.001;
+  camera.far  = dist * 100;
+  camera.updateProjectionMatrix();
+  controls.target.set(0, 0, 0);
+  controls.update();
+  requestRender();
+
+  // Console diagnostics
+  const vFolds = p.folds.filter(f => f.layer === 'folds-valley').length;
+  const mFolds = p.folds.filter(f => f.layer === 'folds-mountain').length;
+  console.log('[preview.html] Loaded', p.filename);
+  console.log('viewBox:', p.viewBox.w + 'x' + p.viewBox.h);
+  console.log('Silhouette:', poly.length, 'verts, area', polyArea(poly).toFixed(0), 'units²');
+  console.log('Fold lines:', vFolds, 'valley,', mFolds, 'mountain  (parsed but not rendered in v1a)');
+  console.log('Root marker:', p.rootCentroid ? 'present, centroid (' + p.rootCentroid.x.toFixed(1) + ', ' + p.rootCentroid.y.toFixed(1) + ')' : 'absent');
+  console.log('Thickness:', p.thicknessMm, 'mm (source:', p.thicknessSource + ')');
+  console.log('Axles:', p.axles.length);
+  console.log('MM_PER_UNIT:', MM_PER_UNIT.toFixed(6));
+}
+
+// ─── buildSlab ────────────────────────────────────────────────────────────────
+// Takes polygon (array of [vx, vy] in viewBox coords) and thicknessMm.
+// Returns THREE.Group with:
+//   - frontMesh: ShapeGeometry at z=+T/2, scan texture, custom UVs
+//   - backMesh:  ShapeGeometry at z=-T/2, cream, BackSide (visible from -Z, no rotation)
+//   - sideMesh:  custom BufferGeometry connecting front and back edges, cream DoubleSide
+// v1b calls this N times — once per cut panel polygon — without modification.
+function buildSlab(polygon, thicknessMm) {
+  // T is in three.js units (= mm). thicknessMm is already mm; MM_PER_UNIT is
+  // the vb-units → mm scale and applies only to the XY conversions below.
+  const T = thicknessMm;
+  const bb = polyBbox(polygon);
+
+  // Build THREE.Shape in three.js (mm) space, Y-flipped (SVG Y-down → three.js Y-up)
+  const shape = new THREE.Shape();
+  const [v0x, v0y] = polygon[0];
+  shape.moveTo((v0x - bb.cx) * MM_PER_UNIT, -(v0y - bb.cy) * MM_PER_UNIT);
+  for (let i = 1; i < polygon.length; i++) {
+    const [vx, vy] = polygon[i];
+    shape.lineTo((vx - bb.cx) * MM_PER_UNIT, -(vy - bb.cy) * MM_PER_UNIT);
+  }
+
+  // Materials
+  const scanTex = buildScanTexture(parsed.scanPng);
+  const scanMat = new THREE.MeshStandardMaterial({
+    map: scanTex, transparent: true, alphaTest: 0.1, side: THREE.FrontSide
+  });
+  const backMat = new THREE.MeshStandardMaterial({
+    color: 0xf0e0c8, side: THREE.BackSide
+  });
+  const edgeMat = new THREE.MeshStandardMaterial({
+    color: 0xf0e0c8, side: THREE.DoubleSide
+  });
+
+  // ── Front face (scan texture, z = +T/2) ────────────────────────────────────
+  const fgeo = new THREE.ShapeGeometry(shape);
+  const fpos = fgeo.getAttribute('position');
+  const fuvs = new Float32Array(fpos.count * 2);
+  for (let i = 0; i < fpos.count; i++) {
+    const posX = fpos.getX(i);
+    const posY = fpos.getY(i);
+    // Recover viewBox coords from shape (mm) coords
+    const vx = posX / MM_PER_UNIT + bb.cx;
+    const vy = bb.cy - posY / MM_PER_UNIT;   // un-flip Y
+    fuvs[i * 2]     = vx / VB.w;
+    fuvs[i * 2 + 1] = 1.0 - vy / VB.h;
+  }
+  fgeo.setAttribute('uv', new THREE.BufferAttribute(fuvs, 2));
+  const frontMesh = new THREE.Mesh(fgeo, scanMat);
+  frontMesh.position.z = T / 2;
+
+  // ── Back face (cream, z = -T/2, BackSide so it's only visible from -Z) ─────
+  const bgeo     = new THREE.ShapeGeometry(shape);
+  const backMesh = new THREE.Mesh(bgeo, backMat);
+  backMesh.position.z = -T / 2;
+
+  // ── Side walls (cream DoubleSide, custom BufferGeometry) ────────────────────
+  const n    = polygon.length;
+  const halfT = T / 2;
+  const sideVerts   = new Float32Array((n + 1) * 2 * 3);
+  const sideIndices = [];
+
+  for (let i = 0; i <= n; i++) {
+    const [vx, vy] = polygon[i % n];
+    const px = (vx - bb.cx) * MM_PER_UNIT;
+    const py = -(vy - bb.cy) * MM_PER_UNIT;
+    const base = i * 6;
+    sideVerts[base]     = px; sideVerts[base + 1] = py; sideVerts[base + 2] = halfT;
+    sideVerts[base + 3] = px; sideVerts[base + 4] = py; sideVerts[base + 5] = -halfT;
+  }
+  for (let i = 0; i < n; i++) {
+    const a = i * 2, b = i * 2 + 1, c = i * 2 + 2, d = i * 2 + 3;
+    sideIndices.push(a, b, c,  b, d, c);
+  }
+
+  const sgeo = new THREE.BufferGeometry();
+  sgeo.setAttribute('position', new THREE.BufferAttribute(sideVerts, 3));
+  sgeo.setIndex(sideIndices);
+  sgeo.computeVertexNormals();
+  const sideMesh = new THREE.Mesh(sgeo, edgeMat);
+
+  const group = new THREE.Group();
+  group.add(frontMesh, backMesh, sideMesh);
+  return group;
+}
+
+// ─── Scan texture builder ─────────────────────────────────────────────────────
+let _scanTexCache = null;
+let _scanTexCacheSrc = null;
+function buildScanTexture(scanPng) {
+  if (!scanPng) return null;
+  // Reuse the cached texture when the same Image is requested (e.g. thickness-slider
+  // rebuilds): three.js's GPU upload is one-shot per Texture; re-creating it on every
+  // rebuild was wasted work even before render-on-demand.
+  if (_scanTexCache && _scanTexCacheSrc === scanPng) return _scanTexCache;
+  if (_scanTexCache) { _scanTexCache.dispose(); _scanTexCache = null; }
+  const tex = new THREE.Texture(scanPng);
+  tex.needsUpdate = true;
+  // tex.flipY defaults to true: HTML image row 0 (visual top) lands at UV v=1.
+  // buildSlab's front-face UV uses `v = 1 - vy/VB.h`, which puts viewBox-top
+  // (vy=0) at UV v=1 — i.e. the visual top of the scan. The two pair correctly
+  // only when flipY is left at its default; setting it false here was the v1a
+  // texture-flip bug (diagnosed in sessions/2026-05-02-1700_cowork_067-svg-id-swap.md).
+  if (!scanPng.complete) {
+    // PNG decode hasn't finished yet — under render-on-demand we need an explicit
+    // nudge once the image is ready, otherwise the texture would never upload.
+    scanPng.addEventListener('load', () => {
+      tex.needsUpdate = true;
+      requestRender();
+    }, { once: true });
+  }
+  _scanTexCache = tex;
+  _scanTexCacheSrc = scanPng;
+  return tex;
+}
+
+// ─── Thickness slider ─────────────────────────────────────────────────────────
+const debouncedRebuild = debounce(() => {
+  if (!parsed) return;
+  parsed.thicknessMm = parseFloat(thickSlider.value);
+  // renderScene handles slab + axle teardown (with disposal) at the top.
+  renderScene(parsed);
+}, 80);
+
+thickSlider.addEventListener('input', () => {
+  thickVal.textContent = parseFloat(thickSlider.value).toFixed(1) + ' mm';
+  debouncedRebuild();
+});
+
+resetBtn.addEventListener('click', () => {
+  if (!parsed) return;
+  const def = parsed.thicknessDefault;
+  if (parseFloat(thickSlider.value) === def) return;
+  thickSlider.value = def;
+  thickVal.textContent = def.toFixed(1) + ' mm';
+  parsed.thicknessMm = def;
+  debouncedRebuild();
+});
+
+// ─── Rotation slider ──────────────────────────────────────────────────────────
+// Rotation is a cheap in-place pivot.rotation.z update — no geometry rebuild,
+// no debounce. Fires requestRender() each tick so OrbitControls' render-on-
+// demand picks it up.
+//
+// Sign convention: +deg = CW (clock convention) when viewed from the front.
+// three.js's rotation.z is CCW-positive (right-hand rule around +Z, +Z points
+// toward viewer), so we negate to get CW-positive at the slider level.
+rotateSlider.addEventListener('input', () => {
+  const deg = parseFloat(rotateSlider.value) || 0;
+  rotateVal.textContent = deg.toFixed(0) + '°';
+  if (currentSlabPivot) {
+    currentSlabPivot.rotation.z = -deg * Math.PI / 180;
+    requestRender();
+  }
+});
+
+resetRotateBtn.addEventListener('click', () => {
+  if (parseFloat(rotateSlider.value) === 0) return;
+  rotateSlider.value = 0;
+  rotateVal.textContent = '0°';
+  if (currentSlabPivot) {
+    currentSlabPivot.rotation.z = 0;
+    requestRender();
+  }
+});
+
+// ─── Debounce ─────────────────────────────────────────────────────────────────
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+}
+
+// ─── Bootstrap ────────────────────────────────────────────────────────────────
+initScene();
+</script>
+</body>
+</html>

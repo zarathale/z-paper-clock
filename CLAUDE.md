@@ -49,17 +49,20 @@ Most design, transcription, and document work happens in **Cowork** (Claude desk
 
 ## Session Startup
 
-1. Read this file
-2. Read `work/SPEC-3D-VIEWER.md` if the work touches the build at all
-3. Read the most recent entry in `sessions/` to pick up the thread
-4. **If working on a Code task:** read the relevant `CODE_PROMPT_*.md` in full before writing code
-5. **If touching transcriptions:** read `source/transcriptions/embedded-labels.md` (or `instructions.md`) before editing the relevant section
-6. **If touching the pre-processing pipeline:** re-skim `work/scripts/preprocess_scans.py`. The gen-1 per-plate quality assessment lives at `work/_archive/m1-plate-d-phone/RESCAN_FINDINGS.md` for reference; a fresh gen-2 version will live at `work/scripts/RESCAN_FINDINGS.md` once M0.5 surfaces re-tuning notes.
-7. **If receiving / processing scans:** read `source/SCAN-INTAKE-CHECKLIST.md` (capture standard, per-file QC, intake → raw promotion).
+1. Read this file (and `PROJECT-STATE.md` for the slow-moving framing if loading fresh context)
+2. Read `WORKPLAN.md` to see what tracks are open right now and what the next action is on each
+3. Read `work/SPEC-3D-VIEWER.md` if the work touches the build at all
+4. Read the most recent entry in `sessions/` to pick up the thread
+5. **If working on a Code task:** read the relevant `CODE_PROMPT_*.md` in full before writing code
+6. **If touching transcriptions:** read `source/transcriptions/embedded-labels.md` (or `instructions.md`) before editing the relevant section
+7. **If touching the pre-processing pipeline:** re-skim `work/scripts/preprocess_scans.py`. The gen-1 per-plate quality assessment lives at `work/_archive/m1-plate-d-phone/RESCAN_FINDINGS.md` for reference; a fresh gen-2 version will live at `work/scripts/RESCAN_FINDINGS.md` once M0.5 surfaces re-tuning notes.
+8. **If receiving / processing scans:** read `source/SCAN-INTAKE-CHECKLIST.md` (capture standard, per-file QC, intake → raw promotion).
 
 ---
 
 ## Where We Are
+
+_For slow-moving framing on what this project is and what actually exists today, see `PROJECT-STATE.md`. For the current stance — open tracks + next actions + recent activity — see `WORKPLAN.md`. The status table below is the executive-summary mirror of `ROADMAP.md` and gets reconciled at each planning beat. The status table will likely simplify or get generated once `WORKPLAN.md` proves out for a few sessions._
 
 The study side is complete. The build side hit a pause on 2026-04-30 over gutter warp surviving the gen-1 phone-scan pipeline (visible on piece 31 in Inkscape). Initial response: archive gen-1, capture gen-2 on a flat-bed home scanner. Same day, second-pass refinement: the home scanner can't fit a whole plate, so the workflow pivots to **chunk-and-crop** — capture multi-piece chunks that fit the bed, hand-crop to per-piece PNGs in your editor, archive the chunks as recovery references. M1 deliverables remain at `work/_archive/m1-plate-d-phone/`. Quick status:
 
@@ -454,7 +457,9 @@ Do not reopen these without Zarathale.
 
 ---
 
-*Last updated: 2026-05-02 (very late evening) — **doc pass surfacing the `preview.html` work into the SPEC and ROADMAP.** Added a new section "Authoring/QA preview tool (`preview.html`)" to `work/SPEC-3D-VIEWER.md` (consumes / silhouette source chain / current feature set / what's not yet there / path forward — including the open question of whether preview.html graduates into `work/viewer/`, stays a separate authoring tool, or replaces `work/viewer/` outright). Added an **M0.6** row to `ROADMAP.md` (index + full milestone section between M0.5 and M1) covering all preview.html work shipped to date, v1b queued, cutouts + multi-cutaway + TODO(070)/TODO(uv-offsets) deferred, and the architecture-decision row 0.6.13. Status table above gained a matching row. The "Sequence" section at the bottom of the SPEC now references M0.6 as a parallel track to M0.5. No code changes; just the docs catching up to what's in the file. See `sessions/2026-05-02-2359_cowork_preview-html-spec-and-roadmap.md`.*
+*Last updated: 2026-05-03 — **introduced PROJECT-STATE.md + WORKPLAN.md operating-layer documents** at repo root. PROJECT-STATE.md is the slow-moving framing doc (what this project actually is, what exists today, how to read other docs); WORKPLAN.md is the active stance (per-track hypothesis + status + next action + recent log, eight tracks seeded). Session Startup gained a step for WORKPLAN.md and a fresh-context mention of PROJECT-STATE.md. The "Where We Are" header gained a one-paragraph framing pointer; the status table itself is unchanged for now and will be reconciled in a later pass once WORKPLAN proves out for a few sessions. Asset-state design (per-piece JSON, audit-script-generated from filesystem reality) settled in the design conversation but implementation queued as its own track. GitHub Projects parked as a future open question on the operations-layer track. See `sessions/2026-05-03-0000_cowork_project-state-and-workplan.md`.*
+
+*Earlier 2026-05-02 (very late evening) — **doc pass surfacing the `preview.html` work into the SPEC and ROADMAP.** Added a new section "Authoring/QA preview tool (`preview.html`)" to `work/SPEC-3D-VIEWER.md` (consumes / silhouette source chain / current feature set / what's not yet there / path forward — including the open question of whether preview.html graduates into `work/viewer/`, stays a separate authoring tool, or replaces `work/viewer/` outright). Added an **M0.6** row to `ROADMAP.md` (index + full milestone section between M0.5 and M1) covering all preview.html work shipped to date, v1b queued, cutouts + multi-cutaway + TODO(070)/TODO(uv-offsets) deferred, and the architecture-decision row 0.6.13. Status table above gained a matching row. The "Sequence" section at the bottom of the SPEC now references M0.6 as a parallel track to M0.5. No code changes; just the docs catching up to what's in the file. See `sessions/2026-05-02-2359_cowork_preview-html-spec-and-roadmap.md`.*
 
 *Earlier 2026-05-02 (late evening / midnight pass) — fixed a long-latent **thickness extrusion bug** in `preview.html` (variable `UNITS_PER_MM` was misnamed as the inverse of its actual value, leading to T being multiplied by ~0.01; renamed to `MM_PER_UNIT` and removed the multiplier so `T = thicknessMm` directly). Default/fallback thickness dropped 1.0 → 0.4 mm to match Alan's cardstock plan. Then added **axle rotation** to `preview.html`: pieces with axles get a Rotation slider (−180° to +180°, CW positive clock convention) that pivots the slab around the axle via a wrapping `THREE.Group`. Axles render as 1 mm shiny silver cylinders, world-anchored outside the pivot (mirroring the physical clock's framework-mounted wire). Future bearing slots in cleanly inside the pivot. Optional `id="north"` element inside `<g id="axles">` becomes the +0° orientation cue, rendered as a brass-gold sphere. Architectural Decisions table gained one row; File Naming Conventions section extended with the axles-layer per-element ids. Three cowork sessions today: `2026-05-02-2300_cowork_preview-html-thickness-fix.md` (extrusion fix + thickness default tweak as addendum), `2026-05-02-2330_cowork_preview-html-axle-rotation.md` (rotation slider, silver wires, north cue), and the earlier mid-day pair on the cut-layer spec (`-1500`) + ship (`-1400`).*
 
