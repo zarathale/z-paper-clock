@@ -47,6 +47,27 @@ html, body { width:100%; height:100%; overflow:hidden; background:#1a1a1a; color
 #thickness-section,
 #rotation-section { display:flex; flex-direction:column; gap:6px; }
 #rotation-section[hidden] { display:none; }
+
+#piece-section { display:flex; flex-direction:column; gap:6px; }
+#piece-section .piece-row { display:flex; align-items:center; gap:6px; }
+#piece-section .piece-row label { color:#aaa; }
+#piece-section input#pieceInput {
+  flex:1; min-width:0; background:#1a1a1a; border:1px solid #444;
+  color:#e8e3da; border-radius:4px; padding:5px 8px; font-size:13px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+#piece-section input#pieceInput:focus { outline:none; border-color:#7af; }
+#piece-section button[disabled] { opacity:0.4; cursor:not-allowed; }
+#sidecar-block {
+  display:none; font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:11px; color:#aaa; white-space:pre;
+  border:1px solid #333; border-radius:4px; padding:6px; line-height:1.4;
+}
+#help {
+  font-size:11px; color:#777; line-height:1.5;
+  border-top:1px solid #2a2a2a; padding-top:8px;
+}
+#help code { color:#aea; background:#0d2a12; padding:0 4px; border-radius:2px; }
 .slider-row { display:flex; align-items:center; gap:8px; }
 .slider-row label { color:#aaa; min-width:70px; }
 .slider-row input[type=range] { flex:1; accent-color:#c9a96e; }
@@ -69,9 +90,21 @@ button:hover { background:#383838; }
 <body>
 
 <div id="panel">
+  <div id="piece-section">
+    <div class="piece-row">
+      <label for="pieceInput">Piece</label>
+      <input id="pieceInput" list="piece-list" placeholder="069 or 092a"
+             pattern="^\d{1,3}[a-z]?$" autocomplete="off" spellcheck="false">
+      <button id="loadBtn">Load</button>
+      <button id="reloadPieceBtn" disabled title="Re-fetch from disk (R)">Reload</button>
+    </div>
+    <datalist id="piece-list"></datalist>
+    <div id="sidecar-block"></div>
+  </div>
+
   <div id="dropzone" tabindex="0" role="button"
        aria-label="Drop an SVG here or click to pick a file">
-    Drop an SVG here, or click to pick a file.
+    Or drop an SVG here / click to pick a file.
   </div>
   <input type="file" id="fileInput" accept=".svg" style="display:none">
 
@@ -104,6 +137,12 @@ button:hover { background:#383838; }
       <span class="val" id="rotateVal">0°</span>
     </div>
     <button id="resetRotateBtn">Reset rotation</button>
+  </div>
+
+  <div id="help">
+    Type a piece id (e.g. <code>069</code>) and press Enter, or drag-drop any SVG.<br>
+    If id-load fails on <code>file://</code>, run <code>python3 -m http.server 8000</code> from repo root, then open <code>http://localhost:8000/preview.html</code>.<br>
+    Reload (or press <code>R</code>) re-reads from disk after a fresh export from Affinity.
   </div>
 </div>
 
@@ -154,6 +193,16 @@ const rotateVal       = document.getElementById('rotateVal');
 const resetRotateBtn  = document.getElementById('resetRotateBtn');
 const rotationSection = document.getElementById('rotation-section');
 const canvasHost = document.getElementById('canvas-host');
+const pieceInput      = document.getElementById('pieceInput');
+const loadBtn         = document.getElementById('loadBtn');
+const reloadPieceBtn  = document.getElementById('reloadPieceBtn');
+const sidecarBlock    = document.getElementById('sidecar-block');
+const pieceListEl     = document.getElementById('piece-list');
+
+// Piece-id loader: tracks the canonical piece currently displayed (set by
+// loadPieceById, cleared back to null by drag-drop / file-picker paths so
+// `R` keypress doesn't accidentally re-fetch a stale piece).
+let currentPieceId = null;
 
 // ─── Init three.js scene ──────────────────────────────────────────────────────
 function initScene() {
@@ -230,42 +279,196 @@ dropzone.addEventListener('drop', e => {
   e.preventDefault();
   dropzone.classList.remove('drag-over');
   const file = e.dataTransfer.files[0];
-  if (file) readFile(file);
+  if (file) readFile(file, 'drag-drop');
 });
 
 fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) readFile(fileInput.files[0]);
+  if (fileInput.files[0]) readFile(fileInput.files[0], 'file-picker');
 });
 
-function readFile(file) {
+function readFile(file, source) {
   const reader = new FileReader();
   reader.onload = e => {
-    lastFileText = e.target.result;
-    lastFilename = file.name;
-    onFileLoaded(lastFileText, lastFilename);
+    loadSvgFromString(e.target.result, { source, filename: file.name });
   };
   reader.readAsText(file);
 }
 
-function onFileLoaded(text, filename) {
-  // Update drop zone UI
-  dropzone.classList.add('loaded');
-  dropzone.innerHTML =
-    `<strong>Loaded: ${filename}</strong><br>` +
-    `<button id="reloadBtn" style="margin-top:6px">Reload</button>` +
-    `<button id="pickBtn" style="margin-top:4px;margin-left:6px">Pick another file</button>`;
-  document.getElementById('reloadBtn').addEventListener('click', e => {
-    e.stopPropagation();
-    if (lastFileText) onFileLoaded(lastFileText, lastFilename);
-  });
-  document.getElementById('pickBtn').addEventListener('click', e => {
-    e.stopPropagation();
-    fileInput.click();
-  });
+// Single entry point for handing parsed SVG text into the parse + render
+// pipeline, regardless of how it was sourced. Sources:
+//   'piece-id'      — fetched from work/pieces/NNN/NNN.svg
+//   'url-param'     — auto-loaded from ?piece=NNN on bootstrap
+//   'drag-drop'     — dropped onto the dropzone
+//   'file-picker'   — chosen via the file input dialog
+//   'cached-reload' — re-rendered from lastFileText (in-zone Reload button)
+function loadSvgFromString(text, opts = {}) {
+  const { source = 'unknown', pieceId = null, filename = null } = opts;
+  const displayName = filename || (pieceId ? `${pieceId}.svg` : 'svg');
+
+  lastFileText = text;
+  lastFilename = displayName;
+
+  // Drag-drop / file-picker paths flip the dropzone to a "loaded" state with
+  // an in-zone Reload that re-renders the cached text. Piece-id / URL-param
+  // paths leave the dropzone alone — its disk-fetch Reload lives in the
+  // piece-section.
+  if (source === 'drag-drop' || source === 'file-picker' || source === 'cached-reload') {
+    dropzone.classList.add('loaded');
+    dropzone.innerHTML =
+      `<strong>Loaded: ${displayName}</strong><br>` +
+      `<button id="reloadBtn" style="margin-top:6px">Reload</button>` +
+      `<button id="pickBtn" style="margin-top:4px;margin-left:6px">Pick another file</button>`;
+    document.getElementById('reloadBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      if (lastFileText) loadSvgFromString(lastFileText, { source: 'cached-reload', filename: lastFilename });
+    });
+    document.getElementById('pickBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      fileInput.click();
+    });
+  }
+
+  console.log('[preview] loaded via:', source, 'piece:', pieceId || '<none>');
 
   clearBanners();
-  loadSVG(text, filename);
+  loadSVG(text, displayName);
+
+  // Drag-drop nudge: if a per-piece-shaped filename came in via drag-drop and
+  // the canonical piece-id loader isn't tracking it, hint at the canonical
+  // home so the iterate-fast workflow becomes the easy path.
+  if (source === 'drag-drop' && filename) {
+    const m = filename.match(/^(\d{3})([a-z]?)\.svg$/);
+    if (m) {
+      const droppedId = m[1] + m[2];
+      if (!currentPieceId || currentPieceId !== droppedId) {
+        addBanner(
+          `Loaded ${filename} via drag-drop. Canonical home is work/pieces/${droppedId}/${droppedId}.svg — ` +
+          `consider exporting there for the iterate-fast workflow.`,
+          'warn'
+        );
+      }
+    }
+  }
 }
+
+// ─── Piece-id loader ──────────────────────────────────────────────────────────
+// Loads the canonical export at work/pieces/NNN/NNN.svg by piece id. Accepts
+// rawId in any of "69", "069", "92a", "092a", "92A" — normalises to NNN[a].
+// `source` is passed through to loadSvgFromString for diagnostics — defaults
+// to 'piece-id' (UI button / Enter); the URL-param bootstrap calls with
+// 'url-param' for traceability.
+async function loadPieceById(rawId, source = 'piece-id') {
+  const m = String(rawId).trim().toLowerCase().match(/^(\d{1,3})([a-z]?)$/);
+  if (!m) {
+    clearBanners();
+    addBanner(`Bad piece id: "${rawId}" — expected NNN or NNNa (e.g. 069, 092a).`, 'warn');
+    return;
+  }
+  const id = String(parseInt(m[1], 10)).padStart(3, '0') + m[2];
+  const path = `work/pieces/${id}/${id}.svg`;
+  let resp;
+  try {
+    resp = await fetch(path + '?t=' + Date.now());
+  } catch (e) {
+    clearBanners();
+    addBanner(
+      `fetch failed: ${e.message}. If running on file://, start a local server: ` +
+      `python3 -m http.server 8000 (from repo root), then open http://localhost:8000/preview.html`,
+      'warn'
+    );
+    return;
+  }
+  if (!resp.ok) {
+    clearBanners();
+    addBanner(`No SVG at ${path} — has it been authored yet? (HTTP ${resp.status})`, 'warn');
+    return;
+  }
+  const svgText = await resp.text();
+  currentPieceId = id;
+  pieceInput.value = id;
+  reloadPieceBtn.disabled = false;
+  history.replaceState(null, '', `?piece=${id}`);
+  loadSvgFromString(svgText, { source, pieceId: id, filename: `${id}.svg` });
+  await maybeLoadSidecar(id);
+}
+
+function reloadCurrentPiece() {
+  if (!currentPieceId) return;
+  loadPieceById(currentPieceId, 'piece-id-reload');
+}
+
+// Optional sidecar surfacing: if work/pieces/NNN/NNN.json exists with a
+// `function` block (gear / pinion metadata, settled 2026-04-30), render a
+// terse read-only summary in the side panel. Silent on any failure.
+async function maybeLoadSidecar(id) {
+  const path = `work/pieces/${id}/${id}.json`;
+  try {
+    const r = await fetch(path + '?t=' + Date.now());
+    if (!r.ok) { hideSidecarBlock(); return; }
+    const json = await r.json();
+    if (json && json.function) renderFunctionBlock(json.function);
+    else hideSidecarBlock();
+  } catch {
+    hideSidecarBlock();
+  }
+}
+
+function renderFunctionBlock(fn) {
+  const lines = ['function:'];
+  for (const [k, v] of Object.entries(fn)) {
+    const display = (v === null || v === undefined) ? 'null' : JSON.stringify(v);
+    lines.push(`  ${k}: ${display}`);
+  }
+  sidecarBlock.textContent = lines.join('\n');
+  sidecarBlock.style.display = 'block';
+}
+
+function hideSidecarBlock() {
+  sidecarBlock.style.display = 'none';
+  sidecarBlock.textContent = '';
+}
+
+// Best-effort autocomplete: pulls the id column out of work/pieces.csv into
+// the <datalist>. Silent on failure (file:// blocks fetch, CSV missing) —
+// the placeholder text is enough hint without it.
+async function populatePieceDatalist() {
+  try {
+    const r = await fetch('work/pieces.csv');
+    if (!r.ok) return;
+    const text = await r.text();
+    const ids = [];
+    for (const line of text.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const id = trimmed.split(',')[0];
+      if (/^\d{3}[a-z]?$/.test(id)) ids.push(id);
+    }
+    pieceListEl.innerHTML = ids.map(id => `<option value="${id}">`).join('');
+  } catch { /* expected on file:// — skip silently */ }
+}
+
+// ─── Piece-section event wiring ───────────────────────────────────────────────
+loadBtn.addEventListener('click', () => loadPieceById(pieceInput.value));
+reloadPieceBtn.addEventListener('click', () => reloadCurrentPiece());
+
+pieceInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    loadPieceById(pieceInput.value);
+  }
+});
+
+// `R` (or `r`) re-fetches the current piece from disk — only when the input
+// isn't focused (otherwise the user can't type the letter `r`) and a piece
+// has actually been loaded. Modifier-held keys (Ctrl/Cmd/Alt) pass through
+// so browser shortcuts (Ctrl+R reload) aren't shadowed.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'r' && e.key !== 'R') return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+  if (currentPieceId) reloadCurrentPiece();
+});
 
 // ─── Main entry: parse + render ───────────────────────────────────────────────
 function loadSVG(text, filename) {
@@ -2024,6 +2227,16 @@ function debounce(fn, ms) {
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 initScene();
+
+// Best-effort autocomplete population (silent on file://).
+populatePieceDatalist();
+
+// URL-param auto-load: ?piece=069 → fetch + render on first load.
+// Bookmark / share-link surface; localStorage isn't used.
+{
+  const urlPiece = new URLSearchParams(location.search).get('piece');
+  if (urlPiece) loadPieceById(urlPiece, 'url-param');
+}
 </script>
 </body>
 </html>
