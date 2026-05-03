@@ -34,7 +34,7 @@
   header .progress strong { color: var(--fg); font-weight: 600; }
 
   .legend {
-    display: grid; grid-template-columns: repeat(10, 1fr);
+    display: grid; grid-template-columns: repeat(7, 1fr);
     gap: 6px; padding: 10px 20px; background: #fff;
     border-bottom: 1px solid var(--line);
   }
@@ -71,10 +71,12 @@
     font-size: 12px; padding: 4px 10px; border-radius: 4px;
     display: inline-block; margin-left: auto;
   }
-  .piece-status.pristine { background: #f0eee8; color: var(--muted); }
-  .piece-status.tagged { background: #e0f0e3; color: var(--done); }
+  .piece-status.pristine  { background: #f0eee8; color: var(--muted); }
+  .piece-status.tagged    { background: #e0f0e3; color: var(--done); }
   .piece-status.uncertain { background: #fbe7d2; color: var(--warn); }
-  .piece-status.skipped { background: #e8e8e8; color: var(--skip); }
+  .piece-status.skipped   { background: #e8e8e8; color: var(--skip); }
+  .piece-status.pair-tag  { background: #dde6f1; color: #365683; }
+  .piece-status.pending   { background: #f3ebd5; color: #7a5c1c; }
 
   .piece-image-wrap {
     background: #f4f3ee; border: 1px dashed var(--line); border-radius: 6px;
@@ -91,7 +93,7 @@
     margin-bottom: 12px; white-space: pre-wrap;
   }
   .piece-current-tag {
-    font-size: 13px; color: var(--muted); margin-bottom: 8px;
+    font-size: 13px; color: var(--muted); margin-bottom: 4px;
   }
   .piece-current-tag .tag-name { color: var(--fg); font-weight: 600; }
 
@@ -133,7 +135,7 @@
   .panel button.danger { color: #a13434; }
   .panel .help { font-size: 12px; color: var(--muted); line-height: 1.4; }
 
-  /* Export modal */
+  /* Modals */
   .export-modal {
     display: none;
     position: fixed; top: 5vh; left: 50%; transform: translateX(-50%);
@@ -190,12 +192,27 @@
     </div>
     <div class="piece-notes" id="pieceNotes">—</div>
     <div class="piece-current-tag" id="currentTagLine">Current tag: <span class="tag-name">none</span></div>
+    <div class="piece-v1-was" id="v1WasLine" style="display:none; font-size:12px; color:var(--muted); font-style:italic; margin-bottom:4px;">
+      v1 was: <span id="v1WasValue"></span> · reclassified to current
+    </div>
+    <div class="piece-subtype" id="subtypeRow" style="margin-bottom:8px;">
+      <label for="subtypeInput" style="font-size:13px; color:var(--muted);">Subtype:</label>
+      <input type="text" id="subtypeInput" list="subtypeList"
+             placeholder="e.g. frame-rail, bracket-tab, tube-pulley"
+             style="width:60%; padding:5px 8px; font:inherit;
+                    border:1px solid var(--line); border-radius:4px; margin-left:6px;">
+      <datalist id="subtypeList"></datalist>
+    </div>
+    <div class="piece-controls" id="controlsBadge" style="display:none; font-size:12px; color:var(--accent); margin-bottom:8px;">
+      <strong>Controls:</strong> <span id="controlsList"></span>
+    </div>
     <textarea class="per-piece-note" id="perPieceNote" placeholder="Optional note for this piece (auto-saves)"></textarea>
     <div class="nav-row">
       <button class="nav-btn" id="prevBtn">← Prev <span class="key">←</span></button>
       <button class="nav-btn" id="nextBtn">Next → <span class="key">→</span></button>
       <button class="nav-btn" id="skipBtn">Skip <span class="key">s</span></button>
       <button class="nav-btn" id="uncertainBtn">Uncertain <span class="key">u</span></button>
+      <button class="nav-btn" id="pairTagBtn">Pair-tag <span class="key">p</span></button>
       <button class="nav-btn" id="jumpBtn">Jump <span class="key">j</span></button>
       <button class="nav-btn" id="clearBtn">Clear tag <span class="key">x</span></button>
     </div>
@@ -209,22 +226,26 @@
         <label><input type="radio" name="filter" value="untagged"> Untagged only <span class="count" id="cntUntagged">—</span></label>
         <label><input type="radio" name="filter" value="uncertain"> Uncertain only <span class="count" id="cntUncertain">—</span></label>
         <label><input type="radio" name="filter" value="tagged"> Tagged (any) <span class="count" id="cntTagged">—</span></label>
+        <label><input type="radio" name="filter" value="pair-tag"> Pair-tag only <span class="count" id="cntPairTag">—</span></label>
+        <label><input type="radio" name="filter" value="pending"> Pending capture <span class="count" id="cntPending">—</span></label>
         <label><input type="radio" name="filter" value="skipped"> Skipped only <span class="count" id="cntSkipped">—</span></label>
       </div>
-      <select id="sectionFilter" style="margin-top: 12px">
+      <select id="sectionFilter" style="margin-top:12px">
         <option value="">All sections</option>
       </select>
     </div>
     <div class="panel">
       <h2>Output</h2>
       <button id="exportBtn">Export YAML</button>
+      <button id="importBtn">Import YAML…</button>
       <button id="resetBtn" class="danger">Reset all tags…</button>
     </div>
     <div class="panel">
       <h2>Keys</h2>
       <div class="help">
-        <kbd>1</kbd>–<kbd>0</kbd> tag with archetype<br>
+        <kbd>1</kbd>–<kbd>7</kbd> tag with character<br>
         <kbd>u</kbd> mark uncertain<br>
+        <kbd>p</kbd> mark pair-tag<br>
         <kbd>s</kbd> skip<br>
         <kbd>x</kbd> clear current tag<br>
         <kbd>n</kbd> focus note box<br>
@@ -237,9 +258,10 @@
 </main>
 
 <div class="modal-bg" id="modalBg"></div>
+
 <section class="export-modal" id="exportModal">
   <h2>Export · piece_characters.yaml</h2>
-  <p style="color: var(--muted); font-size: 13px;">Copy or download. Tags are saved continuously to localStorage; this is the snapshot.</p>
+  <p style="color:var(--muted); font-size:13px;">Copy or download. Tags are saved continuously to localStorage; this is the snapshot.</p>
   <textarea id="exportText" readonly></textarea>
   <div class="actions">
     <button class="nav-btn" id="copyBtn">Copy to clipboard</button>
@@ -248,27 +270,199 @@
   </div>
 </section>
 
+<section class="export-modal" id="importModal">
+  <h2>Import · piece_characters.yaml</h2>
+  <p style="color:var(--muted); font-size:13px;">
+    Paste the contents of <code>work/piece_characters_v2.yaml</code> (or any v2-format export) below.
+    Loading replaces all current tags. Export first if you want a backup.
+  </p>
+  <textarea id="importText" placeholder="characters:&#10;  &quot;001&quot;:&#10;    character: folded&#10;    subtype: frame-rail&#10;..."></textarea>
+  <div class="actions">
+    <button class="nav-btn primary" id="loadImportBtn">Load</button>
+    <button class="nav-btn" id="closeImportBtn">Close</button>
+  </div>
+</section>
+
 <div class="toast" id="toast"></div>
 
 <script>
-// ─── Archetype taxonomy ─────────────────────────────────────────────────────
-// 10 archetypes mapped to keys 1-9 + 0. Order matches keyboard mapping.
-const ARCHETYPES = [
-  { slug: "flat-laminate",        key: "1", desc: "flat, glued back-to-back or onto cardboard" },
-  { slug: "flat-decorative",      key: "2", desc: "flat, visible final surface" },
-  { slug: "folded-tube",          key: "3", desc: "flat → cylinder" },
-  { slug: "folded-box",           key: "4", desc: "flat → 3D enclosure" },
-  { slug: "frame-channel",        key: "5", desc: "long strip, U/L cross-section" },
-  { slug: "gear-disc",            key: "6", desc: "flat disc, gear/wheel stack, axle hole" },
-  { slug: "pinion-stack-disc",    key: "7", desc: "small star-cut disc on rolled pinion" },
-  { slug: "gear-teeth-strip",     key: "8", desc: "long strip wrapping for teeth" },
-  { slug: "anchor-pendulum-mixed",key: "9", desc: "heterogeneous §II.C piece" },
-  { slug: "reference",            key: "0", desc: "non-build reference (107, 120)" },
+// ─── Character taxonomy (v2) ─────────────────────────────────────────────────
+// 7 characters mapped to keys 1-7. Each character corresponds to a unique
+// layer signature; see work/piece_characters_v2.yaml header for definitions.
+const CHARACTERS = [
+  { slug: "flat",             key: "1", desc: "flat: silhouette + (glue) + labels + marks" },
+  { slug: "flat-cutout",      key: "2", desc: "flat with interior hole(s); no folds, no axles" },
+  { slug: "flat-axle",        key: "3", desc: "flat with axle (pin/wire pass-through); no cutouts" },
+  { slug: "flat-axle-cutout", key: "4", desc: "flat with axle AND interior cutout (pinion stacks, hands wheels)" },
+  { slug: "folded",           key: "5", desc: "folded form (rails, brackets, tubes, boxes, teeth strips); no axles" },
+  { slug: "folded-axle",      key: "6", desc: "folded form bearing an axle (frame columns, anchor-bearing box)" },
+  { slug: "reference",        key: "7", desc: "non-build reference (dimension legends, etc.)" },
 ];
-const KEY_TO_ARCH = Object.fromEntries(ARCHETYPES.map(a => [a.key, a.slug]));
+const KEY_TO_CHARACTER = Object.fromEntries(CHARACTERS.map(c => [c.key, c.slug]));
+
+// Subtype vocabulary — autocomplete suggestions, not strict validation.
+// Sourced from work/piece_characters_v2.yaml header. Free-form override allowed.
+const SUBTYPE_VOCABULARY = [
+  "frame-rail", "frame-rail-axle", "frame-rail-face",
+  "bracket-tab", "bracket-l", "bracket-wall",
+  "box-cross", "box-small", "box-wall-bracket", "box-anchor-bearing", "box-case-top",
+  "triangle-spacer-motor",
+  "tube-pulley", "tube-pulley-drum", "tube-pulley-string-wind",
+  "tube-pendulum-blade", "tube-bob-casing", "tube-weight-cylinder",
+  "tube-weight-label-wrap", "tube-minute-hand-holder", "tube-strap",
+  "tube-wheel-cover", "tube-rolled-pinion",
+  "teeth-strip-motor", "teeth-strip-reduction", "teeth-strip-hook",
+  "teeth-strip-accordion-pulley", "teeth-strip-sawtooth-weight",
+  "gear-face", "gear-back", "motor-wheel-face", "motor-wheel-back",
+  "escape-wheel", "escape-wheel-back", "middle-wheel", "middle-wheel-back",
+  "reduction-gear", "pulley-disc", "pulley-plate", "pulley-plate-back",
+  "plate-cap", "lid-weight", "hands-wheel-hour", "hands-wheel-hour-back",
+  "hands-wheel-star", "spacer-disc", "indicator-bob",
+  "pinion-mount-middle", "pinion-mount-escape", "pinion-mount-motor",
+  "pinion-mount-hands",
+  "anchor-arm", "anchor-fork", "plate-anchor-rear", "blade-pendulum",
+  "ring-square-pendulum", "pendulum-rod", "hook-pendulum",
+  "bob-face", "bob-retainer", "bob-brace", "reinforcement-cardboard",
+  "crescent-decorative",
+  "face-brace-cross", "face-brace-cross-axle", "face-brace-cross-hole",
+  "spacer-pendulum-support", "wedge-wall-bracket", "spacer-cardboard",
+  "hand-minute", "hand-hour",
+  "case-side", "face-clock",
+  "ring-tab-pulley", "tongue-oval", "oval-elongated", "tongue-narrow-hands",
+  "push-tab-wheel", "axle-mount-square",
+];
+
+// Embedded snapshot of work/piece_characters_v2.yaml as of 2026-05-03.
+// On first load (empty localStorage), state seeds from this. Subsequent
+// edits are persisted to localStorage and override INITIAL_STATE on reload.
+// Re-embed when piece_characters_v2.yaml changes.
+const INITIAL_STATE = {
+  "001": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
+  "002": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
+  "006": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
+  "007": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
+  "110": { character: "folded", subtype: "frame-rail-face", status: "pending", note: "Pair-tag resolved 2026-05-03 from embedded labels (Panel A): '+++' along the right edge (mountain folds) and '---' along the left edge (valley folds), with X/Y end-match markers to 111/112. Same family as 111/112/112a confirmed even pre-capture. status: pending kept until source/pieces/110.png lands.", v1_was: null },
+  "003": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
+  "005": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
+  "008": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
+  "012": { character: "folded", subtype: "bracket-tab", status: "tagged", note: "", v1_was: "frame-channel" },
+  "013": { character: "folded", subtype: "bracket-tab", status: "pending", note: "source/pieces/ pending capture per pieces.csv.", v1_was: "frame-channel" },
+  "014": { character: "folded", subtype: "bracket-tab", status: "pending", note: "source/pieces/ pending capture per pieces.csv.", v1_was: "frame-channel" },
+  "015": { character: "folded", subtype: "bracket-tab", status: "tagged", note: "", v1_was: "frame-channel" },
+  "016": { character: "folded", subtype: "bracket-tab", status: "pending", note: "source/pieces/ pending capture per pieces.csv.", v1_was: "frame-channel" },
+  "017": { character: "folded", subtype: "bracket-tab", status: "pending", note: "source/pieces/ pending capture per pieces.csv.", v1_was: "frame-channel" },
+  "093": { character: "flat", subtype: "bob-brace", status: "tagged", note: "Printed as 6 copies, glued in pairs to make 3 braces (laminated).", v1_was: "anchor-pendulum-mixed" },
+  "113": { character: "flat-cutout", subtype: "face-brace-cross-hole", status: "tagged", note: "Has hole through it (non-axle). User-flagged in v1.", v1_was: "frame-channel" },
+  "114": { character: "flat", subtype: "face-brace-cross", status: "tagged", note: "", v1_was: "frame-channel" },
+  "115": { character: "flat-axle", subtype: "face-brace-cross-axle", status: "tagged", note: "Axle hole through it. User-flagged in v1.", v1_was: "frame-channel" },
+  "116": { character: "flat-axle", subtype: "face-brace-cross-axle", status: "tagged", note: "Axle hole through it. User-flagged in v1.", v1_was: "frame-channel" },
+  "009": { character: "folded", subtype: "frame-rail", status: "tagged", note: "Beam piece — anchor fork (068) passes over it.", v1_was: "frame-channel" },
+  "011": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
+  "020": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
+  "021": { character: "folded", subtype: "bracket-wall", status: "tagged", note: "", v1_was: "frame-channel" },
+  "022": { character: "folded", subtype: "bracket-wall", status: "tagged", note: "+ center mark.", v1_was: "frame-channel" },
+  "023": { character: "folded", subtype: "box-wall-bracket", status: "tagged", note: "Wall-bracket box development; tabs to 25. RECLASSIFIED v1→v2: this folds into a 3D box, not a U-channel.", v1_was: "frame-channel" },
+  "024": { character: "folded", subtype: "box-wall-bracket", status: "tagged", note: "Wall-bracket box development; tabs to 25. RECLASSIFIED v1→v2.", v1_was: "frame-channel" },
+  "025": { character: "folded", subtype: "box-wall-bracket", status: "tagged", note: "Tall wall-bracket main panel (receives tabs from 23/24). RECLASSIFIED v1→v2.", v1_was: "frame-channel" },
+  "027": { character: "flat", subtype: "spacer-pendulum-support", status: "tagged", note: "Small spacer; pieces.csv has it in framework section, not anchor-pendulum. RECLASSIFIED v1→v2.", v1_was: "anchor-pendulum-mixed" },
+  "028": { character: "flat", subtype: "spacer-pendulum-support", status: "tagged", note: "Pieces.csv has it in framework section. RECLASSIFIED v1→v2.", v1_was: "anchor-pendulum-mixed" },
+  "004": { character: "folded-axle", subtype: "frame-rail-axle", status: "tagged", note: "Long main frame column (front center); axle holes; positioning guides for 91/92.", v1_was: "frame-channel" },
+  "010": { character: "folded-axle", subtype: "frame-rail-axle", status: "tagged", note: "Long main frame column (back center); axle holes (user-flagged in v1).", v1_was: "frame-channel" },
+  "018": { character: "folded", subtype: "bracket-l", status: "tagged", note: "Back-of-frame L-bracket; pinches pendulum blade.", v1_was: "frame-channel" },
+  "019": { character: "folded", subtype: "bracket-l", status: "tagged", note: "Back-of-frame L-bracket; pinches pendulum blade.", v1_was: "frame-channel" },
+  "026": { character: "flat", subtype: "wedge-wall-bracket", status: "tagged", note: "Pair-tag resolved 2026-05-03. Embedded label: 'Glue this piece to strong cardboard' (lamination glue → implicit in flat character). The visible lines on 026 are alignment-to-case-top marks (marks layer), not folds.", v1_was: "flat-decorative" },
+  "029": { character: "folded", subtype: "box-cross", status: "tagged", note: "Connects 4/10.", v1_was: "folded-box" },
+  "030": { character: "folded", subtype: "box-small", status: "tagged", note: "", v1_was: "folded-box" },
+  "031": { character: "flat", subtype: "tongue-oval", status: "tagged", note: "Glue back to back to 32.", v1_was: "flat-laminate" },
+  "032": { character: "flat", subtype: "oval-elongated", status: "tagged", note: "Pairs with 31; also appears on plate G.", v1_was: "flat-laminate" },
+  "091": { character: "flat", subtype: "spacer-cardboard", status: "tagged", note: "Small square spacer; glue to 1mm cardboard; aligns to piece 4.", v1_was: "flat-laminate" },
+  "092": { character: "flat-axle", subtype: "spacer-disc", status: "tagged", note: "Disc spacer; glue to 1mm cardboard; aligns to piece 4. Axle inferred from 'aligns to piece 4' which carries the hands axle.", v1_was: "gear-disc" },
+  "039": { character: "folded", subtype: "teeth-strip-accordion-pulley", status: "tagged", note: "Accordion-pleated pulley column (glues to 38).", v1_was: "gear-teeth-strip" },
+  "060": { character: "folded", subtype: "tube-rolled-pinion", status: "tagged", note: "Pinion for escapement wheel (rolled cylinder). RECLASSIFIED — this is a rolled cylinder forming the pinion shaft, not a teeth strip.", v1_was: "gear-teeth-strip" },
+  "074": { character: "folded", subtype: "teeth-strip-hook", status: "tagged", note: "Thin strip (hook form) at bottom of plate E; small fragment also visible on H.", v1_was: "gear-teeth-strip" },
+  "078": { character: "flat-axle-cutout", subtype: "hands-wheel-hour", status: "tagged", note: "Hour-hand wheel; user flagged 'cutouts'. Glue back to back to 79 before cutting teeth.", v1_was: "gear-disc" },
+  "079": { character: "flat-axle-cutout", subtype: "hands-wheel-hour-back", status: "tagged", note: "Partner to 78. Cutouts cut through both layers as a stack. RECLASSIFIED v1→v2 to match 78.", v1_was: "flat-laminate" },
+  "082": { character: "folded", subtype: "teeth-strip-reduction", status: "tagged", note: "", v1_was: "gear-teeth-strip" },
+  "083": { character: "folded", subtype: "teeth-strip-reduction", status: "tagged", note: "", v1_was: "gear-teeth-strip" },
+  "103": { character: "flat-axle", subtype: "reduction-gear", status: "tagged", note: "Small reduction gear with central spiral pattern (decorative — on labels/marks layer, not cutouts).", v1_was: "gear-disc" },
+  "104": { character: "flat", subtype: "lid-weight", status: "tagged", note: "Weight-cylinder lid disc; glue back to back to 106.", v1_was: "flat-laminate" },
+  "105": { character: "folded", subtype: "teeth-strip-sawtooth-weight", status: "tagged", note: "Sawtooth gear-teeth strip — wraps around weight cylinder forming ratchet/teeth.", v1_was: "folded-tube" },
+  "106": { character: "flat", subtype: "lid-weight", status: "tagged", note: "Partner to 104.", v1_was: "flat-laminate" },
+  "107": { character: "reference", subtype: null, status: "tagged", note: "Axle-dimension reference lines + legend (not a build piece).", v1_was: "reference" },
+  "111": { character: "folded", subtype: "frame-rail-face", status: "tagged", note: "", v1_was: "frame-channel" },
+  "112": { character: "folded", subtype: "frame-rail-face", status: "tagged", note: "Mirror partner of 112a.", v1_was: "frame-channel" },
+  "112a": { character: "folded", subtype: "frame-rail-face", status: "tagged", note: "Mirror partner of 112. LETTER VARIANT.", v1_was: "frame-channel" },
+  "038": { character: "flat-axle-cutout", subtype: "motor-wheel-face", status: "tagged", note: "Large motor-wheel front face; central star cut out. v2 character makes the pinion-vs-gear distinction explicit via cutouts layer.", v1_was: "pinion-stack-disc" },
+  "046": { character: "flat-axle-cutout", subtype: "pulley-plate", status: "tagged", note: "Pulley plate (paired with 47, glue back to back); has star/pinion cutout.", v1_was: "pinion-stack-disc" },
+  "047": { character: "flat-axle-cutout", subtype: "pulley-plate-back", status: "tagged", note: "Partner to 46. Cutouts cut through both layers as a stack. RECLASSIFIED v1→v2 to match 46.", v1_was: "flat-laminate" },
+  "048": { character: "flat", subtype: "plate-cap", status: "tagged", note: "Plain disc; glue to double cardboard. No axle hole per pieces.csv.", v1_was: "flat-laminate" },
+  "049": { character: "flat", subtype: "plate-cap", status: "tagged", note: "Small disc (plate cap); also appears on plate G.", v1_was: "flat-decorative" },
+  "058": { character: "flat-axle", subtype: "escape-wheel", status: "tagged", note: "Escapement-wheel disc; glue back to back to 59 before cutting (teeth on perimeter, no interior cutout).", v1_was: "gear-disc" },
+  "059": { character: "flat-axle", subtype: "escape-wheel-back", status: "tagged", note: "Partner to 58.", v1_was: "gear-disc" },
+  "061": { character: "flat-axle-cutout", subtype: "pinion-mount-escape", status: "tagged", note: "Star-cutout disc (pinion-stack).", v1_was: "pinion-stack-disc" },
+  "062": { character: "flat-axle-cutout", subtype: "pinion-mount-escape", status: "tagged", note: "Star-cutout disc — pieces.csv flags it as star-cutout. RECLASSIFIED v1→v2: this is in pinion-stack territory.", v1_was: "gear-disc" },
+  "063": { character: "flat-axle-cutout", subtype: "pinion-mount-escape", status: "tagged", note: "Star-cutout disc. RECLASSIFIED v1→v2.", v1_was: "gear-disc" },
+  "064": { character: "flat-axle-cutout", subtype: "pinion-mount-escape", status: "tagged", note: "Star-cutout disc. RECLASSIFIED v1→v2.", v1_was: "gear-disc" },
+  "065": { character: "flat-axle", subtype: "anchor-arm", status: "tagged", note: "Zig-zag anchor arm; 'axe R' label = rear axle.", v1_was: "anchor-pendulum-mixed" },
+  "066": { character: "folded", subtype: "tube-pendulum-blade", status: "tagged", note: "Pendulum-blade tube/casing development. RECLASSIFIED — pieces.csv says 'tube/casing development', this is a tube fold.", v1_was: "anchor-pendulum-mixed" },
+  "067": { character: "folded", subtype: "plate-anchor-rear", status: "tagged", note: "Pair-tag resolved 2026-05-03. Embedded label: '---: on all flanges' — the dashed-line notation means valley folds; the flanges fold. Confirmed folded.", v1_was: "anchor-pendulum-mixed" },
+  "073": { character: "flat-axle", subtype: "hands-wheel-star", status: "tagged", note: "Star-shaped hands-assembly wheel — user-flagged 'does not have cut-out center'. Star is the silhouette outline, not a cutout.", v1_was: "gear-disc" },
+  "075": { character: "flat-axle-cutout", subtype: "hands-wheel-star", status: "tagged", note: "Star-shaped hands-assembly wheel — user-flagged 'has cut-out center'.", v1_was: "gear-disc" },
+  "076": { character: "folded", subtype: "tube-strap", status: "tagged", note: "Small rectangular piece for minute-hand assembly.", v1_was: "folded-tube" },
+  "077": { character: "folded", subtype: "tube-minute-hand-holder", status: "tagged", note: "Pair-tag resolved 2026-05-03. Embedded label: 'fold lines creating the tube form'. The tube IS the bearing for the minute-hand pin — there is no separate authored axle hole on this piece. Character is plain folded; the axle relationship is captured by the OTHER piece (the minute-hand assembly) that holds the pin. RECLASSIFIED v1→v2 from frame-channel.", v1_was: "frame-channel" },
+  "080": { character: "folded", subtype: "push-tab-wheel", status: "tagged", note: "Pair-tag resolved 2026-05-03. Embedded label: 'fold lines' + 'Push into wheel 78' (with arrow); one face labeled 'rear'. Confirmed folded — a small folded tab that slots into wheel 78 as a drive engagement. v1 was uncertain; v2 resolves to folded with new subtype push-tab-wheel.", v1_was: null },
+  "081": { character: "flat-axle", subtype: "reduction-gear", status: "tagged", note: "", v1_was: "gear-disc" },
+  "084": { character: "flat-axle", subtype: "reduction-gear", status: "tagged", note: "", v1_was: "gear-disc" },
+  "085": { character: "folded", subtype: "teeth-strip-reduction", status: "tagged", note: "Rectangular strip; +++ along length (fold marks).", v1_was: "gear-teeth-strip" },
+  "086": { character: "flat-axle", subtype: "reduction-gear", status: "tagged", note: "", v1_was: "gear-disc" },
+  "087": { character: "flat-axle-cutout", subtype: "reduction-gear", status: "tagged", note: "Reduction-gear disc; pieces.csv: 'cut out center'. RECLASSIFIED v1→v2 to flat-axle-cutout.", v1_was: "gear-disc" },
+  "088": { character: "flat-axle", subtype: "pulley-disc", status: "tagged", note: "Pulley/gear stack disc — pieces.csv doesn't mention cut-out center, so flat-axle (no cutout).", v1_was: "gear-disc" },
+  "089": { character: "flat-axle", subtype: "pulley-disc", status: "tagged", note: "Pulley disc for hands mechanism.", v1_was: "gear-disc" },
+  "090": { character: "flat-axle", subtype: "pulley-disc", status: "pending", note: "Pulley/gear stack disc — pending capture. Tagged speculatively from pieces.csv notes.", v1_was: "gear-disc" },
+  "120": { character: "flat-axle", subtype: "axle-mount-square", status: "tagged", note: "Pair-tag resolved 2026-05-03. §II.A explicitly lists 120 in the pin-hole list ('Locate pieces 27, 28, 33, ..., 120 and make a small pin hole in the center of each as indicated'). 120 IS a real per-instance build piece that gets a real axle hole — not pure reference. The 'model for all mounting squares' framing in pieces.csv means the same shape is replicated for unnamed mounting squares around the build, but 120 itself is build-grade. Re-RECLASSIFIED v1→v2 (had been reference in v2 draft; now flat-axle).", v1_was: "flat-laminate" },
+  "033": { character: "flat-axle", subtype: "motor-wheel-back", status: "tagged", note: "Large disc with internal triangle (motor-wheel back face); a35 corner labels — the triangle is a landing marker for piece 35, on the marks layer, not a cutout.", v1_was: "gear-disc" },
+  "034": { character: "folded", subtype: "tube-pulley-string-wind", status: "tagged", note: "User-corrected v1 export: not motor-wheel teeth — smooth surface that the weight string winds around. Zigzag teeth are anchoring tabs between the circular motor wheels. Really a folded tube.", v1_was: "gear-teeth-strip" },
+  "035": { character: "folded", subtype: "triangle-spacer-motor", status: "tagged", note: "User-flagged: folds onto itself; could equally be folded-box. Serves as triangle-shaped spacer between the motor wheels. Kept as folded with subtype triangle-spacer-motor; the shape distinction (tube vs box) is descriptive — same layer signature.", v1_was: "folded-box" },
+  "036": { character: "flat-axle", subtype: "motor-wheel-face", status: "tagged", note: "Large motor-wheel disc with crown-band of vertical hatching (teeth band — perimeter teeth, no interior cutout).", v1_was: "gear-disc" },
+  "037": { character: "folded", subtype: "teeth-strip-motor", status: "tagged", note: "", v1_was: "gear-teeth-strip" },
+  "040": { character: "folded", subtype: "tube-pulley", status: "tagged", note: "Pulley cylinder; glue ends together, slip over 39.", v1_was: "folded-tube" },
+  "041": { character: "flat", subtype: "tongue-oval", status: "pair-tag", note: "DEFERRED 2026-05-03 — Alan re-reading instructions to confirm whether this is a flat strip glued onto the end of pulley 40, or a rolled paper shaft. v1 export retagged folded-tube → flat-decorative; held as flat pending the re-read. Update when Alan returns with decision.", v1_was: "flat-decorative" },
+  "042": { character: "folded", subtype: "tube-pulley-drum", status: "tagged", note: "User-flagged: receives a43 and a44; has an arrow pointing north (up) to orient this piece for assembly. Confirms the SVG-id=\"north\" orientation-cue convention is observable on physical pieces.", v1_was: "folded-tube" },
+  "043": { character: "flat-cutout", subtype: "ring-tab-pulley", status: "tagged", note: "User-flagged: ring with tabs that glue it into one end of a tube. Has interior cutout (the ring's hole), so v2 character is flat-cutout not flat-decorative.", v1_was: "flat-decorative" },
+  "044": { character: "flat-cutout", subtype: "ring-tab-pulley", status: "tagged", note: "User-flagged: ring with tabs (same family as 043). Has interior cutout (the ring's hole), so v2 character is flat-cutout.", v1_was: "flat-decorative" },
+  "045": { character: "folded", subtype: "tube-strap", status: "tagged", note: "Short straight strip; wraps around cylinder between 43 and 44.", v1_was: "folded-tube" },
+  "050": { character: "flat-axle", subtype: "middle-wheel-back", status: "tagged", note: "Glue back to back with 51.", v1_was: "gear-disc" },
+  "051": { character: "flat-axle", subtype: "middle-wheel", status: "tagged", note: "", v1_was: "gear-disc" },
+  "052": { character: "folded", subtype: "tube-wheel-cover", status: "tagged", note: "User-flagged: flat surface for the wheel: zigzag tabs to glue to the wheel.", v1_was: "folded-tube" },
+  "054": { character: "flat-axle-cutout", subtype: "pinion-mount-middle", status: "tagged", note: "Star-cut pinion piece.", v1_was: "pinion-stack-disc" },
+  "055": { character: "folded", subtype: "tube-rolled-pinion", status: "tagged", note: "Pinion (with 54-57 stack); pushes through star-shaped hole. RECLASSIFIED — this is the rolled pinion shaft, not a teeth strip.", v1_was: "gear-teeth-strip" },
+  "056": { character: "flat-axle-cutout", subtype: "pinion-mount-middle", status: "tagged", note: "Star-cut pinion piece; slips over pinion 55.", v1_was: "pinion-stack-disc" },
+  "057": { character: "flat-axle-cutout", subtype: "pinion-mount-middle", status: "tagged", note: "Star-cut pinion piece; presses against pinion top.", v1_was: "pinion-stack-disc" },
+  "053": { character: "flat-axle-cutout", subtype: "pinion-mount-middle", status: "tagged", note: "Small disc with starred center (pinion-mount, middle wheel).", v1_was: "pinion-stack-disc" },
+  "068": { character: "flat-axle", subtype: "anchor-fork", status: "tagged", note: "Anchor fork; passes over beam piece 9.", v1_was: "anchor-pendulum-mixed" },
+  "069": { character: "folded-axle", subtype: "box-anchor-bearing", status: "tagged", note: "Anchor-bearing box; + center mark (axle landing). Folded box that holds an axle bearing — folded-axle character.", v1_was: "anchor-pendulum-mixed" },
+  "070": { character: "flat", subtype: "pendulum-rod", status: "tagged", note: "Long vertical strip; receives 71 at bottom.", v1_was: "anchor-pendulum-mixed" },
+  "071": { character: "flat-cutout", subtype: "ring-square-pendulum", status: "tagged", note: "Square ring; cut out center; glue between b/c of piece 70.", v1_was: "anchor-pendulum-mixed" },
+  "072": { character: "flat-axle", subtype: "blade-pendulum", status: "tagged", note: "Pendulum blade with mounting-pin hole; squeeze into 70's slot. Mounting-pin hole = axle.", v1_was: "anchor-pendulum-mixed" },
+  "092a": { character: "flat-axle", subtype: "tongue-narrow-hands", status: "tagged", note: "Narrow tongue piece; glues on top of 92 and 91 with axle holes coinciding. RECLASSIFIED v1→v2: axle holes mean flat-axle.", v1_was: "flat-laminate" },
+  "094": { character: "folded", subtype: "tube-bob-casing", status: "tagged", note: "Pendulum-bob outer casing (long tapered tube).", v1_was: "anchor-pendulum-mixed" },
+  "095": { character: "folded", subtype: "hook-pendulum", status: "tagged", note: "Pair-tag resolved 2026-05-03. Embedded label: 'Fold and glue. Glue 96 in the bottom of the hook' + fold lines. Confirmed folded.", v1_was: "anchor-pendulum-mixed" },
+  "096": { character: "flat", subtype: "reinforcement-cardboard", status: "tagged", note: "Narrow cardboard reinforcement; glue to 1mm cardboard.", v1_was: "anchor-pendulum-mixed" },
+  "097": { character: "flat", subtype: "bob-face", status: "tagged", note: "Pair-tag resolved 2026-05-03. Embedded label: 'No fold lines'. The 'apply no glue here' inner rectangle is a glue-zone EXCLUSION (negative zone on the glue layer), not a cutout. No axle, no pivot. Confirmed flat.", v1_was: "anchor-pendulum-mixed" },
+  "098": { character: "folded", subtype: "bob-retainer", status: "tagged", note: "Pair-tag resolved 2026-05-03. Embedded label: 'center fold line (piece is bowed when glued)'. Single valley/mountain fold along center; the bow is the visual outcome of fold-and-glue, not a third state. Confirmed folded.", v1_was: "anchor-pendulum-mixed" },
+  "099": { character: "flat", subtype: "crescent-decorative", status: "tagged", note: "Saw-toothed crescent (decorative trim).", v1_was: "anchor-pendulum-mixed" },
+  "100": { character: "flat-axle", subtype: "indicator-bob", status: "tagged", note: "Pair-tag resolved 2026-05-03. Embedded label: 'No fold lines'; F/S arrows mark the adjustment direction. The pendulum rod (70) passes through 100 — by the sliding-axles convention (added to schema 2026-05-03), that pass-through hole is on the axles layer. Character: flat-axle. First piece in this dataset to have a controls block — see schema header.", v1_was: "anchor-pendulum-mixed", controls: [{ parameter: "bob-position", type: "scalar", semantics: "Sliding adjustment along pendulum rod (70). +1 = bob raised (faster period); -1 = bob lowered (slower period). Final viewer (M3+) exposes a master control linked to this disc; nudge fast/slow increments the parameter.", ui_hint: "Slider with F (up/fast) / S (down/slow) labels matching the printed arrows on 100." }] },
+  "118": { character: "flat", subtype: "case-side", status: "tagged", note: "* pin-hole markers; glues to b119/c119 underside of 117.", v1_was: "flat-decorative" },
+  "119": { character: "flat", subtype: "case-side", status: "tagged", note: "* pin-hole markers; partner to 118.", v1_was: "flat-decorative" },
+  "101": { character: "folded", subtype: "tube-weight-cylinder", status: "tagged", note: "Weight cylinder development (rectangular sheet, multiple horizontal folds).", v1_was: "folded-tube" },
+  "102": { character: "folded", subtype: "tube-weight-label-wrap", status: "tagged", note: "Wide labeled strip wrapped around 101.", v1_was: "folded-tube" },
+  "108": { character: "flat", subtype: "hand-minute", status: "tagged", note: "Minute hand (solid black silhouette); glue on heavy cardboard.", v1_was: "flat-decorative" },
+  "109": { character: "flat", subtype: "hand-hour", status: "tagged", note: "Hour hand (solid black silhouette); glue on heavy cardboard.", v1_was: "flat-decorative" },
+  "117": { character: "folded", subtype: "box-case-top", status: "tagged", note: "Case top with chamfered corners; central 'front' tab.", v1_was: "folded-box" },
+  "121": { character: "flat", subtype: "face-clock", status: "tagged", note: "Clock face: tan/brown border, off-white field, numbers 1-12, minute marks.", v1_was: "flat-decorative" },
+};
 
 // ─── Pieces — embedded from work/pieces.csv ─────────────────────────────────
-// Schema: { id, plate, section, status (csv), notes }
 const PIECES = [
   {id:"001",plate:"A",section:"framework",status:"reviewed",notes:"U-channel frame strip (long horizontal frame run, paired with 2/6/7 across panels A and B)"},
   {id:"002",plate:"A",section:"framework",status:"reviewed",notes:"U-channel frame strip"},
@@ -397,23 +591,23 @@ const PIECES = [
 const PIECE_BY_ID = Object.fromEntries(PIECES.map(p => [p.id, p]));
 
 // ─── State (persisted to localStorage) ──────────────────────────────────────
-const STORAGE_KEY = "z-paper-clock-tag-pieces-v1";
-// tag entry shape: { character: string|null, status: "tagged"|"uncertain"|"skipped"|"pristine", note: string }
+const STORAGE_KEY = "z-paper-clock-tag-pieces-v2";
+// tag entry shape: { character, subtype, status, note, v1_was, [controls] }
 let state = loadState();
 
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
+    if (!raw) return JSON.parse(JSON.stringify(INITIAL_STATE));
     const parsed = JSON.parse(raw);
-    return (parsed && typeof parsed === "object") ? parsed : {};
-  } catch (e) { return {}; }
+    return (parsed && typeof parsed === "object") ? parsed : JSON.parse(JSON.stringify(INITIAL_STATE));
+  } catch (e) { return JSON.parse(JSON.stringify(INITIAL_STATE)); }
 }
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 function entry(id) {
-  return state[id] || { character: null, status: "pristine", note: "" };
+  return state[id] || { character: null, subtype: null, status: "pristine", note: "", v1_was: null };
 }
 
 // ─── Filter and cursor ──────────────────────────────────────────────────────
@@ -430,6 +624,8 @@ function applyFilter() {
       case "untagged":  return e.status === "pristine";
       case "uncertain": return e.status === "uncertain";
       case "tagged":    return e.status === "tagged" || e.status === "uncertain";
+      case "pair-tag":  return e.status === "pair-tag";
+      case "pending":   return e.status === "pending";
       case "skipped":   return e.status === "skipped";
       default:          return true;
     }
@@ -446,23 +642,28 @@ function currentPiece() {
 function renderLegend() {
   const legend = document.getElementById("legend");
   legend.innerHTML = "";
-  ARCHETYPES.forEach(a => {
+  CHARACTERS.forEach(c => {
     const btn = document.createElement("button");
     btn.className = "arch-btn";
-    btn.dataset.slug = a.slug;
-    btn.title = a.desc;
-    btn.innerHTML = `<span class="key">${a.key}</span><span class="name">${a.slug}</span>`;
-    btn.addEventListener("click", () => tagCurrent(a.slug, "tagged"));
+    btn.dataset.slug = c.slug;
+    btn.title = c.desc;
+    btn.innerHTML = `<span class="key">${c.key}</span><span class="name">${c.slug}</span>`;
+    btn.addEventListener("click", () => tagCurrent(c.slug, "tagged"));
     legend.appendChild(btn);
   });
 }
 
 function renderProgress() {
-  const counts = { tagged: 0, uncertain: 0, skipped: 0, pristine: 0 };
-  PIECES.forEach(p => { counts[entry(p.id).status]++; });
+  const counts = { tagged: 0, uncertain: 0, "pair-tag": 0, pending: 0, skipped: 0, pristine: 0 };
+  PIECES.forEach(p => {
+    const s = entry(p.id).status;
+    counts[s] = (counts[s] || 0) + 1;
+  });
   document.getElementById("progress").innerHTML =
     `<strong>${counts.tagged}</strong>/${PIECES.length} tagged · ` +
+    `<strong>${counts["pair-tag"]}</strong> pair-tag · ` +
     `<strong>${counts.uncertain}</strong> uncertain · ` +
+    `<strong>${counts.pending}</strong> pending · ` +
     `<strong>${counts.skipped}</strong> skipped · ` +
     `<strong>${counts.pristine}</strong> pristine`;
 
@@ -470,6 +671,8 @@ function renderProgress() {
   document.getElementById("cntUntagged").textContent = counts.pristine;
   document.getElementById("cntUncertain").textContent = counts.uncertain;
   document.getElementById("cntTagged").textContent = counts.tagged + counts.uncertain;
+  document.getElementById("cntPairTag").textContent = counts["pair-tag"];
+  document.getElementById("cntPending").textContent = counts.pending;
   document.getElementById("cntSkipped").textContent = counts.skipped;
 }
 
@@ -483,6 +686,9 @@ function renderCard() {
     document.getElementById("pieceStatus").textContent = "—";
     document.getElementById("pieceNotes").textContent = "(no piece matches the current filter)";
     document.getElementById("currentTagLine").innerHTML = "Current tag: <span class=\"tag-name\">none</span>";
+    document.getElementById("v1WasLine").style.display = "none";
+    document.getElementById("subtypeInput").value = "";
+    document.getElementById("controlsBadge").style.display = "none";
     document.getElementById("perPieceNote").value = "";
     document.getElementById("tagStatus").className = "piece-status pristine";
     document.getElementById("tagStatus").textContent = "—";
@@ -496,6 +702,8 @@ function renderCard() {
   document.getElementById("pieceNotes").textContent = p.notes;
 
   const e = entry(p.id);
+
+  // Current tag line
   const tagLine = document.getElementById("currentTagLine");
   if (e.character) {
     tagLine.innerHTML = `Current tag: <span class="tag-name">${e.character}</span>`;
@@ -504,13 +712,38 @@ function renderCard() {
   } else {
     tagLine.innerHTML = `Current tag: <span class="tag-name">none</span>`;
   }
+
+  // v1_was annotation
+  const v1WasLine = document.getElementById("v1WasLine");
+  if (e.v1_was && e.v1_was !== e.character) {
+    v1WasLine.style.display = "block";
+    document.getElementById("v1WasValue").textContent = e.v1_was;
+  } else {
+    v1WasLine.style.display = "none";
+  }
+
+  // Subtype input
+  document.getElementById("subtypeInput").value = e.subtype || "";
+
+  // Controls badge
+  const controlsBadge = document.getElementById("controlsBadge");
+  if (e.controls && e.controls.length > 0) {
+    controlsBadge.style.display = "block";
+    document.getElementById("controlsList").textContent =
+      e.controls.map(c => `${c.parameter} (${c.type})`).join(", ");
+  } else {
+    controlsBadge.style.display = "none";
+  }
+
+  // Status badge
   const statusEl = document.getElementById("tagStatus");
   statusEl.className = `piece-status ${e.status}`;
   statusEl.textContent = e.status;
 
+  // Note
   document.getElementById("perPieceNote").value = e.note || "";
 
-  // Image: try src/pieces/NNN.png; show placeholder on error or for known-pending
+  // Image
   const isPending = (p.status === "pending");
   if (isPending) {
     wrap.innerHTML = '<span class="placeholder">pending capture · tag from notes if you can, or skip</span>';
@@ -525,7 +758,7 @@ function renderCard() {
     wrap.appendChild(img);
   }
 
-  // Highlight selected archetype button
+  // Highlight selected character button
   document.querySelectorAll(".arch-btn").forEach(btn => {
     btn.classList.toggle("selected", btn.dataset.slug === e.character);
   });
@@ -548,19 +781,12 @@ function tagCurrent(character, status) {
   const p = currentPiece();
   if (!p) return;
   const prev = entry(p.id);
-  state[p.id] = {
-    character: character,
-    status: status,
-    note: prev.note || "",
-  };
+  state[p.id] = { ...prev, character, status };
   saveState();
   advanceAfterMutation(p.id);
   toast(`${p.id} → ${character} (${status})`);
 }
 
-// After a mutation that may drop the current piece from the filter, advance
-// to the next piece without skipping. If the just-mutated piece is still in
-// view, move past it; if it dropped out, cursor already points at the next.
 function advanceAfterMutation(prevId) {
   applyFilter();
   const newIdx = visiblePieces.findIndex(vp => vp.id === prevId);
@@ -576,8 +802,7 @@ function markUncertain() {
   if (!p) return;
   const prev = entry(p.id);
   if (!prev.character) {
-    // No character yet; mark uncertain anyway so it shows up as "needs second pass".
-    state[p.id] = { character: null, status: "uncertain", note: prev.note || "" };
+    state[p.id] = { ...prev, status: "uncertain" };
   } else {
     state[p.id] = { ...prev, status: prev.status === "uncertain" ? "tagged" : "uncertain" };
   }
@@ -586,11 +811,22 @@ function markUncertain() {
   toast(`${p.id} marked ${state[p.id].status}`);
 }
 
+function markPairTag() {
+  const p = currentPiece();
+  if (!p) return;
+  const prev = entry(p.id);
+  const newStatus = prev.status === "pair-tag" ? "tagged" : "pair-tag";
+  state[p.id] = { ...prev, status: newStatus };
+  saveState();
+  render();
+  toast(`${p.id} marked ${newStatus}`);
+}
+
 function skipCurrent() {
   const p = currentPiece();
   if (!p) return;
   const prev = entry(p.id);
-  state[p.id] = { character: null, status: "skipped", note: prev.note || "" };
+  state[p.id] = { ...prev, character: null, status: "skipped" };
   saveState();
   advanceAfterMutation(p.id);
   toast(`${p.id} skipped`);
@@ -600,7 +836,7 @@ function clearCurrent() {
   const p = currentPiece();
   if (!p) return;
   const prev = entry(p.id);
-  state[p.id] = { character: null, status: "pristine", note: prev.note || "" };
+  state[p.id] = { ...prev, character: null, status: "pristine" };
   saveState();
   render();
   toast(`${p.id} cleared`);
@@ -617,7 +853,6 @@ function jumpToId() {
   if (!id) return;
   const trimmed = id.trim();
   if (!PIECE_BY_ID[trimmed]) { toast(`unknown id: ${trimmed}`); return; }
-  // Jump regardless of filter — switch to "all" if filter would hide it.
   const target = PIECE_BY_ID[trimmed];
   const idxInVisible = visiblePieces.findIndex(p => p.id === target.id);
   if (idxInVisible === -1) {
@@ -643,6 +878,15 @@ function populateSectionFilter() {
   });
 }
 
+function populateSubtypeList() {
+  const list = document.getElementById("subtypeList");
+  SUBTYPE_VOCABULARY.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s;
+    list.appendChild(opt);
+  });
+}
+
 // ─── Note saving ────────────────────────────────────────────────────────────
 let noteSaveTimer = null;
 document.getElementById("perPieceNote").addEventListener("input", e => {
@@ -652,11 +896,21 @@ document.getElementById("perPieceNote").addEventListener("input", e => {
   const value = e.target.value;
   noteSaveTimer = setTimeout(() => {
     const prev = entry(p.id);
-    state[p.id] = {
-      character: prev.character,
-      status: prev.status === "pristine" && value ? "pristine" : prev.status,
-      note: value,
-    };
+    state[p.id] = { ...prev, note: value };
+    saveState();
+  }, 250);
+});
+
+// ─── Subtype saving ──────────────────────────────────────────────────────────
+let subtypeSaveTimer = null;
+document.getElementById("subtypeInput").addEventListener("input", e => {
+  const p = currentPiece();
+  if (!p) return;
+  clearTimeout(subtypeSaveTimer);
+  const value = e.target.value.trim();
+  subtypeSaveTimer = setTimeout(() => {
+    const prev = entry(p.id);
+    state[p.id] = { ...prev, subtype: value || null };
     saveState();
   }, 250);
 });
@@ -666,6 +920,7 @@ document.getElementById("prevBtn").addEventListener("click", () => advance(-1));
 document.getElementById("nextBtn").addEventListener("click", () => advance(1));
 document.getElementById("skipBtn").addEventListener("click", skipCurrent);
 document.getElementById("uncertainBtn").addEventListener("click", markUncertain);
+document.getElementById("pairTagBtn").addEventListener("click", markPairTag);
 document.getElementById("jumpBtn").addEventListener("click", jumpToId);
 document.getElementById("clearBtn").addEventListener("click", clearCurrent);
 
@@ -684,21 +939,21 @@ document.getElementById("sectionFilter").addEventListener("change", e => {
 
 // ─── Keyboard ───────────────────────────────────────────────────────────────
 document.addEventListener("keydown", e => {
-  // Don't interfere with typing in textarea / input / prompt.
   const tag = (e.target.tagName || "").toUpperCase();
   if (tag === "TEXTAREA" || tag === "INPUT") {
     if (e.key === "Escape") e.target.blur();
     return;
   }
-  if (KEY_TO_ARCH[e.key]) {
+  if (KEY_TO_CHARACTER[e.key]) {
     e.preventDefault();
-    tagCurrent(KEY_TO_ARCH[e.key], "tagged");
+    tagCurrent(KEY_TO_CHARACTER[e.key], "tagged");
     return;
   }
   switch (e.key) {
     case "ArrowLeft":  e.preventDefault(); advance(-1); break;
     case "ArrowRight": e.preventDefault(); advance(1);  break;
     case "u": case "U": e.preventDefault(); markUncertain(); break;
+    case "p": case "P": e.preventDefault(); markPairTag(); break;
     case "s": case "S": e.preventDefault(); skipCurrent(); break;
     case "x": case "X": e.preventDefault(); clearCurrent(); break;
     case "j": case "J": e.preventDefault(); jumpToId(); break;
@@ -707,42 +962,71 @@ document.addEventListener("keydown", e => {
 });
 
 // ─── Export ─────────────────────────────────────────────────────────────────
+function emitNote(noteString) {
+  if (!noteString) return [];
+  if (noteString.includes("\n")) {
+    return ["    note: |", ...noteString.split("\n").map(ln => `      ${ln}`)];
+  }
+  return [`    note: ${JSON.stringify(noteString)}`];
+}
+
+function emitControls(controls) {
+  if (!controls || controls.length === 0) return [];
+  const out = ["    controls:"];
+  for (const item of controls) {
+    const keys = Object.keys(item);
+    keys.forEach((k, i) => {
+      const prefix = i === 0 ? "      - " : "        ";
+      const v = item[k];
+      const value = typeof v === "string" && (v.includes(":") || v.includes("\""))
+        ? JSON.stringify(v)
+        : v;
+      out.push(`${prefix}${k}: ${value}`);
+    });
+  }
+  return out;
+}
+
 function buildExportYaml() {
+  const ts = new Date().toISOString();
+  const counts = { tagged: 0, uncertain: 0, "pair-tag": 0, pending: 0, skipped: 0, pristine: 0 };
+  PIECES.forEach(p => {
+    const s = entry(p.id).status;
+    counts[s] = (counts[s] || 0) + 1;
+  });
+  const charDist = {};
+  PIECES.forEach(p => {
+    const e = entry(p.id);
+    if (e.character) charDist[e.character] = (charDist[e.character] || 0) + 1;
+  });
+  const distStr = Object.entries(charDist).sort().map(([k,v]) => `${k}=${v}`).join(", ");
+
   const lines = [
     `# work/piece_characters.yaml`,
-    `# Generated by tag-pieces.html on ${new Date().toISOString()}.`,
-    `# Eventual destination: a 'character' column in work/pieces.csv.`,
-    `# 'uncertain' pieces flagged for second pass; 'skipped' deliberately not tagged.`,
-    `# 'note' fields preserved for context that doesn't fit the archetype slug.`,
+    `# Generated by tag-pieces.html on ${ts}.`,
+    `# Schema v2 — characters + subtypes; see work/piece_characters_v2.yaml header.`,
+    `# 'pair-tag' pieces flagged for joint Cowork review.`,
+    `# 'uncertain' pieces flagged for second pass.`,
+    `# 'skipped' deliberately not tagged.`,
     ``,
+    `# tagged: ${counts.tagged} · pair-tag: ${counts["pair-tag"]} · uncertain: ${counts.uncertain} · skipped: ${counts.skipped} · pristine: ${counts.pristine}`,
+    `# character distribution: ${distStr}`,
+    ``,
+    `characters:`,
   ];
-  const counts = { tagged: 0, uncertain: 0, skipped: 0, pristine: 0 };
-  PIECES.forEach(p => counts[entry(p.id).status]++);
-  lines.push(`# tagged: ${counts.tagged} · uncertain: ${counts.uncertain} · skipped: ${counts.skipped} · pristine: ${counts.pristine}`);
-  lines.push("");
-  lines.push("characters:");
+
   PIECES.forEach(p => {
     const e = entry(p.id);
     if (e.status === "pristine") return;
-    const id = p.id;
-    if (e.character) {
-      lines.push(`  "${id}":`);
-      lines.push(`    character: ${e.character}`);
-      if (e.status === "uncertain") lines.push(`    confidence: uncertain`);
-      if (e.note) lines.push(`    note: ${JSON.stringify(e.note)}`);
-    } else if (e.status === "skipped") {
-      lines.push(`  "${id}":`);
-      lines.push(`    character: null`);
-      lines.push(`    status: skipped`);
-      if (e.note) lines.push(`    note: ${JSON.stringify(e.note)}`);
-    } else if (e.status === "uncertain") {
-      // Uncertain without a character — flagged but no archetype yet
-      lines.push(`  "${id}":`);
-      lines.push(`    character: null`);
-      lines.push(`    status: uncertain`);
-      if (e.note) lines.push(`    note: ${JSON.stringify(e.note)}`);
-    }
+    lines.push(`  "${p.id}":`);
+    lines.push(`    character: ${e.character !== null ? e.character : "null"}`);
+    if (e.subtype !== null && e.subtype !== undefined) lines.push(`    subtype: ${e.subtype}`);
+    lines.push(`    v1_was: ${e.v1_was !== null && e.v1_was !== undefined ? e.v1_was : "null"}`);
+    if (e.status !== "tagged") lines.push(`    status: ${e.status}`);
+    lines.push(...emitControls(e.controls));
+    lines.push(...emitNote(e.note));
   });
+
   return lines.join("\n") + "\n";
 }
 
@@ -758,7 +1042,6 @@ function closeExport() {
 }
 document.getElementById("exportBtn").addEventListener("click", openExport);
 document.getElementById("closeExportBtn").addEventListener("click", closeExport);
-document.getElementById("modalBg").addEventListener("click", closeExport);
 
 document.getElementById("copyBtn").addEventListener("click", async () => {
   const text = document.getElementById("exportText").value;
@@ -766,7 +1049,6 @@ document.getElementById("copyBtn").addEventListener("click", async () => {
     await navigator.clipboard.writeText(text);
     toast("copied to clipboard");
   } catch (err) {
-    // Fallback: select for manual copy
     const ta = document.getElementById("exportText");
     ta.select(); document.execCommand("copy");
     toast("copied (fallback)");
@@ -784,12 +1066,147 @@ document.getElementById("downloadBtn").addEventListener("click", () => {
   toast("downloaded piece_characters.yaml");
 });
 
+// ─── Import ──────────────────────────────────────────────────────────────────
+function parseV2Yaml(yamlText) {
+  const result = {};
+  const lines = yamlText.split("\n");
+  let currentId = null;
+  let currentField = null;
+  let currentBlockLines = null;
+  let inControlsBlock = false;
+  let controlsItems = [];
+  let currentControlItem = null;
+
+  const flushBlockScalar = () => {
+    if (currentId && currentField && currentBlockLines !== null) {
+      result[currentId][currentField] = currentBlockLines.join("\n").trim();
+    }
+    currentField = null;
+    currentBlockLines = null;
+  };
+
+  const flushControls = () => {
+    if (currentControlItem) controlsItems.push(currentControlItem);
+    if (currentId && controlsItems.length > 0) {
+      result[currentId].controls = controlsItems;
+    }
+    inControlsBlock = false;
+    controlsItems = [];
+    currentControlItem = null;
+  };
+
+  for (const raw of lines) {
+    const trimmed = raw.replace(/\s+$/, "");
+
+    // 1. ID line
+    const idMatch = trimmed.match(/^  "([^"]+)":\s*$/);
+    if (idMatch) {
+      flushBlockScalar();
+      flushControls();
+      currentId = idMatch[1];
+      result[currentId] = { character: null, subtype: null, status: "tagged", note: "", v1_was: null };
+      continue;
+    }
+    if (!currentId) continue;
+
+    // 2. Block-scalar continuation
+    if (currentField && currentBlockLines !== null) {
+      if (trimmed.startsWith("      ") || trimmed === "") {
+        currentBlockLines.push(trimmed.replace(/^      /, ""));
+        continue;
+      }
+      flushBlockScalar();
+      // fall through
+    }
+
+    // 3. Controls block items — fall out (no continue) on non-matching line
+    if (inControlsBlock) {
+      const itemStart = trimmed.match(/^      - (\w+):\s*(.*)$/);
+      const itemContinue = trimmed.match(/^        (\w+):\s*(.*)$/);
+      if (itemStart) {
+        if (currentControlItem) controlsItems.push(currentControlItem);
+        currentControlItem = {};
+        let value = itemStart[2];
+        if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+        currentControlItem[itemStart[1]] = value;
+        continue;
+      }
+      if (itemContinue && currentControlItem) {
+        let value = itemContinue[2];
+        if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+        currentControlItem[itemContinue[1]] = value;
+        continue;
+      }
+      // Flush and fall through so the current line is re-evaluated
+      flushControls();
+    }
+
+    // 4. Inline field
+    const fieldMatch = trimmed.match(/^    (\w+):\s*(.*)$/);
+    if (fieldMatch) {
+      const [, key, rawValue] = fieldMatch;
+      if (rawValue === "|") {
+        currentField = key;
+        currentBlockLines = [];
+      } else if (rawValue === "") {
+        if (key === "controls") {
+          inControlsBlock = true;
+          controlsItems = [];
+          currentControlItem = null;
+        }
+      } else {
+        let value = rawValue;
+        if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+        if (value === "null") value = null;
+        result[currentId][key] = value;
+      }
+    }
+  }
+  flushBlockScalar();
+  flushControls();
+  return result;
+}
+
+function openImport() {
+  document.getElementById("importText").value = "";
+  document.getElementById("importModal").classList.add("open");
+  document.getElementById("modalBg").classList.add("open");
+}
+function closeImport() {
+  document.getElementById("importModal").classList.remove("open");
+  document.getElementById("modalBg").classList.remove("open");
+}
+document.getElementById("importBtn").addEventListener("click", openImport);
+document.getElementById("closeImportBtn").addEventListener("click", closeImport);
+document.getElementById("loadImportBtn").addEventListener("click", () => {
+  const text = document.getElementById("importText").value;
+  if (!text.trim()) { toast("nothing to import"); return; }
+  try {
+    const parsed = parseV2Yaml(text);
+    const ids = Object.keys(parsed);
+    if (ids.length === 0) { toast("no entries parsed"); return; }
+    if (!confirm(`Import ${ids.length} entries? This replaces ALL current tags.`)) return;
+    state = parsed;
+    saveState();
+    closeImport();
+    render();
+    toast(`imported ${ids.length} entries`);
+  } catch (e) {
+    toast("parse error: " + e.message);
+  }
+});
+
+document.getElementById("modalBg").addEventListener("click", () => {
+  closeExport();
+  closeImport();
+});
+
 document.getElementById("resetBtn").addEventListener("click", () => {
   if (!confirm("Reset all tags and notes? This cannot be undone (export first if you want a backup).")) return;
-  state = {};
+  state = JSON.parse(JSON.stringify(INITIAL_STATE));
   saveState();
   render();
-  toast("all tags reset");
+  toast("all tags reset to v2 initial state");
 });
 
 // ─── Toast ──────────────────────────────────────────────────────────────────
@@ -804,6 +1221,7 @@ function toast(msg) {
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 fullRender();
+populateSubtypeList();
 </script>
 </body>
 </html>

@@ -1,9 +1,12 @@
 ---
-status: ready-for-code
+status: shipped
 started: 2026-05-03
+shipped: 2026-05-03
 owner: Zarathale (Alan)
 target: tag-pieces-v2-schema
 ---
+
+_Shipped 2026-05-03; paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / ROADMAP.md for current state._
 
 # Update tag-pieces.html for the v2 character + subtype schema
 
