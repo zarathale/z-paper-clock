@@ -15,7 +15,7 @@ _Shipped 2026-05-03; paths and concepts in this document reflect the state at sh
 
 Layer the fold-rendering half onto `preview.html`. v1a + the six follow-up passes shipped through 2026-05-03 give the foundation: SVG parse, three-tier silhouette extraction, single-slab `buildSlab(polygon, thicknessMm)`, world-anchored silver axle wires, optional brass-gold `north` orientation sphere, and a per-piece axle rotation slider that pivots the whole slab around `axles[0]`. v1b adds the **face graph**: cut the silhouette along its fold lines into a set of regions (one per face of the planar subdivision), root the graph at the region containing the `id="root"` marker (or fall back to the largest region with a banner), BFS to a fold tree, and parent each non-root region's slab to its parent's slab through a hinge `THREE.Object3D` whose Z rotation is driven by sliders.
 
-After v1b, dropping `inbox/069.svg` produces 13 panels that fold up into a box net; dropping `inbox/066.svg` produces 22 panels with valleys + mountains bending in opposite directions. The rotation pivot continues to wrap the **whole fold tree**, so rotating the piece in space and folding the piece are independent compositions. The data model and step-1 algorithm follow `work/SPEC-REGIONS.md`; the implementation uses `polygon-clipping@0.15.7` (already loaded by `preview.html`).
+After v1b, dropping `work/pieces/069/069.svg` produces 13 panels that fold up into a box net; dropping `work/pieces/066/066.svg` produces 22 panels with valleys + mountains bending in opposite directions. The rotation pivot continues to wrap the **whole fold tree**, so rotating the piece in space and folding the piece are independent compositions. The data model and step-1 algorithm follow `work/SPEC-REGIONS.md`; the implementation uses `polygon-clipping@0.15.7` (already loaded by `preview.html`).
 
 ---
 
@@ -23,8 +23,8 @@ After v1b, dropping `inbox/069.svg` produces 13 panels that fold up into a box n
 
 - `preview.html` is the current shipped state at repo root (~1362 lines as of 2026-05-03). v1a's foundation plus six follow-up passes (cut-layer convention, texture flip, back-face mirror, render-on-demand performance, thickness-extrusion fix, axle rotation slider) all merged.
 - `polygon-clipping@0.15.7` is loaded via the third `<script>` tag in `<head>`. If the script tag was removed, restore it before starting Task 3.
-- `inbox/069.svg` exists, has `<g id="silhouette">`, `<g id="folds-valley">` (8 paths), `<g id="axles">` (1 ellipse), no `<g id="folds-mountain">`, no `<g id="root">`.
-- `inbox/066.svg` exists, has `<g id="folds-valley">` (20 paths), `<g id="folds-mountain">` (2 paths), `<g id="axles">` (no ellipses; banner at load), no silhouette layer (Tier 2 / Tier 3 fallback runs), no `<g id="root">`.
+- `work/pieces/069/069.svg` exists, has `<g id="silhouette">`, `<g id="folds-valley">` (8 paths), `<g id="axles">` (1 ellipse), no `<g id="folds-mountain">`, no `<g id="root">`.
+- `work/pieces/066/066.svg` exists, has `<g id="folds-valley">` (20 paths), `<g id="folds-mountain">` (2 paths), `<g id="axles">` (no ellipses; banner at load), no silhouette layer (Tier 2 / Tier 3 fallback runs), no `<g id="root">`.
 - Modern browser via `file://`. No dev server.
 - No existing `claude/preview-html-v1b` branch or worktree from prior attempts.
 
@@ -209,13 +209,13 @@ Where `rootSource = 'root-marker' | 'largest-by-area'`. Keep the rest of the v1a
 
 1. `preview.html` is still a single self-contained file at repo root. Line count rises (estimate +400–500 lines for cuts + hinge tree + UI; reasonable to land around 1750–1850 lines).
 2. v1a single-slab fallback still works on an SVG with no fold layers (test with a copy of 069 that has `<g id="folds-valley">` deleted, or any piece SVG without fold authoring). Banner: "No folds parsed; rendering single slab." Slab renders, thickness slider works, axle/rotation sliders behave per v1a.
-3. Drop `inbox/069.svg`. Diagnostic block reports: Silhouette (Tier 1 from `<g id="silhouette">`); Face graph: 13 regions, 8 fold edges, root: `region-N` (largest-by-area); Per-fold paths: 8 entries — most `×1`, but the two paths shared between BASE↔WALL and WALL↔CORNER each show `×2` (or whatever the actual count is — the spec call is `1 path id, N hinges using it`).
+3. Drop `work/pieces/069/069.svg`. Diagnostic block reports: Silhouette (Tier 1 from `<g id="silhouette">`); Face graph: 13 regions, 8 fold edges, root: `region-N` (largest-by-area); Per-fold paths: 8 entries — most `×1`, but the two paths shared between BASE↔WALL and WALL↔CORNER each show `×2` (or whatever the actual count is — the spec call is `1 path id, N hinges using it`).
 4. 3D view shows the unfolded box net flat (BASE in center, walls + corners + ext tabs around it). Scan texture mapped correctly across all 13 panels (no rotation/mirror artifacts).
 5. Move global fold slider 0 → 100%. Box folds up: walls rotate up first, then corners and ext tabs rotate to vertical relative to their walls. Some panel interpenetration at intermediate angles is acceptable — v1 has no phase sequencing or collision resolution.
 6. Move thickness slider 1.0 → 4.0 mm. All 13 slabs grow. Rebuild visible-but-tolerable lag (a few hundred ms per tick is fine; if it stutters worse, log a follow-up but do not block).
 7. Find a per-fold slider whose default is −90° (corresponds to a BASE↔WALL valley). Move from −90° to 0°: that one wall returns to flat while others remain folded.
 8. Move axle rotation slider while folds are partway up. Entire folded assembly rotates around the axle wire as a rigid body. (This is the rotation-pivot-wraps-fold-tree composition.)
-9. Drop `inbox/066.svg`. Diagnostic: 22 regions, 22 fold edges (20 valley + 2 mountain), root: largest-by-area, Axles empty banner unchanged. Long narrow tube net renders flat.
+9. Drop `work/pieces/066/066.svg`. Diagnostic: 22 regions, 22 fold edges (20 valley + 2 mountain), root: largest-by-area, Axles empty banner unchanged. Long narrow tube net renders flat.
 10. Move global fold slider 0 → 100% on 066. Mountains bend opposite to valleys (sign of `defaultAngle` carries through). Tube doesn't perfectly close — that's a phase-sequencing limitation, not a bug.
 11. Reset button resets thickness, every per-fold slider, and the global slider. Rotation slider has its own Reset and is unchanged by this button.
 12. No console errors during any interaction. No `NaN` positions. Render-on-demand still drops to idle when no slider is being touched.
@@ -243,11 +243,11 @@ Where `rootSource = 'root-marker' | 'largest-by-area'`. Keep the rest of the v1a
 ## Manual tests (post-merge, on Alan's mac)
 
 1. Pull `main` after merge. Verify `preview.html` is updated.
-2. Open `preview.html` via Finder double-click (`file://`). Drag-drop `inbox/069.svg`. Confirm 13-panel render and the diagnostic block.
+2. Open `preview.html` via Finder double-click (`file://`). Drag-drop `work/pieces/069/069.svg`. Confirm 13-panel render and the diagnostic block.
 3. Sweep the global fold slider through 0 → 100% → 0. Box folds up, then back down. Some interpenetration mid-fold is expected.
 4. Pick any per-fold slider (start with one whose label suggests BASE↔WALL); sweep through −180° → +180°. Confirm only that hinge's panel(s) move, and that path ids driving multiple hinges (069's paths 2 / 3 if applicable) move both hinges in sync.
 5. Adjust thickness 0.4 → 4.0 mm. Confirm rebuild is debounced and tolerable across 13 slabs.
-6. Drag-drop `inbox/066.svg`. Confirm 22-panel render, 20 valley + 2 mountain in diagnostics, axles-empty banner.
+6. Drag-drop `work/pieces/066/066.svg`. Confirm 22-panel render, 20 valley + 2 mountain in diagnostics, axles-empty banner.
 7. Sweep global fold slider on 066. Confirm mountains bend opposite to valleys.
 8. Drop a synthetic SVG with no fold layers (copy 069, remove `<g id="folds-valley">`). Confirm v1a single-slab fallback with the "No folds parsed; rendering single slab" banner.
 9. With 069 loaded mid-fold, move the rotation slider through −180° → +180°. Confirm the entire folded assembly rotates around the axle wire as one body. The wire stays in place (world-anchored).

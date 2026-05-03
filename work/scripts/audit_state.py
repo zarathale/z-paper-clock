@@ -111,7 +111,6 @@ class PieceState:
         "source_png": None,
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [],
     })
@@ -477,7 +476,7 @@ def derive_stage(ps: PieceState) -> str:
             pass
 
     # Sidecar JSON
-    sidecar = REPO_ROOT / "work" / "pieces" / ps.id / f"piece-{ps.id}.json"
+    sidecar = REPO_ROOT / "work" / "pieces" / ps.id / f"{ps.id}.json"
     if sidecar.exists():
         return "sidecared"
 
@@ -553,6 +552,8 @@ def walk_repo(master: dict[str, dict], repo_root: Path) -> tuple[dict[str, Piece
             check_known(pid, f"source/pieces/{name}")
             if pid in pieces:
                 pieces[pid].files["affinity"].append({"path": f"source/pieces/{name}", "suffix": suffix})
+                pieces[pid].anomalies.append(f"af in source/pieces/ (should be in work/pieces/{pid}/)")
+            repo_anomalies.append(f".af file in source/pieces/: {name}")
             continue
 
         m = SVG_FILE.match(name)
@@ -568,45 +569,6 @@ def walk_repo(master: dict[str, dict], repo_root: Path) -> tuple[dict[str, Piece
 
         repo_anomalies.append(f"unrecognized file in source/pieces/: {name}")
 
-    # ── inbox/ ──────────────────────────────────────────────────────────────
-    inbox_dir = repo_root / "inbox"
-    if inbox_dir.exists():
-        for p in sorted(inbox_dir.iterdir()):
-            name = p.name
-            if p.is_dir():
-                continue
-
-            m = SVG_FILE.match(name)
-            if m:
-                pid = m.group(1) + (m.group(2) or "")
-                suffix = m.group(3)
-                check_known(pid, f"inbox/{name}")
-                if pid in pieces:
-                    pieces[pid].files["svgs"].append({"path": f"inbox/{name}", "suffix": suffix})
-                continue
-
-            m = PIECE_AF.match(name)
-            if m:
-                pid = m.group(1) + (m.group(2) or "")
-                suffix = m.group(3)
-                check_known(pid, f"inbox/{name}")
-                if pid in pieces:
-                    pieces[pid].files["affinity"].append({"path": f"inbox/{name}", "suffix": suffix})
-                continue
-
-            m = PIECE_PNG.match(name)
-            if m:
-                pid = m.group(1) + (m.group(2) or "")
-                check_known(pid, f"inbox/{name}")
-                if pid in pieces:
-                    pieces[pid].files["inbox_pngs"].append(f"inbox/{name}")
-                continue
-
-            # check if it's a chunk-like file
-            if any(pat.match(name) for pat in (CHUNK_LIST, CHUNK_STITCH, CHUNK_LR, CHUNK_SINGLE)):
-                repo_anomalies.append(f"chunk file in inbox/ (should be in source/scans-chunks/): {name}")
-                continue
-
     # ── work/pieces/ ────────────────────────────────────────────────────────
     work_pieces_dir = repo_root / "work" / "pieces"
     if work_pieces_dir.exists():
@@ -619,7 +581,8 @@ def walk_repo(master: dict[str, dict], repo_root: Path) -> tuple[dict[str, Piece
                 continue
             file_list = [f.name for f in sorted(d.iterdir()) if f.is_file()]
             pieces[pid].files["derivative_dir_files"] = file_list
-            # also slot SVGs from work/pieces/
+            # slot SVGs and .af files from direct children of work/pieces/NNN/
+            # (subdirectories like _attic/ are not traversed — archive zone)
             for fname in file_list:
                 m = SVG_FILE.match(fname)
                 if m:
@@ -627,6 +590,15 @@ def walk_repo(master: dict[str, dict], repo_root: Path) -> tuple[dict[str, Piece
                     suffix = m.group(3)
                     if sid == pid or sid.startswith(pid):
                         pieces[pid].files["svgs"].append(
+                            {"path": f"work/pieces/{pid}/{fname}", "suffix": suffix}
+                        )
+                    continue
+                m = PIECE_AF.match(fname)
+                if m:
+                    sid = m.group(1) + (m.group(2) or "")
+                    suffix = m.group(3)
+                    if sid == pid or sid.startswith(pid):
+                        pieces[pid].files["affinity"].append(
                             {"path": f"work/pieces/{pid}/{fname}", "suffix": suffix}
                         )
 
@@ -673,10 +645,6 @@ def detect_anomalies(ps: PieceState):
     # SVG but no source PNG (orphan derivative)
     if ps.files["svgs"] and not ps.files["source_png"]:
         ps.anomalies.append("svg-present-but-no-source-png")
-
-    # PNG in inbox/
-    if ps.files["inbox_pngs"]:
-        ps.anomalies.append(f"png-in-inbox: {', '.join(ps.files['inbox_pngs'])}")
 
     # variant .af suffix — informational
     for af in ps.files["affinity"]:
@@ -785,7 +753,7 @@ def run_audit(repo_root: Path) -> dict:
     }
 
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "repo_root": str(repo_root),
         "audit_revision": "2026-05-03",
