@@ -9,9 +9,9 @@ target: tag-pieces-v2-schema
 
 ## What You Are Doing and Why
 
-`tag-pieces.html` was shipped on 2026-05-03 with a 10-archetype taxonomy (`flat-laminate`, `flat-decorative`, `folded-tube`, `folded-box`, `frame-channel`, `gear-disc`, `pinion-stack-disc`, `gear-teeth-strip`, `anchor-pendulum-mixed`, `reference`). After tagging all 122 captured pieces, Zarathale and Cowork pivoted to a v2 schema: 8 layer-signature-driven `character` values plus a free-form `subtype` field, plus an optional `controls` block for UI-bound parameters. The v2 schema is settled and lives in `work/piece_characters_v2.yaml` (the canonical state).
+`tag-pieces.html` was shipped on 2026-05-03 with a 10-archetype taxonomy (`flat-laminate`, `flat-decorative`, `folded-tube`, `folded-box`, `frame-channel`, `gear-disc`, `pinion-stack-disc`, `gear-teeth-strip`, `anchor-pendulum-mixed`, `reference`). After tagging all 122 captured pieces, Zarathale and Cowork pivoted to a v2 schema: 7 layer-signature-driven `character` values (the 2×2 of axle? × cutout? for flat, plus folded / folded-axle / reference) plus a free-form `subtype` field, plus an optional `controls` block for UI-bound parameters. The v2 schema is settled and lives in `work/piece_characters_v2.yaml` (the canonical state).
 
-This Code session updates `tag-pieces.html` to use the v2 schema natively: 8 buttons mapped to keys 1–8 instead of 10 mapped to 1–0, a subtype text input with autocomplete from the known v2 vocabulary, an import path for `piece_characters_v2.yaml` so Alan keeps the work already done, and an export format that matches v2 exactly. The result: Alan can re-open the tool, see his v2 state, audit/refine character + subtype assignments, and re-export without leaving the tagging surface.
+This Code session updates `tag-pieces.html` to use the v2 schema natively: 7 buttons mapped to keys 1–7 instead of 10 mapped to 1–0, a subtype text input with autocomplete from the known v2 vocabulary, an import path for `piece_characters_v2.yaml` so Alan keeps the work already done, and an export format that matches v2 exactly. The result: Alan can re-open the tool, see his v2 state, audit/refine character + subtype assignments, and re-export without leaving the tagging surface.
 
 ## Prerequisites — confirm before starting
 
@@ -24,7 +24,7 @@ This Code session updates `tag-pieces.html` to use the v2 schema natively: 8 but
 ## Read These Files First
 
 1. `CLAUDE.md` — the "File Naming Conventions" and "Architectural Decisions" sections, plus "Code branch / commit / PR rules".
-2. `work/piece_characters_v2.yaml` — entire file. The schema header (CHARACTER, SUBTYPE, CONTROLS, STATUS, CLARIFICATIONS sections) is the canonical reference for what the tool must support. The character + subtype assignments for all 122 pieces are the migration source for `INITIAL_STATE` (see Task 4).
+2. `work/piece_characters_v2.yaml` — entire file. The schema header (CHARACTER, SUBTYPE, CONTROLS, STATUS, CLARIFICATIONS sections) is the canonical reference for what the tool must support. The character + subtype assignments for all 122 pieces are the migration source for `INITIAL_STATE` (see Task 3).
 3. `tag-pieces.html` — entire file. Tasks below reference specific lines as they appear in the current file (HEAD as of 2026-05-03).
 4. The most recent session note in `sessions/` — for the walkthrough context that finalized the v2 schema.
 
@@ -49,7 +49,7 @@ Remove the `ARCHETYPES` constant. Replace with:
 
 ```javascript
 // ─── Character taxonomy (v2) ────────────────────────────────────────────────
-// 8 characters mapped to keys 1-8. Each character corresponds to a unique
+// 7 characters mapped to keys 1-7. Each character corresponds to a unique
 // layer signature; see work/piece_characters_v2.yaml header for definitions.
 const CHARACTERS = [
   { slug: "flat",             key: "1", desc: "flat: silhouette + (glue) + labels + marks" },
@@ -59,8 +59,6 @@ const CHARACTERS = [
   { slug: "folded",           key: "5", desc: "folded form (rails, brackets, tubes, boxes, teeth strips); no axles" },
   { slug: "folded-axle",      key: "6", desc: "folded form bearing an axle (frame columns, anchor-bearing box)" },
   { slug: "reference",        key: "7", desc: "non-build reference (dimension legends, etc.)" },
-  // Key 8 reserved for an 8th character if one surfaces; document NULL
-  // assignment here. For now, key 8 has no character; mark unused in legend.
 ];
 const KEY_TO_CHARACTER = Object.fromEntries(CHARACTERS.map(c => [c.key, c.slug]));
 
@@ -157,7 +155,32 @@ const INITIAL_STATE = {
 };
 ```
 
-Implementation note: the source YAML uses block-scalar (`|`) for multi-line notes. Collapse those to single-line strings when embedding. Preserve the `v1_was` field; preserve `status` field where present (`pair-tag`, `pending`, `uncertain`); set `status: "tagged"` when no explicit status is given. For pieces with a `controls` block in YAML (only `100` currently), copy the block verbatim into the entry as a JS object — see Task 7 for how the tool surfaces it.
+**Implementation notes for the migration:**
+
+- **Multi-line note collapse for INITIAL_STATE.** The source YAML uses block-scalar (`|`) for multi-line notes — these come in as several lines, each indented by 6 spaces. Flatten each multi-line note to a single-line JS string by: (a) replacing each newline with a single space, (b) collapsing runs of whitespace to one space, (c) trimming leading/trailing whitespace. The intent is a clean one-line string suitable for the localStorage round-trip. (The on-export round-trip restores multi-line block-scalar form — see Task 8.)
+- **`v1_was` field.** Preserve verbatim. If the YAML has `v1_was: null`, the embedded JS value is the literal `null` (not the string `"null"`). If the YAML has no `v1_was` field, embed `null`.
+- **`status` field.** Preserve when present (`pair-tag`, `pending`, `uncertain`). When the YAML has no explicit status field, embed `status: "tagged"` — the v2 YAML treats absence as the tagged default.
+- **`controls` block.** The YAML's `controls:` is a list of objects. Embed as a JS array of objects, one object per list item, with keys verbatim from the YAML. Today only piece `100` has a controls block, with one item:
+
+  ```javascript
+  "100": {
+    character: "flat-axle",
+    subtype: "indicator-bob",
+    status: "tagged",
+    note: "Pair-tag resolved 2026-05-03. ...",   // collapsed per the rule above
+    v1_was: "anchor-pendulum-mixed",
+    controls: [
+      {
+        parameter: "bob-position",
+        type: "scalar",
+        semantics: "Sliding adjustment along pendulum rod (70). +1 = bob raised (faster period); -1 = bob lowered (slower period). Final viewer (M3+) exposes a master control linked to this disc; nudge fast/slow increments the parameter.",
+        ui_hint: "Slider with F (up/fast) / S (down/slow) labels matching the printed arrows on 100.",
+      },
+    ],
+  },
+  ```
+
+  See Task 7 for how the tool surfaces the controls block.
 
 Update `loadState()` to seed from `INITIAL_STATE` on first run:
 
@@ -260,11 +283,11 @@ Add a CSS rule for `.piece-status.pair-tag` matching the existing color pattern 
 
 **File:** `tag-pieces.html`, lines 36–40 (`.legend` grid CSS) and lines 446–458 (`renderLegend()`).
 
-Change the legend grid from 10 columns to 8:
+Change the legend grid from 10 columns to 7:
 
 ```css
 .legend {
-  display: grid; grid-template-columns: repeat(8, 1fr);
+  display: grid; grid-template-columns: repeat(7, 1fr);
   gap: 6px; padding: 10px 20px; background: #fff;
   border-bottom: 1px solid var(--line);
 }
@@ -288,25 +311,77 @@ function renderLegend() {
 }
 ```
 
-Update `tagCurrent()` (lines 547–559) to preserve the existing subtype on tag changes:
+Update `tagCurrent()` (lines 547–559) to spread `prev` so every v2 field (subtype, v1_was, controls) rides along automatically:
 
 ```javascript
 function tagCurrent(character, status) {
   const p = currentPiece();
   if (!p) return;
   const prev = entry(p.id);
-  state[p.id] = {
-    character: character,
-    subtype: prev.subtype || null,
-    status: status,
-    note: prev.note || "",
-    v1_was: prev.v1_was || null,
-  };
+  state[p.id] = { ...prev, character, status };
   saveState();
   advanceAfterMutation(p.id);
   toast(`${p.id} → ${character} (${status})`);
 }
 ```
+
+**While you're here, fix the same silent-data-loss footgun in the other four mutators.** v1's `markUncertain` (line 574), `skipCurrent` (line 589), `clearCurrent` (line 599), and the debounced `perPieceNote` save (line 648) all rebuild entries with explicit fields (`{ character, status, note }`) and would silently strip `subtype`, `v1_was`, and `controls` after v2. Switch each to spread:
+
+```javascript
+function markUncertain() {
+  const p = currentPiece();
+  if (!p) return;
+  const prev = entry(p.id);
+  if (!prev.character) {
+    // No character yet; mark uncertain anyway so it shows up as "needs second pass".
+    state[p.id] = { ...prev, status: "uncertain" };
+  } else {
+    state[p.id] = { ...prev, status: prev.status === "uncertain" ? "tagged" : "uncertain" };
+  }
+  saveState();
+  render();
+  toast(`${p.id} marked ${state[p.id].status}`);
+}
+
+function skipCurrent() {
+  const p = currentPiece();
+  if (!p) return;
+  const prev = entry(p.id);
+  state[p.id] = { ...prev, character: null, status: "skipped" };
+  saveState();
+  advanceAfterMutation(p.id);
+  toast(`${p.id} skipped`);
+}
+
+function clearCurrent() {
+  const p = currentPiece();
+  if (!p) return;
+  const prev = entry(p.id);
+  state[p.id] = { ...prev, character: null, status: "pristine" };
+  saveState();
+  render();
+  toast(`${p.id} cleared`);
+}
+```
+
+And the `perPieceNote` debounce (line 648):
+
+```javascript
+let noteSaveTimer = null;
+document.getElementById("perPieceNote").addEventListener("input", e => {
+  const p = currentPiece();
+  if (!p) return;
+  clearTimeout(noteSaveTimer);
+  const value = e.target.value;
+  noteSaveTimer = setTimeout(() => {
+    const prev = entry(p.id);
+    state[p.id] = { ...prev, note: value };
+    saveState();
+  }, 250);
+});
+```
+
+(v1's `status: prev.status === "pristine" && value ? "pristine" : prev.status` clause is dropped — typing into the note never changes status in v2; tagging is the only way to leave pristine. The clause was a no-op anyway, but it's clearer to remove it.)
 
 Update the keyboard handler (lines 686–707) to use `KEY_TO_CHARACTER`:
 
@@ -380,7 +455,52 @@ Rewrite to emit the v2 schema. The output should match `work/piece_characters_v2
     v1_was: frame-channel
 ```
 
-Status, note, and controls fields render only when present. Multi-line notes render as YAML block scalars (`note: |`) when they contain newlines; otherwise as JSON-string-quoted single-line.
+**Field ordering (canonical, must match v2 YAML for clean diff).** For each entry, emit fields in this order:
+
+1. `character`
+2. `subtype` (only if non-null)
+3. `v1_was` (always emit; render `null` when empty)
+4. `status` (only if non-`tagged`)
+5. `controls` (only if present)
+6. `note` (only if non-empty)
+
+This matches the canonical order in `work/piece_characters_v2.yaml` (see e.g. piece 100 = character / subtype / v1_was / controls / note; piece 110 = character / subtype / v1_was / status / note).
+
+**Block-scalar emission for multi-line notes.** When `e.note` contains a newline, render as a YAML block scalar with 6-space indented body lines (matches the v2 YAML's indentation for fields nested under `  "ID":`, which itself sits at 2 spaces, with sub-fields at 4 and block-scalar bodies at 6). Sketch:
+
+```javascript
+function emitNote(noteString) {
+  if (!noteString) return [];
+  if (noteString.includes("\n")) {
+    return ["    note: |", ...noteString.split("\n").map(ln => `      ${ln}`)];
+  }
+  return [`    note: ${JSON.stringify(noteString)}`];
+}
+```
+
+Single-line notes use `JSON.stringify` (which produces a valid YAML double-quoted string for any plain string).
+
+**Controls emission.** When `e.controls` is a non-empty array, render as a YAML list, one item per object, with each key indented 8 spaces under the `      - ` of the first key. Sketch:
+
+```javascript
+function emitControls(controls) {
+  if (!controls || controls.length === 0) return [];
+  const out = ["    controls:"];
+  for (const item of controls) {
+    const keys = Object.keys(item);
+    keys.forEach((k, i) => {
+      const prefix = i === 0 ? "      - " : "        ";
+      const value = typeof item[k] === "string" && (item[k].includes(":") || item[k].includes("\""))
+        ? JSON.stringify(item[k])
+        : item[k];
+      out.push(`${prefix}${k}: ${value}`);
+    });
+  }
+  return out;
+}
+```
+
+This preserves the v2 YAML's `      - parameter: bob-position` / `        type: scalar` shape for piece 100. Strings that contain colons or double-quotes get JSON-stringified for safety.
 
 Update the file header comment block:
 
@@ -429,7 +549,7 @@ Modal HTML:
 </section>
 ```
 
-Targeted YAML parser — does NOT need a general YAML library. The format is well-constrained:
+Targeted YAML parser — does NOT need a general YAML library. The format is well-constrained. **Note on ordering**: the controls-block check sits BEFORE the inline-field check, with an explicit fall-through when a line is recognised as not-a-controls-list-item (e.g. the `note: |` that follows a controls block on piece 100). Without that fall-through the post-controls field is consumed but never recorded — Bug found during QA.
 
 ```javascript
 function parseV2Yaml(yamlText) {
@@ -454,6 +574,7 @@ function parseV2Yaml(yamlText) {
   };
 
   const flushControls = () => {
+    if (currentControlItem) controlsItems.push(currentControlItem);
     if (currentId && controlsItems.length > 0) {
       result[currentId].controls = controlsItems;
     }
@@ -465,7 +586,7 @@ function parseV2Yaml(yamlText) {
   for (const raw of lines) {
     const trimmed = raw.replace(/\s+$/, "");
 
-    // ID line: "001": at column 2
+    // 1. ID line: "001": at column 2 — always wins.
     const idMatch = trimmed.match(/^  "([^"]+)":\s*$/);
     if (idMatch) {
       flushBlockScalar();
@@ -475,38 +596,17 @@ function parseV2Yaml(yamlText) {
       continue;
     }
 
-    // Continuing block scalar: indented further than the field key
+    // 2. Block-scalar continuation (only active between `note: |` and the next non-indented line).
     if (currentField && currentBlockLines !== null) {
       if (trimmed.startsWith("      ") || trimmed === "") {
         currentBlockLines.push(trimmed.replace(/^      /, ""));
         continue;
       }
       flushBlockScalar();
+      // fall through — current line still needs to be matched against controls / fieldMatch
     }
 
-    // Inline field: "    character: folded"
-    const fieldMatch = trimmed.match(/^    (\w+):\s*(.*)$/);
-    if (fieldMatch && !inControlsBlock) {
-      const [, key, rawValue] = fieldMatch;
-      if (rawValue === "|") {
-        currentField = key;
-        currentBlockLines = [];
-      } else if (rawValue === "") {
-        if (key === "controls") {
-          inControlsBlock = true;
-          controlsItems = [];
-        }
-      } else {
-        let value = rawValue;
-        // Strip quotes if present
-        if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
-        if (value === "null") value = null;
-        result[currentId][key] = value;
-      }
-      continue;
-    }
-
-    // Inside controls block — list item starts with "      - parameter: ..."
+    // 3. Controls block — consume list items, fall out (without `continue`) on a non-matching line.
     if (inControlsBlock) {
       const itemStart = trimmed.match(/^      - (\w+):\s*(.*)$/);
       const itemContinue = trimmed.match(/^        (\w+):\s*(.*)$/);
@@ -516,15 +616,40 @@ function parseV2Yaml(yamlText) {
         let value = itemStart[2];
         if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
         currentControlItem[itemStart[1]] = value;
-      } else if (itemContinue && currentControlItem) {
+        continue;
+      }
+      if (itemContinue && currentControlItem) {
         let value = itemContinue[2];
         if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
         currentControlItem[itemContinue[1]] = value;
-      } else if (trimmed.match(/^  "/) || trimmed.match(/^    \w+:/)) {
-        // Falling out of controls block; reprocess the line on the next iteration
-        if (currentControlItem) controlsItems.push(currentControlItem);
-        flushControls();
+        continue;
       }
+      // Falling out — flush, then fall through (NO continue) so the current line is
+      // re-evaluated by the fieldMatch logic below. This is the Bug-B fix: without
+      // the fall-through, a `note: |` immediately after a controls block is lost.
+      flushControls();
+    }
+
+    // 4. Inline field: "    character: folded" or "    note: |" or "    controls:"
+    const fieldMatch = trimmed.match(/^    (\w+):\s*(.*)$/);
+    if (fieldMatch) {
+      const [, key, rawValue] = fieldMatch;
+      if (rawValue === "|") {
+        currentField = key;
+        currentBlockLines = [];
+      } else if (rawValue === "") {
+        if (key === "controls") {
+          inControlsBlock = true;
+          controlsItems = [];
+          currentControlItem = null;
+        }
+      } else {
+        let value = rawValue;
+        if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+        if (value === "null") value = null;
+        result[currentId][key] = value;
+      }
+      continue;
     }
   }
   flushBlockScalar();
@@ -533,6 +658,8 @@ function parseV2Yaml(yamlText) {
   return result;
 }
 ```
+
+**Test the parser against the canonical YAML before declaring done.** Specifically: import `work/piece_characters_v2.yaml`, then export, then diff the export against the source. Modulo header comments and field-ordering details, every piece's character / subtype / v1_was / status / controls / note should round-trip cleanly. Piece 100 (the only one with a controls block today) is the highest-value smoke test because it stresses the controls-block fall-out path; piece 067 is a good multi-line-note round-trip test.
 
 Wire up the import flow:
 
@@ -597,22 +724,25 @@ document.getElementById("progress").innerHTML =
   `<strong>${counts.pristine}</strong> pristine`;
 ```
 
-Add a filter for pair-tag:
+Add filters for pair-tag and pending. Without the pending filter, pieces with `status: "pending"` (013, 014, 016, 017, 090, 110 today) fall through every filter except "all" — they're not pristine, not tagged, not skipped:
 
 ```html
 <label><input type="radio" name="filter" value="pair-tag"> Pair-tag only <span class="count" id="cntPairTag">—</span></label>
+<label><input type="radio" name="filter" value="pending"> Pending capture <span class="count" id="cntPending">—</span></label>
 ```
 
-Update `applyFilter()` (lines 425–439) to handle the new value:
+Update `applyFilter()` (lines 425–439) to handle the new values:
 
 ```javascript
 case "pair-tag": return e.status === "pair-tag";
+case "pending":  return e.status === "pending";
 ```
 
-Update the count display in `renderProgress()`:
+Update the count displays in `renderProgress()`:
 
 ```javascript
 document.getElementById("cntPairTag").textContent = counts["pair-tag"];
+document.getElementById("cntPending").textContent = counts.pending;
 ```
 
 ### Task 11 — Show v1_was annotation on reclassified pieces
@@ -670,7 +800,7 @@ orchestration_prompt: CODE_PROMPT_tag-pieces-v2-schema.md
 # tag-pieces.html v2 schema upgrade
 
 ## Goal
-Upgrade tag-pieces.html from v1 (10 archetypes) to v2 (8 characters + subtype + optional controls), import the canonical state from `work/piece_characters_v2.yaml`, and ship a re-export path that matches v2 format exactly.
+Upgrade tag-pieces.html from v1 (10 archetypes) to v2 (7 characters + subtype + optional controls), import the canonical state from `work/piece_characters_v2.yaml`, and ship a re-export path that matches v2 format exactly.
 
 ## What was done
 - ... (Code fills in)
@@ -692,16 +822,18 @@ Upgrade tag-pieces.html from v1 (10 archetypes) to v2 (8 characters + subtype + 
 Run after Task 12 completes:
 
 1. **Empty localStorage seeds from INITIAL_STATE.** Open the file with localStorage cleared. The first piece (001) should show `character: folded`, `subtype: frame-rail`, `v1 was: frame-channel`. The progress bar shows 122 tagged + non-pristine count matching v2 YAML.
-2. **8 buttons render in the legend, keys 1–8 work.** Mouse-click and keyboard each map to the correct character. Key 9 and Key 0 have no effect.
+2. **7 buttons render in the legend, keys 1–7 work.** Mouse-click and keyboard each map to the correct character. Keys 8, 9, and 0 have no effect.
 3. **Subtype input persists.** Type a subtype, navigate to next piece, navigate back; the subtype is preserved.
 4. **Subtype autocomplete works.** Click in the subtype input; the datalist suggestions appear as you type (browser behavior).
 5. **Pair-tag flag toggles.** Press `p` on any piece; status changes to `pair-tag`. Press `p` again; reverts to `tagged`. Filter by Pair-tag only — exactly the tagged-as-pair-tag pieces appear.
 6. **Controls block displays for piece 100.** Navigate to piece 100; the "Controls: bob-position (scalar)" badge appears. Navigate to any other piece; badge disappears.
-7. **Export YAML matches v2 schema.** Export and diff against `work/piece_characters_v2.yaml`. Comments will differ (the tool's auto-generated header is briefer); piece entries should match exactly. `v1_was`, `subtype`, `controls` fields should round-trip.
-8. **Import YAML works.** Paste `work/piece_characters_v2.yaml` into the import box, click Load, confirm the prompt. State reloads to match v2 YAML.
-9. **No console errors** during init or any of the above flows.
-10. **Existing flows still work.** Skip (`s`), uncertain (`u`), clear (`x`), jump (`j`), prev/next arrows, section filter, untagged filter — all behave as before.
-11. **`gh pr create`** runs cleanly. The PR title is `update tag-pieces.html for v2 character + subtype schema`.
+7. **Non-tag mutators preserve v2 fields.** On piece 100 (which has subtype, v1_was, AND controls): press `u` (uncertain), then `u` again (back to tagged), then type a single character into the note box, then delete it. After all that, piece 100's subtype is still `indicator-bob`, v1_was is still `anchor-pendulum-mixed`, and the controls badge is still showing. Repeat with piece 001 (subtype + v1_was, no controls): same fields preserved through `u`/`s`/`x` cycles. This is the Bug-A regression test — without the spread fix, any of those keys silently strips the v2 fields.
+8. **Export YAML matches v2 schema in field order.** Export and diff against `work/piece_characters_v2.yaml`. Comments will differ (the tool's auto-generated header is briefer); piece entries should match in field order (character → subtype → v1_was → [status] → [controls] → [note]). `v1_was`, `subtype`, `controls` fields should round-trip.
+9. **Round-trip via Import → Export.** Paste `work/piece_characters_v2.yaml` into the import box, click Load, confirm the prompt. Then click Export YAML. Diff the export against the original — should be functionally identical (same fields per piece, same ordering, same values; only header comment differs). This is the Bug-B regression test — piece 100's `note: |` comes after its `controls:` block in the source, and the v1 parser dropped it on import.
+10. **Pending filter chip works.** With "Pending capture" selected, only the 6 pending-capture pieces (013, 014, 016, 017, 090, 110) appear; count badge reads 6.
+11. **No console errors** during init or any of the above flows.
+12. **Existing flows still work.** Skip (`s`), uncertain (`u`), clear (`x`), jump (`j`), prev/next arrows, section filter, untagged filter — all behave as before.
+13. **`gh pr create`** runs cleanly. The PR title is `update tag-pieces.html for v2 character + subtype schema`.
 
 ## What NOT to Change
 
@@ -716,11 +848,12 @@ Run after Task 12 completes:
 
 | What | Expected |
 |---|---|
-| Open `tag-pieces.html` in Safari (file://) | Initial state shows 122 tagged from v2 YAML. |
+| Open `tag-pieces.html` in your browser (file://) | Initial state shows 122 tagged from v2 YAML. (`<datalist>` autocomplete UI varies between browsers; the data is the same.) |
 | Click character button "flat-axle-cutout" on piece 058 (currently `flat-axle`) | Character changes; subtype preserved (`escape-wheel`); `v1 was` annotation shows `gear-disc`. |
 | Press `p` on piece 027 | Status flips to `pair-tag`. |
 | Edit subtype on piece 042 to `tube-pulley-drum-with-north-cue` | Subtype persists across navigation. |
-| Click Export YAML | Output diffs cleanly against `work/piece_characters_v2.yaml` (modulo header comments). |
-| Click Import YAML, paste fresh `piece_characters_v2.yaml`, Load | State resets to canonical v2; all per-session edits cleared. |
+| Navigate to piece 100; press `u` then `u` again; then type and delete a character in the note box | Subtype (`indicator-bob`), v1_was (`anchor-pendulum-mixed`), AND the controls badge still showing — none of those keystrokes silently stripped v2 fields. |
+| Click Export YAML | Output diffs cleanly against `work/piece_characters_v2.yaml` (modulo header comments). Field order matches: character → subtype → v1_was → [status] → [controls] → [note]. |
+| Click Import YAML, paste fresh `piece_characters_v2.yaml`, Load | State resets to canonical v2; all per-session edits cleared. Piece 100's note (which follows its controls block in the source) round-trips intact. |
 | Press `s` on piece 041 | Status flips to skipped. |
 | Reload page | All state preserved (localStorage). |
