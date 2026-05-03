@@ -98,7 +98,7 @@ next_action: Decide which pendulum pieces to author next (in service of the regi
 ```yaml
 status: active
 last_updated: 2026-05-03
-next_action: Author a clean-start v1b CODE_PROMPT (polygon-cut + adjacency-BFS + hinge-hierarchy + per-fold-sliders) against the current state of preview.html — not the v1a session note alone. The original v1b draft was archived 2026-05-03 to _archive/code-prompts/ after preview.html accumulated 6 ship passes that outpaced its design assumptions.
+next_action: Hand CODE_PROMPT_preview-html-v1b.md (status: ready-for-code, authored 2026-05-03 against current preview.html + SPEC-REGIONS.md) to a Code session. Verify the test SVGs (inbox/069.svg, inbox/066.svg) still parse to the expected fold counts before kicking off.
 ```
 
 **Hypothesis.** A single-file HTML preview tool at repo root is the right substrate for testing SVG authoring conventions piece-by-piece, while the eventual `work/viewer/` Vite + TS + three.js application is still upstream. Each new convention or fix gets its own `CODE_PROMPT_preview-html-<topic>.md` and ships independently. The architecture decision (graduate into `work/viewer/`, stay separate, or replace `work/viewer/` outright) is intentionally deferred until v1b ships.
@@ -112,6 +112,7 @@ next_action: Author a clean-start v1b CODE_PROMPT (polygon-cut + adjacency-BFS +
 
 **Recent log.**
 
+- 2026-05-03: clean-start `CODE_PROMPT_preview-html-v1b.md` authored at repo root (status: ready-for-code). Grounded in current `preview.html` (real signatures: `currentSlabPivot`, `buildSlab(polygon, thicknessMm)`, `extractSilhouette` Tier-1/2/3, `parsed.{folds,axles,north,rootCentroid}`, render-on-demand `requestRender()`, etc.) and `work/SPEC-REGIONS.md` (terminology + two-step algorithm: extend folds to silhouette boundary, then iteratively split via `polygon-clipping` half-plane intersection). Eight tasks; verification + manual tests scoped to 069 + 066. Rotation pivot wraps the whole fold tree; polarity in UI is implicit (default angle only). See `sessions/2026-05-03-0300_cowork_v1b-clean-start.md`.
 - 2026-05-03: original `CODE_PROMPT_preview-html-v1b.md` archived to `_archive/code-prompts/` (status flipped to `archived`, body preserved as design record). Re-tightening pass against v1a's session note alone was insufficient — the file's drift since v1a is too substantial; clean-start authored against the current `preview.html` is the next move. See `sessions/2026-05-03-0200_cowork_v1b-archive.md`.
 - 2026-05-02 (late evening): thickness extrusion fix + axle rotation shipped. See `sessions/2026-05-02-2300_*` and `sessions/2026-05-02-2330_*`.
 - 2026-05-02 (earlier): cut-layer convention + texture flip + back-face mirror + perf pass shipped.
@@ -176,7 +177,7 @@ next_action: Settle the per-piece JSON schema (which pipeline stages to track), 
 ```yaml
 status: active
 last_updated: 2026-05-03
-next_action: Review SPEC-REGIONS.md against pendulum arm piece ID (§II.C); confirm fold-line authoring convention is sufficient to produce the face graph; bake SPEC-REGIONS.md into the clean-start v1b prompt (when authored) as upstream conceptual context.
+next_action: Review SPEC-REGIONS.md against pendulum arm piece ID (§II.C); confirm fold-line authoring convention is sufficient to produce the face graph. SPEC-REGIONS.md is referenced from the new v1b prompt (`CODE_PROMPT_preview-html-v1b.md`, status: ready-for-code) as the upstream concept doc — the v1b ship will be the empirical test of whether the SPEC's two-step algorithm holds up against real authored fold lines.
 ```
 
 **Hypothesis.** Folding and grouping (separate track) are both operations on subdivisions of a piece. Neither can advance with confidence until "what counts as a region of piece N" is a deterministic, computed thing. Regions are not authored — they're derived from the layered SVG (silhouette + cutouts + fold lines forming a planar face graph: vertices at fold-line endpoints, edges along fold lines and boundary segments, faces as the closed polygons between them). Origami CAD calls this a "face graph" or similar. Building this concept once unblocks F1, F2, F3 (visual / semantic / experiential folding) and G1–G4 (grouping at increasing depth).
