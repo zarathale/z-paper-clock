@@ -9,3 +9,7 @@ inbox/_pending-rescan/
 # Claude Code internals — keep settings.json (committed), ignore worktree state and per-machine overrides
 .claude/worktrees/
 .claude/settings.local.json
+
+# Affinity lock + backup files
+.~lock.*.af#
+*.af~
