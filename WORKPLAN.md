@@ -151,7 +151,7 @@ next_action: Inbox/ feels awkward; clarify its semantics or fold it into a clean
 ```yaml
 status: active
 last_updated: 2026-05-03
-next_action: Hand CODE_PROMPT_asset-state-audit.md (status: ready-for-code, authored 2026-05-03) to a Code session. Schema settled (per-piece JSON, single fat state.json for v0); convention-as-linter-rule pattern captured (each authoring convention becomes an independent check; new conventions auto-flag old SVGs without a migration step). LAYER-CONVENTIONS.md cheat sheet shipped in parallel at repo root.
+next_action: Cowork session to author work/expected_layers.yaml (section defaults for §II.A–§II.F + face/case + initial per-piece overrides) and finalize the CODE_PROMPT for the audit-script extension (expected-layers reader + new check + repo_root path normalization) and dashboard.html (static HTML viewer parallel to preview.html, filter-and-list bucket model derived from state.json, live inline SVG thumbnails). Then a Code session to ship both.
 ```
 
 **Hypothesis.** Per-piece state ("where is each piece in its lifecycle") needs its own surface, separate from work-state (this document). A small Python audit script reads the filesystem (`source/pieces/`, `work/pieces/`, `inbox/`, `source/scans-chunks/`, etc.) and emits a per-piece JSON file (or a single fat `state.json`) reflecting which stages each piece has reached. Generated, never hand-maintained — eliminates the "I forgot to update the CSV" failure mode. Output becomes the basis for an eventual browser-rendered dashboard.
@@ -172,6 +172,8 @@ next_action: Hand CODE_PROMPT_asset-state-audit.md (status: ready-for-code, auth
 
 **Recent log.**
 
+- 2026-05-03 (evening): dashboard design conversation. Settled: filter-and-list layout (not kanban), `dashboard.html` parallel to `preview.html`, bucket menu **derived from state.json** (lifecycle stages + per-failing-check chips + anomalies — auto-grows when new conventions land), live inline SVG thumbnails, expected-layers hints in `work/expected_layers.yaml` with section defaults + per-piece add/remove overrides, diff computed in `audit_state.py` (new fields `expected_layers` + `missing_layers`, plus a new convention check `expected-layers-present`), YAML format. Deferred: section default values (next session), element-id-level expectations (v1), bucket placement (build time). Flagged for CODE_PROMPT: `repo_root` worktree-path normalization, schema_version bump to 2, `pyyaml` dep. See `sessions/2026-05-03-1800_cowork_dashboard-design.md`.
+- 2026-05-03 (afternoon, late): `CODE_PROMPT_asset-state-audit.md` shipped via Code session. `work/state.json` now exists with rich per-piece data (file paths, layer inventories, convention check results, derived stage, anomalies). Audit prompt status flipped to `shipped`. See `sessions/2026-05-03-1600_code_asset-state-audit-v0.md`.
 - 2026-05-03 (afternoon): schema settled and `CODE_PROMPT_asset-state-audit.md` authored at repo root (status: ready-for-code). Key design point Alan flagged — "as preview.html matures, conventions evolve and pieces need to be uplifted" — handled by per-convention linter-style checks (new convention = new check; existing pieces auto-flag at next audit run; no migration step). `LAYER-CONVENTIONS.md` cheat sheet shipped in parallel at repo root. Track flipped queued → active. See `sessions/2026-05-03-1400_cowork_asset-state-schema-and-audit.md`.
 - 2026-05-03 (morning): track opened. Per-piece JSON shape settled in design conversation.
 
