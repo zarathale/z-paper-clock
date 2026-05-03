@@ -41,6 +41,8 @@ html, body { width:100%; height:100%; overflow:hidden; background:#1a1a1a; color
   border:1px solid #333; border-radius:4px; padding:10px;
   color:#666; font-style:italic; font-size:12px;
 }
+#fold-controls .slider-row,
+#fold-controls #per-fold-sliders { font-style:normal; }
 
 #thickness-section,
 #rotation-section { display:flex; flex-direction:column; gap:6px; }
@@ -76,8 +78,14 @@ button:hover { background:#383838; }
   <div id="banners"></div>
 
   <div id="fold-controls">
-    <!-- populated in v1b: global fold slider + per-fold sliders -->
-    Fold controls — added in v1b
+    <!-- global fold slider: populated by renderScene when folds are present -->
+    <div id="global-fold-row" class="slider-row" style="display:none">
+      <label>Fold all</label>
+      <input type="range" id="globalFoldSlider" min="0" max="100" step="1" value="0">
+      <span class="val" id="globalFoldVal">0%</span>
+    </div>
+    <!-- per-fold sliders: cleared + rebuilt by renderScene -->
+    <div id="per-fold-sliders"></div>
   </div>
 
   <div id="thickness-section">
@@ -86,7 +94,7 @@ button:hover { background:#383838; }
       <input type="range" id="thickSlider" min="0.3" max="4.0" step="0.1" value="0.4">
       <span class="val" id="thickVal">0.4 mm</span>
     </div>
-    <button id="resetBtn">Reset thickness</button>
+    <button id="resetBtn">Reset</button>
   </div>
 
   <div id="rotation-section" hidden>
@@ -131,6 +139,8 @@ let parsed = null;
 
 let MM_PER_UNIT = null;   // set after scan image loads (mm per viewBox unit)
 let VB = null;             // shorthand for parsed.viewBox
+// pathId → [THREE.Object3D hinge, ...] — populated by renderScene, read by fold sliders
+let pathHingeMap = new Map();
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const dropzone   = document.getElementById('dropzone');
@@ -374,7 +384,7 @@ function parseSVG(text, filename) {
       let angle = defaultAngle;
       const angleMatch = id.match(/^fold([-+])(\d+(?:\.\d+)?)$/);
       if (angleMatch) angle = (angleMatch[1] === '-' ? -1 : 1) * parseFloat(angleMatch[2]);
-      folds.push({ layer: layerName, id, start: seg.start, end: seg.end, defaultAngle: angle });
+      folds.push({ layer: layerName, id, start: seg.start, end: seg.end, defaultAngle: angle, sourceIndex: folds.length });
     }
   }
   parseFoldLayer(layerValley,   'folds-valley',   -90);
@@ -465,7 +475,9 @@ function parseSVG(text, filename) {
     north,         // {x, y} in viewBox coords, or null if no orientation marker authored
     rootCentroid,
     thicknessMm, thicknessDefault: thicknessMm, thicknessSource,
-    _svgText: text   // kept for silhouette fallback path parsing
+    _svgText: text,   // kept for silhouette fallback path parsing
+    _polygon: null,   // cached silhouette polygon (set by renderScene)
+    _faceGraph: null  // cached face graph (set by renderScene, invalidated on new load)
   };
 }
 
@@ -1016,6 +1028,449 @@ function polyArea(poly) {
   return Math.abs(a) / 2;
 }
 
+// ─── Face graph helpers ───────────────────────────────────────────────────────
+
+// Distance from point (px,py) to infinite line through (ax,ay)→(bx,by).
+function ptToLineDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const len = Math.hypot(dx, dy);
+  if (len < 1e-10) return Math.hypot(px - ax, py - ay);
+  return Math.abs(dx * (ay - py) - dy * (ax - px)) / len;
+}
+
+// Distance from point (px,py) to segment (ax,ay)→(bx,by).
+function ptToSegDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  if (len2 < 1e-10) return Math.hypot(px - ax, py - ay);
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+// Ray-casting point-in-polygon. poly = [[x,y],...] (not closed).
+function pointInPolygon(px, py, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], yi = poly[i][1];
+    const xj = poly[j][0], yj = poly[j][1];
+    if (((yi > py) !== (yj > py)) &&
+        (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// Build a half-plane polygon for polygon-clipping (GeoJSON ring format).
+// Returns the portion of bbox on side `sign` (+1=left, -1=right) of line start→end.
+// The fold line must already extend beyond bbox.
+function halfPlanePoly(bbox, lineStart, lineEnd, sign) {
+  const [ax, ay] = lineStart;
+  const [bx, by] = lineEnd;
+  const dx = bx - ax, dy = by - ay;
+  // Left-normal of direction
+  const nx = -dy, ny = dx;
+  function sideDot(px, py) { return (px - ax) * nx + (py - ay) * ny; }
+
+  // bbox corners in order: TL, TR, BR, BL
+  const corners = [
+    [bbox.minX, bbox.minY],
+    [bbox.maxX, bbox.minY],
+    [bbox.maxX, bbox.maxY],
+    [bbox.minX, bbox.maxY],
+  ];
+
+  const ring = [];
+  for (let i = 0; i < 4; i++) {
+    const c1 = corners[i];
+    const c2 = corners[(i + 1) % 4];
+    const s1 = sideDot(c1[0], c1[1]) * sign;
+    const s2 = sideDot(c2[0], c2[1]) * sign;
+    if (s1 >= 0) ring.push([c1[0], c1[1]]);
+    if ((s1 >= 0) !== (s2 >= 0)) {
+      const eX = c2[0] - c1[0], eY = c2[1] - c1[1];
+      const det = dx * eY - dy * eX;
+      if (Math.abs(det) > 1e-10) {
+        const t = ((c1[0] - ax) * eY - (c1[1] - ay) * eX) / det;
+        ring.push([ax + t * dx, ay + t * dy]);
+      }
+    }
+  }
+  if (ring.length < 3) return null;
+  ring.push([ring[0][0], ring[0][1]]); // close
+  return [ring];
+}
+
+// Task 2: extend each fold to the silhouette boundary (or beyond by ε).
+// Returns array of extended folds: {layer, id, pathId, defaultAngle, start, end, sourceIndex}
+function extendFoldsToSilhouette(silhouette, folds) {
+  const EPS = 0.5; // viewBox units beyond the boundary
+  const n = silhouette.length;
+
+  function intersectRaySegment(ax, ay, dx, dy, p1x, p1y, p2x, p2y) {
+    const eX = p2x - p1x, eY = p2y - p1y;
+    const det = dx * eY - dy * eX;
+    if (Math.abs(det) < 1e-10) return null; // parallel
+    const t = ((p1x - ax) * eY - (p1y - ay) * eX) / det;
+    const s = ((p1x - ax) * dy - (p1y - ay) * dx) / det;
+    if (s < -1e-9 || s > 1 + 1e-9) return null; // outside edge segment
+    return t;
+  }
+
+  return folds.map(fold => {
+    const [sx, sy] = fold.start;
+    const [ex, ey] = fold.end;
+    const len = Math.hypot(ex - sx, ey - sy);
+    if (len < 1e-10) return { ...fold, pathId: fold.id || ('valley-' + fold.sourceIndex) };
+
+    const ux = (ex - sx) / len; // unit direction
+    const uy = (ey - sy) / len;
+
+    // Collect all t values where the infinite line intersects silhouette edges
+    const ts = [];
+    for (let i = 0; i < n; i++) {
+      const [p1x, p1y] = silhouette[i];
+      const [p2x, p2y] = silhouette[(i + 1) % n];
+      const t = intersectRaySegment(sx, sy, ux, uy, p1x, p1y, p2x, p2y);
+      if (t !== null) ts.push(t);
+    }
+
+    // tMin = smallest t ≤ 0 (extends backward past start), or 0 if none
+    // tMax = largest t ≥ len (extends forward past end), or len if none
+    const before = ts.filter(t => t <= 0 + 1e-6);
+    const after  = ts.filter(t => t >= len - 1e-6);
+    const tMin = before.length > 0 ? Math.min(...before) : 0;
+    const tMax = after.length  > 0 ? Math.max(...after)  : len;
+
+    const pathId = fold.id ||
+      (fold.layer === 'folds-valley' ? 'valley-' : 'mountain-') + fold.sourceIndex;
+
+    return {
+      layer: fold.layer,
+      id: fold.id,
+      pathId,
+      defaultAngle: fold.defaultAngle,
+      sourceIndex: fold.sourceIndex,
+      start: [sx + (tMin - EPS) * ux, sy + (tMin - EPS) * uy],
+      end:   [sx + (tMax + EPS) * ux, sy + (tMax + EPS) * uy],
+    };
+  });
+}
+
+// Task 3: build the face graph from the silhouette and extended folds.
+// Returns {rootId, regions, foldEdges} or null on fatal failure.
+function buildFaceGraph(silhouette, extendedFolds) {
+  const EDGE_EPS  = 0.5;  // viewBox units for edge-tag midpoint matching
+  const ADJ_EPS   = 1.0;  // minimum overlap for adjacency
+  const bb = polyBbox(silhouette);
+  const diagLen = Math.hypot(bb.maxX - bb.minX, bb.maxY - bb.minY);
+  const SLIVER_DELTA = 0.005 * diagLen;
+
+  // Expand bigBox by 100 units beyond silhouette bbox
+  const bigBox = {
+    minX: bb.minX - 100, maxX: bb.maxX + 100,
+    minY: bb.minY - 100, maxY: bb.maxY + 100
+  };
+
+  // polygon-clipping format: close the ring (guard against already-closed inputs)
+  function toRing(poly) {
+    const r = poly.map(([x, y]) => [x, y]);
+    const f = r[0], l = r[r.length - 1];
+    if (f[0] !== l[0] || f[1] !== l[1]) r.push([f[0], f[1]]);
+    return r;
+  }
+  function toPCPoly(poly) { return [toRing(poly)]; }
+
+  // Convert polygon-clipping result ring to our [[x,y],...] format (drop close pt)
+  function fromRing(ring) {
+    const pts = ring.slice(0, -1); // drop the closing repeated point
+    return pts;
+  }
+
+  // Edge midpoint
+  function edgeMidpoint(poly, i) {
+    const n = poly.length;
+    const [ax, ay] = poly[i];
+    const [bx, by] = poly[(i + 1) % n];
+    return [(ax + bx) / 2, (ay + by) / 2];
+  }
+
+  // Compute edge tags for a clipped sub-polygon.
+  // inputEdgeTags: [{mid:[x,y], tag}] — midpoints + tags of the input polygon's edges
+  // foldLine: the fold that did this cut, or null
+  function computeEdgeTags(outPoly, inputEdgeTags, foldLine) {
+    const n = outPoly.length;
+    const tags = new Array(n);
+    let unknownCount = 0;
+
+    for (let i = 0; i < n; i++) {
+      const [mx, my] = edgeMidpoint(outPoly, i);
+      let assigned = false;
+
+      // Check if on the fold line
+      if (foldLine) {
+        const d = ptToLineDist(mx, my, foldLine.start[0], foldLine.start[1],
+                                       foldLine.end[0],   foldLine.end[1]);
+        if (d < EDGE_EPS) {
+          tags[i] = foldLine.pathId;
+          assigned = true;
+        }
+      }
+
+      if (!assigned) {
+        // Match to nearest input edge by midpoint distance
+        let bestDist = Infinity, bestTag = 'unknown';
+        for (const { mid, tag } of inputEdgeTags) {
+          const dist = Math.hypot(mx - mid[0], my - mid[1]);
+          if (dist < bestDist) { bestDist = dist; bestTag = tag; }
+        }
+        if (bestDist < EDGE_EPS) {
+          tags[i] = bestTag;
+        } else {
+          tags[i] = 'unknown';
+          unknownCount++;
+        }
+      }
+    }
+    return { tags, unknownCount };
+  }
+
+  // ── Step 1 & 2: iteratively split ────────────────────────────────────────────
+  let regions = [{
+    polygon: silhouette,
+    edgeTags: silhouette.map((_, i) => {
+      const [ax, ay] = silhouette[i];
+      const [bx, by] = silhouette[(i + 1) % silhouette.length];
+      return { mid: [(ax + bx) / 2, (ay + by) / 2], tag: 'silhouette' };
+    })
+  }];
+
+  let totalUnknown = 0;
+
+  for (const fold of extendedFolds) {
+    const left  = halfPlanePoly(bigBox, fold.start, fold.end, +1);
+    const right = halfPlanePoly(bigBox, fold.start, fold.end, -1);
+    if (!left || !right) {
+      console.warn('[preview.html] halfPlanePoly failed for fold', fold.pathId);
+      continue;
+    }
+
+    const nextRegions = [];
+    for (const region of regions) {
+      const srcPoly = toPCPoly(region.polygon);
+      const inputEdgeTags = region.edgeTags;
+
+      for (const halfPoly of [left, right]) {
+        let clipped;
+        try {
+          clipped = polygonClipping.intersection(srcPoly, halfPoly);
+        } catch (e) {
+          console.warn('[preview.html] polygon-clipping error on fold', fold.pathId, e);
+          clipped = [];
+        }
+        for (const polygon of clipped) {
+          // polygon = [ outerRing, ...holes ] — we use the outer ring only
+          if (!polygon || !polygon[0] || polygon[0].length < 4) continue;
+          const outPoly = fromRing(polygon[0]);
+          if (outPoly.length < 3) continue;
+          const { tags, unknownCount } = computeEdgeTags(outPoly, inputEdgeTags, fold);
+          totalUnknown += unknownCount;
+          nextRegions.push({
+            polygon: outPoly,
+            edgeTags: outPoly.map((_, i) => ({
+              mid: edgeMidpoint(outPoly, i),
+              tag: tags[i]
+            }))
+          });
+        }
+      }
+    }
+    regions = nextRegions;
+  }
+
+  // ── Step 4: sliver filter ─────────────────────────────────────────────────────
+  let sliverCount = 0;
+  const filtered = regions.filter(region => {
+    for (const fold of extendedFolds) {
+      const allNear = region.polygon.every(([vx, vy]) =>
+        ptToLineDist(vx, vy, fold.start[0], fold.start[1], fold.end[0], fold.end[1]) < SLIVER_DELTA
+      );
+      if (allNear) { sliverCount++; return false; }
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    addBanner('Face graph: all regions filtered as slivers — using single slab fallback.', 'error');
+    return null;
+  }
+
+  // Assign region ids
+  const regionMap = new Map();
+  filtered.forEach((r, i) => {
+    regionMap.set('region-' + i, {
+      id: 'region-' + i,
+      polygon: r.polygon,
+      edgeTags: r.edgeTags,
+      isRoot: false,
+      parentId: null,
+      parentEdge: null,
+      childEdges: []
+    });
+  });
+
+  // ── Step 5: adjacency ─────────────────────────────────────────────────────────
+  const foldEdges = [];
+
+  for (const fold of extendedFolds) {
+    // Find all regions that have at least one edge tagged with this fold's pathId
+    const adjacent = [];
+    for (const [rId, region] of regionMap) {
+      const hasTag = region.edgeTags.some(et => et.tag === fold.pathId);
+      if (hasTag) adjacent.push(rId);
+    }
+
+    // For each pair, check overlap on the fold's infinite line > ADJ_EPS
+    for (let i = 0; i < adjacent.length; i++) {
+      for (let j = i + 1; j < adjacent.length; j++) {
+        const rA = regionMap.get(adjacent[i]);
+        const rB = regionMap.get(adjacent[j]);
+
+        // Collect fold-tagged edges from each region
+        const edgesA = rA.edgeTags
+          .map((et, idx) => et.tag === fold.pathId ? idx : -1).filter(x => x >= 0);
+        const edgesB = rB.edgeTags
+          .map((et, idx) => et.tag === fold.pathId ? idx : -1).filter(x => x >= 0);
+
+        // Project each edge onto the fold line and find overlap
+        const [fax, fay] = fold.start;
+        const fdx = fold.end[0] - fax, fdy = fold.end[1] - fay;
+        const flen = Math.hypot(fdx, fdy);
+        if (flen < 1e-10) continue;
+        const fux = fdx / flen, fuy = fdy / flen;
+
+        function projectEdge(region, edgeIdx) {
+          const n = region.polygon.length;
+          const [ax, ay] = region.polygon[edgeIdx];
+          const [bx, by] = region.polygon[(edgeIdx + 1) % n];
+          const ta = (ax - fax) * fux + (ay - fay) * fuy;
+          const tb = (bx - fax) * fux + (by - fay) * fuy;
+          return [Math.min(ta, tb), Math.max(ta, tb)];
+        }
+
+        let overlapMin = -Infinity, overlapMax = Infinity;
+        for (const ei of edgesA) {
+          const [lo, hi] = projectEdge(rA, ei);
+          overlapMin = Math.max(overlapMin, lo);
+          overlapMax = Math.min(overlapMax, hi);
+        }
+        for (const ei of edgesB) {
+          const [lo, hi] = projectEdge(rB, ei);
+          overlapMin = Math.max(overlapMin, lo);
+          overlapMax = Math.min(overlapMax, hi);
+        }
+
+        const overlap = overlapMax - overlapMin;
+        if (overlap <= ADJ_EPS) continue;
+
+        // Record the shared fold edge segment (midpoint of the overlapping interval)
+        const segMid = (overlapMin + overlapMax) / 2;
+        const segHalf = overlap / 2;
+        const segA = [fax + (segMid - segHalf) * fux, fay + (segMid - segHalf) * fuy];
+        const segB = [fax + (segMid + segHalf) * fux, fay + (segMid + segHalf) * fuy];
+
+        const fe = {
+          pathId: fold.pathId,
+          layer: fold.layer,
+          polarity: fold.layer === 'folds-valley' ? 'valley' : 'mountain',
+          defaultAngle: fold.defaultAngle,
+          segment: [segA, segB],
+          sourceFold: { id: fold.id, layer: fold.layer, sourceIndex: fold.sourceIndex },
+          regionA: adjacent[i],
+          regionB: adjacent[j]
+        };
+        foldEdges.push(fe);
+      }
+    }
+  }
+
+  // ── Step 6: root ──────────────────────────────────────────────────────────────
+  let rootId = null;
+  let rootSource = 'largest-by-area';
+
+  if (parsed && parsed.rootCentroid) {
+    const { x, y } = parsed.rootCentroid;
+    for (const [rId, region] of regionMap) {
+      if (pointInPolygon(x, y, region.polygon)) {
+        rootId = rId;
+        rootSource = 'root-marker';
+        break;
+      }
+    }
+    if (!rootId) addBanner('root marker found but not inside any region — using largest-by-area.', 'warn');
+  }
+
+  if (!rootId) {
+    let maxArea = -1;
+    for (const [rId, region] of regionMap) {
+      const a = polyArea(region.polygon);
+      if (a > maxArea) { maxArea = a; rootId = rId; }
+    }
+  }
+
+  regionMap.get(rootId).isRoot = true;
+
+  // ── Step 7: BFS ───────────────────────────────────────────────────────────────
+  const visited = new Set([rootId]);
+  const queue = [rootId];
+  let orphanCount = 0;
+
+  // Build adjacency list from foldEdges
+  const adjList = new Map(); // regionId → [{neighborId, foldEdge}]
+  for (const [rId] of regionMap) adjList.set(rId, []);
+  for (const fe of foldEdges) {
+    adjList.get(fe.regionA).push({ neighborId: fe.regionB, fe });
+    adjList.get(fe.regionB).push({ neighborId: fe.regionA, fe });
+  }
+  // Sort neighbors by sourceIndex for deterministic BFS
+  for (const [, neighbors] of adjList) {
+    neighbors.sort((a, b) => a.fe.sourceFold.sourceIndex - b.fe.sourceFold.sourceIndex);
+  }
+
+  while (queue.length > 0) {
+    const curId = queue.shift();
+    const cur = regionMap.get(curId);
+    for (const { neighborId, fe } of (adjList.get(curId) || [])) {
+      if (visited.has(neighborId)) continue;
+      visited.add(neighborId);
+      const neighbor = regionMap.get(neighborId);
+      neighbor.parentId = curId;
+      neighbor.parentEdge = fe;
+      cur.childEdges.push({ childId: neighborId, edge: fe });
+      queue.push(neighborId);
+    }
+  }
+
+  for (const [rId, region] of regionMap) {
+    if (!visited.has(rId)) {
+      orphanCount++;
+      addBanner(`Region ${rId} is unreachable from root — rendered flat.`, 'warn');
+    }
+  }
+
+  if (totalUnknown > 0) console.log('[preview.html] Unknown-tag edges:', totalUnknown);
+
+  return {
+    rootId,
+    regions: regionMap,
+    foldEdges,
+    sliverCount,
+    orphanCount,
+    unknownTagCount: totalUnknown,
+    rootSource
+  };
+}
+
 // ─── Axle wire builder ────────────────────────────────────────────────────────
 // Renders the axle as a thin shiny silver cylinder, perpendicular to the slab,
 // passing through the axle point. The wire is world-anchored — the slab+pivot
@@ -1073,92 +1528,264 @@ async function renderScene(p) {
 
   VB = p.viewBox;
 
-  // Build slab
-  const slab = buildSlab(poly, p.thicknessMm);
-  const bb = polyBbox(poly);
-  // T is in three.js units (= mm). thicknessMm is already mm — do NOT multiply
-  // by MM_PER_UNIT (that's the vb-units → mm scale, used for the XY conversions
-  // below). Multiplying produced T ≈ thicknessMm × 0.01 on real pieces, which is
-  // why the slab looked completely flat regardless of slider position.
   const T = p.thicknessMm;
+  const silBbox = polyBbox(poly);
 
-  // Wrap the slab in a rotation pivot. The pivot sits at the active axle's
-  // world position; the slab inside is offset so visually it stays at the same
-  // spot at rotation = 0. Rotating pivot.rotation.z then swings the slab
-  // around the axle line (Z-axis through the axle point). Single-axle
-  // assumption per design: axles[0] is the active rotation axle. Multi-axle
-  // support deferred until needed.
-  const pivot = new THREE.Group();
-  let activeAxle3js = null;  // {x, y} in three.js coords, or null if no axles
+  // ── Face graph or single-slab ─────────────────────────────────────────────
+  // Build (or reuse cached) face graph when the SVG has fold layers.
+  let faceGraph = null;
+  if (p.folds.length > 0) {
+    if (!p._faceGraph) {
+      const extFolds = extendFoldsToSilhouette(poly, p.folds);
+      p._faceGraph = buildFaceGraph(poly, extFolds);
+    }
+    faceGraph = p._faceGraph;
+  }
+
+  const useFoldTree = faceGraph && faceGraph.regions.size > 1;
+
+  if (!useFoldTree) {
+    if (p.folds.length > 0 && !faceGraph) {
+      addBanner('Face graph build failed — rendering single slab.', 'warn');
+    } else if (p.folds.length === 0) {
+      addBanner('No folds parsed; rendering single slab.', 'warn');
+    }
+  }
+
+  // ── Compute active axle in 3js coords ────────────────────────────────────
+  let activeAxle3js = null;
   if (p.axles.length > 0) {
     const a = p.axles[0];
     activeAxle3js = {
-      x:  (a.cx - bb.cx) * MM_PER_UNIT,
-      y: -(a.cy - bb.cy) * MM_PER_UNIT
+      x:  (a.cx - silBbox.cx) * MM_PER_UNIT,
+      y: -(a.cy - silBbox.cy) * MM_PER_UNIT
     };
-    pivot.position.set(activeAxle3js.x, activeAxle3js.y, 0);
-    slab.position.set(-activeAxle3js.x, -activeAxle3js.y, 0);
   }
-  pivot.add(slab);
+
+  // ── Build pivot (wraps the entire fold tree OR single slab) ──────────────
+  const pivot = new THREE.Group();
+  if (activeAxle3js) {
+    pivot.position.set(activeAxle3js.x, activeAxle3js.y, 0);
+  }
+
+  // ── Build slab tree ───────────────────────────────────────────────────────
+  pathHingeMap = new Map();
+
+  if (useFoldTree) {
+    // Build one slab per region, then assemble hinge hierarchy.
+    const slabMap = new Map(); // regionId → THREE.Group
+    for (const [rId, region] of faceGraph.regions) {
+      slabMap.set(rId, buildSlab(region.polygon, T));
+    }
+
+    // Position root slab inside the pivot.
+    const rootRegion = faceGraph.regions.get(faceGraph.rootId);
+    const rootBbox = polyBbox(rootRegion.polygon);
+    const rootSlab = slabMap.get(faceGraph.rootId);
+    const rootWorldX = (rootBbox.cx - silBbox.cx) * MM_PER_UNIT;
+    const rootWorldY = -(rootBbox.cy - silBbox.cy) * MM_PER_UNIT;
+    rootSlab.position.set(
+      rootWorldX - (activeAxle3js ? activeAxle3js.x : 0),
+      rootWorldY - (activeAxle3js ? activeAxle3js.y : 0),
+      0
+    );
+    pivot.add(rootSlab);
+
+    // BFS to wire hinges: parent slab → hinge → child slab
+    const visited = new Set([faceGraph.rootId]);
+    const queue = [faceGraph.rootId];
+    while (queue.length > 0) {
+      const parentId = queue.shift();
+      const parentRegion = faceGraph.regions.get(parentId);
+      const parentSlab = slabMap.get(parentId);
+      const parentBbox = polyBbox(parentRegion.polygon);
+
+      for (const { childId, edge } of parentRegion.childEdges) {
+        if (visited.has(childId)) continue;
+        visited.add(childId);
+
+        const childSlab = slabMap.get(childId);
+        const childBbox = polyBbox(faceGraph.regions.get(childId).polygon);
+
+        // Fold edge midpoint in SVG space
+        const [[ax, ay], [bx, by]] = edge.segment;
+        const midX = (ax + bx) / 2, midY = (ay + by) / 2;
+
+        // Hinge positioned in parent slab's local frame
+        const hinge = new THREE.Object3D();
+        hinge.position.set(
+          (midX - parentBbox.cx) * MM_PER_UNIT,
+          -(midY - parentBbox.cy) * MM_PER_UNIT,
+          0
+        );
+
+        // Rotation axis: fold segment direction in 3js coords (Y-flipped), normalised
+        const segLen = Math.hypot(bx - ax, by - ay);
+        const axis = new THREE.Vector3(
+          (bx - ax) / segLen,
+          -(by - ay) / segLen,
+          0
+        ).normalize();
+        hinge.userData.axis = axis;
+        hinge.userData.targetAngle = edge.defaultAngle * Math.PI / 180;
+        hinge.userData.pathId = edge.pathId;
+        hinge.quaternion.setFromAxisAngle(axis, 0); // flat at load
+
+        // Child slab positioned inside hinge so fold edge midpoint = hinge origin
+        childSlab.position.set(
+          (childBbox.cx - midX) * MM_PER_UNIT,
+           (midY - childBbox.cy) * MM_PER_UNIT,
+          0
+        );
+
+        hinge.add(childSlab);
+        parentSlab.add(hinge);
+
+        // Register in pathHingeMap for fold slider routing
+        const pid = edge.pathId;
+        if (!pathHingeMap.has(pid)) pathHingeMap.set(pid, []);
+        pathHingeMap.get(pid).push(hinge);
+
+        queue.push(childId);
+      }
+    }
+
+    // Orphan regions: render flat at silhouette-relative position
+    for (const [rId, region] of faceGraph.regions) {
+      if (!visited.has(rId)) {
+        const oBbox = polyBbox(region.polygon);
+        const oSlab = slabMap.get(rId);
+        oSlab.position.set(
+          (oBbox.cx - silBbox.cx) * MM_PER_UNIT - (activeAxle3js ? activeAxle3js.x : 0),
+          -(oBbox.cy - silBbox.cy) * MM_PER_UNIT - (activeAxle3js ? activeAxle3js.y : 0),
+          0
+        );
+        pivot.add(oSlab);
+      }
+    }
+
+    // Task 5: north marker → the region that contains p.north
+    if (p.north && activeAxle3js) {
+      const NORTH_R = 1.0;
+      const ngeo = new THREE.SphereGeometry(NORTH_R, 16, 12);
+      const nmat = new THREE.MeshStandardMaterial({ color: 0xb89e5b, metalness: 0.7, roughness: 0.35 });
+      const nmesh = new THREE.Mesh(ngeo, nmat);
+      let targetSlab = rootSlab;
+      let targetBbox = rootBbox;
+      for (const [rId, region] of faceGraph.regions) {
+        if (pointInPolygon(p.north.x, p.north.y, region.polygon)) {
+          targetSlab = slabMap.get(rId);
+          targetBbox = polyBbox(region.polygon);
+          break;
+        }
+      }
+      if (targetSlab === rootSlab && !pointInPolygon(p.north.x, p.north.y, rootRegion.polygon)) {
+        addBanner('north marker not inside any region — attaching to root slab.', 'warn');
+      }
+      nmesh.position.set(
+        (p.north.x - targetBbox.cx) * MM_PER_UNIT,
+        -(p.north.y - targetBbox.cy) * MM_PER_UNIT,
+        T / 2 + NORTH_R + 0.1
+      );
+      targetSlab.add(nmesh);
+    }
+
+  } else {
+    // Single-slab fallback (v1a behaviour)
+    const slab = buildSlab(poly, T);
+    const bb = silBbox;
+    if (activeAxle3js) {
+      slab.position.set(-activeAxle3js.x, -activeAxle3js.y, 0);
+    }
+    pivot.add(slab);
+
+    if (p.north && activeAxle3js) {
+      const NORTH_R = 1.0;
+      const ngeo = new THREE.SphereGeometry(NORTH_R, 16, 12);
+      const nmat = new THREE.MeshStandardMaterial({ color: 0xb89e5b, metalness: 0.7, roughness: 0.35 });
+      const nmesh = new THREE.Mesh(ngeo, nmat);
+      const nwx =  (p.north.x - bb.cx) * MM_PER_UNIT;
+      const nwy = -(p.north.y - bb.cy) * MM_PER_UNIT;
+      nmesh.position.set(nwx - activeAxle3js.x, nwy - activeAxle3js.y, T / 2 + NORTH_R + 0.1);
+      pivot.add(nmesh);
+    }
+  }
+
   scene.add(pivot);
   currentSlabPivot = pivot;
 
-  // Render every axle as a world-anchored silver wire passing through the
-  // axle point perpendicular to the slab. Wires sit OUTSIDE the pivot — they
-  // do not rotate with the piece, matching the physical clock where the wire
-  // is fixed to the framework.
+  // ── Axle wires (world-anchored, outside pivot) ────────────────────────────
   for (const { cx, cy } of p.axles) {
     const wire = buildAxleWire(
-      (cx - bb.cx) * MM_PER_UNIT,
-      -(cy - bb.cy) * MM_PER_UNIT,
+      (cx - silBbox.cx) * MM_PER_UNIT,
+      -(cy - silBbox.cy) * MM_PER_UNIT,
       T
     );
     scene.add(wire);
     currentAxleWires.push(wire);
   }
 
-  // Optional north marker — orientation cue. Brass-gold sphere INSIDE the
-  // rotation pivot, so it rotates with the piece and visually communicates
-  // the current angle relative to the as-authored 0°. Distinct color from
-  // the silver axle wire so the two read as separate elements.
-  if (p.north && activeAxle3js) {
-    const NORTH_R = 1.0;
-    const ngeo = new THREE.SphereGeometry(NORTH_R, 16, 12);
-    const nmat = new THREE.MeshStandardMaterial({
-      color: 0xb89e5b, metalness: 0.7, roughness: 0.35
-    });
-    const nmesh = new THREE.Mesh(ngeo, nmat);
-    // World position when rotation = 0:
-    const nwx =  (p.north.x - bb.cx) * MM_PER_UNIT;
-    const nwy = -(p.north.y - bb.cy) * MM_PER_UNIT;
-    // Local position inside the pivot (which is positioned at activeAxle3js):
-    nmesh.position.set(
-      nwx - activeAxle3js.x,
-      nwy - activeAxle3js.y,
-      T / 2 + NORTH_R + 0.1
-    );
-    pivot.add(nmesh);  // disposed via currentSlabPivot.traverse() at next teardown
+  // ── Fold controls UI (Task 1) ─────────────────────────────────────────────
+  const globalFoldRow   = document.getElementById('global-fold-row');
+  const perFoldSliders  = document.getElementById('per-fold-sliders');
+  const globalFoldSlider = document.getElementById('globalFoldSlider');
+  const globalFoldVal   = document.getElementById('globalFoldVal');
+
+  perFoldSliders.innerHTML = '';
+  if (useFoldTree && pathHingeMap.size > 0) {
+    globalFoldRow.style.display = '';
+    globalFoldSlider.value = 0;
+    globalFoldVal.textContent = '0%';
+
+    // One row per unique path id, in source order
+    const seenPids = new Set();
+    for (const fold of p.folds) {
+      const pid = fold.id ||
+        (fold.layer === 'folds-valley' ? 'valley-' : 'mountain-') + fold.sourceIndex;
+      if (seenPids.has(pid) || !pathHingeMap.has(pid)) continue;
+      seenPids.add(pid);
+
+      const hingeCount = pathHingeMap.get(pid).length;
+      const defAngle = fold.defaultAngle;
+
+      const row = document.createElement('div');
+      row.className = 'slider-row';
+      row.dataset.pathId = pid;
+      row.dataset.defaultAngle = defAngle;
+      row.innerHTML =
+        `<label style="min-width:90px;font-size:11px;overflow:hidden;text-overflow:ellipsis">${pid}</label>` +
+        `<input type="range" min="-180" max="180" step="1" value="0">` +
+        `<span class="val">0°</span>` +
+        `<span style="color:#666;font-size:10px;min-width:22px">×${hingeCount}</span>`;
+      perFoldSliders.appendChild(row);
+
+      const slider = row.querySelector('input');
+      const valSpan = row.querySelector('.val');
+      slider.addEventListener('input', () => {
+        const deg = parseFloat(slider.value);
+        valSpan.textContent = deg.toFixed(0) + '°';
+        const hinges = pathHingeMap.get(pid) || [];
+        for (const h of hinges) {
+          h.quaternion.setFromAxisAngle(h.userData.axis, deg * Math.PI / 180);
+        }
+        requestRender();
+      });
+    }
+  } else {
+    globalFoldRow.style.display = 'none';
   }
 
-  // Show / hide the rotation slider section based on whether this piece has
-  // an axle to rotate around.
+  // ── Rotation slider visibility ────────────────────────────────────────────
   rotationSection.hidden = (p.axles.length === 0);
-
-  // Apply the rotation slider's current value. On a fresh file load this is 0
-  // (loadSVG resets the slider). On a thickness rebuild we preserve whatever
-  // the user has the slider set to so the in-progress rotation doesn't jump.
-  // Sign: CW positive convention (Alan's choice 2026-05-02). three.js's
-  // rotation.z is CCW-positive (right-hand rule around +Z, which points
-  // toward viewer), so we negate.
   if (p.axles.length > 0) {
     const deg = parseFloat(rotateSlider.value) || 0;
     pivot.rotation.z = -deg * Math.PI / 180;
   }
 
-  // Frame camera
+  // ── Frame camera ──────────────────────────────────────────────────────────
   const diagUnits = Math.hypot(
-    (bb.maxX - bb.minX) * MM_PER_UNIT,
-    (bb.maxY - bb.minY) * MM_PER_UNIT
+    (silBbox.maxX - silBbox.minX) * MM_PER_UNIT,
+    (silBbox.maxY - silBbox.minY) * MM_PER_UNIT
   );
   const fovRad = camera.fov * Math.PI / 180;
   const dist   = (diagUnits / 2) / Math.tan(fovRad / 2) * 1.3;
@@ -1170,17 +1797,29 @@ async function renderScene(p) {
   controls.update();
   requestRender();
 
-  // Console diagnostics
+  // ── Console diagnostics (Task 8) ─────────────────────────────────────────
   const vFolds = p.folds.filter(f => f.layer === 'folds-valley').length;
   const mFolds = p.folds.filter(f => f.layer === 'folds-mountain').length;
   console.log('[preview.html] Loaded', p.filename);
   console.log('viewBox:', p.viewBox.w + 'x' + p.viewBox.h);
   console.log('Silhouette:', poly.length, 'verts, area', polyArea(poly).toFixed(0), 'units²');
-  console.log('Fold lines:', vFolds, 'valley,', mFolds, 'mountain  (parsed but not rendered in v1a)');
-  console.log('Root marker:', p.rootCentroid ? 'present, centroid (' + p.rootCentroid.x.toFixed(1) + ', ' + p.rootCentroid.y.toFixed(1) + ')' : 'absent');
+  console.log('Fold lines:', vFolds, 'valley,', mFolds, 'mountain');
+  console.log('Root marker:', p.rootCentroid ? 'present' : 'absent');
   console.log('Thickness:', p.thicknessMm, 'mm (source:', p.thicknessSource + ')');
   console.log('Axles:', p.axles.length);
   console.log('MM_PER_UNIT:', MM_PER_UNIT.toFixed(6));
+  if (faceGraph) {
+    console.log('Face graph:', faceGraph.regions.size, 'regions,',
+                faceGraph.foldEdges.length, 'fold edges,',
+                'root:', faceGraph.rootId, '(' + faceGraph.rootSource + ')');
+    console.log('Per-fold paths:',
+                [...pathHingeMap.entries()]
+                  .map(([id, hinges]) => `${id}: ${hinges.length} hinge${hinges.length > 1 ? 's' : ''}`)
+                  .join(', '));
+    if (faceGraph.sliverCount > 0)    console.log('Slivers filtered:', faceGraph.sliverCount);
+    if (faceGraph.orphanCount > 0)    console.log('Orphans (rendered flat):', faceGraph.orphanCount);
+    if (faceGraph.unknownTagCount > 0) console.log('Unknown-tag edges:', faceGraph.unknownTagCount);
+  }
 }
 
 // ─── buildSlab ────────────────────────────────────────────────────────────────
@@ -1299,11 +1938,26 @@ function buildScanTexture(scanPng) {
   return tex;
 }
 
+// ─── Global fold slider handler (Task 6) ─────────────────────────────────────
+document.getElementById('globalFoldSlider').addEventListener('input', function () {
+  const t = parseFloat(this.value) / 100;
+  document.getElementById('globalFoldVal').textContent = Math.round(this.value) + '%';
+  for (const row of document.querySelectorAll('#per-fold-sliders .slider-row')) {
+    const defAngle = parseFloat(row.dataset.defaultAngle) || 0;
+    const slider = row.querySelector('input[type=range]');
+    if (slider) {
+      slider.value = t * defAngle;
+      slider.dispatchEvent(new Event('input'));
+    }
+  }
+});
+
 // ─── Thickness slider ─────────────────────────────────────────────────────────
+// Task 7: face graph is stable across thickness changes; reuse p._faceGraph cache.
+// Only p._polygon is also stable (same silhouette). Both remain valid on rebuild.
 const debouncedRebuild = debounce(() => {
   if (!parsed) return;
   parsed.thicknessMm = parseFloat(thickSlider.value);
-  // renderScene handles slab + axle teardown (with disposal) at the top.
   renderScene(parsed);
 }, 80);
 
@@ -1312,13 +1966,26 @@ thickSlider.addEventListener('input', () => {
   debouncedRebuild();
 });
 
+// Reset button resets thickness + fold sliders (global + per-fold) but NOT rotation.
 resetBtn.addEventListener('click', () => {
   if (!parsed) return;
   const def = parsed.thicknessDefault;
-  if (parseFloat(thickSlider.value) === def) return;
   thickSlider.value = def;
   thickVal.textContent = def.toFixed(1) + ' mm';
   parsed.thicknessMm = def;
+
+  // Reset global fold slider
+  const gSlider = document.getElementById('globalFoldSlider');
+  const gVal    = document.getElementById('globalFoldVal');
+  gSlider.value = 0;
+  gVal.textContent = '0%';
+
+  // Reset each per-fold slider to 0° (flat)
+  for (const row of document.querySelectorAll('#per-fold-sliders .slider-row')) {
+    const slider = row.querySelector('input[type=range]');
+    if (slider) { slider.value = 0; slider.dispatchEvent(new Event('input')); }
+  }
+
   debouncedRebuild();
 });
 

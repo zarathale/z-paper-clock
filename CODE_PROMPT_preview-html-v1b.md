@@ -1,12 +1,15 @@
 ---
-status: ready-for-code
+status: shipped
 started: 2026-05-03
+shipped: 2026-05-03
 owner: Zarathale (Alan)
 target: preview-html-v1b
 parent: preview-html-v1
 depends_on: preview-html-v1a + cut-layer + texture-flip + back-face-mirror + perf + thickness-fix + axle-rotation
 supersedes: _archive/code-prompts/CODE_PROMPT_preview-html-v1b.md (archived 2026-05-03)
 ---
+
+_Shipped 2026-05-03; paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / ROADMAP.md for current state._
 
 ## What You Are Doing and Why
 
