@@ -1461,6 +1461,80 @@ function pointInPolygon(px, py, poly) {
   return inside;
 }
 
+// Segment-segment intersection. Returns null if parallel or out of range.
+// Otherwise returns { point, t, s } where t is parameter along (a→b) and
+// s is parameter along (c→d), both in [0, 1].
+function segmentSegmentIntersection(a, b, c, d) {
+  const dx1 = b[0] - a[0], dy1 = b[1] - a[1];
+  const dx2 = d[0] - c[0], dy2 = d[1] - c[1];
+  const det = dx1 * dy2 - dy1 * dx2;
+  if (Math.abs(det) < 1e-10) return null;     // parallel
+  const t = ((c[0] - a[0]) * dy2 - (c[1] - a[1]) * dx2) / det;
+  const s = ((c[0] - a[0]) * dy1 - (c[1] - a[1]) * dx1) / det;
+  if (t < -1e-9 || t > 1 + 1e-9) return null;
+  if (s < -1e-9 || s > 1 + 1e-9) return null;
+  return { point: [a[0] + t * dx1, a[1] + t * dy1], t, s };
+}
+
+// Find all points where the authored fold segment (p1→p2) crosses the polygon
+// boundary. Returns [{ point, polyEdgeIdx, t (along segment) }] sorted by t.
+// Deduplicates near-coincident hits at shared vertices.
+function findSegmentPolygonCrossings(p1, p2, polygon) {
+  const hits = [];
+  const n = polygon.length;
+  for (let i = 0; i < n; i++) {
+    const q1 = polygon[i];
+    const q2 = polygon[(i + 1) % n];
+    const inter = segmentSegmentIntersection(p1, p2, q1, q2);
+    if (inter) hits.push({ point: inter.point, polyEdgeIdx: i, t: inter.t });
+  }
+  hits.sort((a, b) => a.t - b.t);
+  const out = [];
+  for (const h of hits) {
+    const dup = out.some(o =>
+      Math.hypot(o.point[0] - h.point[0], o.point[1] - h.point[1]) < 1e-6
+    );
+    if (!dup) out.push(h);
+  }
+  return out;
+}
+
+// Split a polygon at two cut points c1, c2 (each = { point, polyEdgeIdx }) on
+// the polygon's boundary. Returns [polyA, polyB] — the two halves separated by
+// the chord c1→c2. Walks the polygon vertices: polyA contains the boundary
+// segment from c1 forward to c2; polyB contains the remaining boundary back
+// from c2 to c1. Both halves are closed by the chord.
+function splitPolygonAtChord(polygon, c1, c2) {
+  function tOnEdge(c) {
+    const i = c.polyEdgeIdx, n = polygon.length;
+    const [ax, ay] = polygon[i], [bx, by] = polygon[(i + 1) % n];
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    if (len2 < 1e-20) return 0;
+    return ((c.point[0] - ax) * dx + (c.point[1] - ay) * dy) / len2;
+  }
+  let first = c1, second = c2;
+  if (first.polyEdgeIdx > second.polyEdgeIdx ||
+     (first.polyEdgeIdx === second.polyEdgeIdx && tOnEdge(first) > tOnEdge(second))) {
+    [first, second] = [second, first];
+  }
+
+  const n = polygon.length;
+  const polyA = [];
+  const polyB = [];
+
+  for (let i = 0; i <= first.polyEdgeIdx; i++) polyA.push(polygon[i]);
+  polyA.push(first.point);
+  polyA.push(second.point);
+  for (let i = second.polyEdgeIdx + 1; i < n; i++) polyA.push(polygon[i]);
+
+  polyB.push(first.point);
+  for (let i = first.polyEdgeIdx + 1; i <= second.polyEdgeIdx; i++) polyB.push(polygon[i]);
+  polyB.push(second.point);
+
+  return [polyA, polyB];
+}
+
 // Build a half-plane polygon for polygon-clipping (GeoJSON ring format).
 // Returns the portion of bbox on side `sign` (+1=left, -1=right) of line start→end.
 // The fold line must already extend beyond bbox.
@@ -1607,62 +1681,58 @@ function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map(
     return [(ax + bx) / 2, (ay + by) / 2];
   }
 
-  // Compute edge tags for a clipped sub-polygon.
-  // inputEdgeTags: [{mid:[x,y], tag}] — midpoints + tags of the input polygon's edges
-  // foldLine: the fold that did this cut, or null
-  function computeEdgeTags(outPoly, inputEdgeTags, foldLine) {
+  let totalUnknown = 0;
+
+  // After a segment cut, the edges of an output sub-polygon are either:
+  // (a) the cut chord itself (gets the fold's pathId), or
+  // (b) a sub-segment of an input polygon edge (inherits the input edge's tag).
+  // Match the cut chord first by checking whether both endpoints + midpoint lie
+  // on the fold's cut-trim line within EDGE_EPS; otherwise nearest input edge.
+  function computeEdgeTagsForCut(outPoly, inputEdgeTags, fold) {
     const n = outPoly.length;
-    const tags = new Array(n);
-    let unknownCount = 0;
+    const result = new Array(n);
+    // Use the same endpoints as the cut (fold.start/fold.end) — these are the
+    // authored segment extended only to the NEAREST silhouette boundary in each
+    // direction (not to infinity), which is the cut-trim invariant.
+    const [fx1, fy1] = fold.start;
+    const [fx2, fy2] = fold.end;
 
     for (let i = 0; i < n; i++) {
-      const [mx, my] = edgeMidpoint(outPoly, i);
-      let assigned = false;
+      const [ax, ay] = outPoly[i];
+      const [bx, by] = outPoly[(i + 1) % n];
+      const mx = (ax + bx) / 2, my = (ay + by) / 2;
+      let tag;
 
-      // Check if on the fold line
-      if (foldLine) {
-        const d = ptToSegDist(mx, my, foldLine.start[0], foldLine.start[1],
-                                      foldLine.end[0],   foldLine.end[1]);
-        if (d < EDGE_EPS) {
-          tags[i] = foldLine.pathId;
-          assigned = true;
-        }
-      }
-
-      // Check ALL previous fold lines — handles edges split by later folds whose
-      // midpoints moved away from the original tagged midpoint.
-      if (!assigned) {
-        for (const prevFold of extendedFolds) {
-          if (prevFold === foldLine) continue; // already checked above
-          const d = ptToSegDist(mx, my, prevFold.start[0], prevFold.start[1],
-                                        prevFold.end[0],   prevFold.end[1]);
-          if (d < EDGE_EPS) {
-            tags[i] = prevFold.pathId;
-            assigned = true;
-            break;
-          }
-        }
-      }
-
-      if (!assigned) {
-        // Last resort: match to nearest input edge by midpoint distance
+      const dA = ptToSegDist(ax, ay, fx1, fy1, fx2, fy2);
+      const dB = ptToSegDist(bx, by, fx1, fy1, fx2, fy2);
+      const dM = ptToSegDist(mx, my, fx1, fy1, fx2, fy2);
+      if (dA < EDGE_EPS && dB < EDGE_EPS && dM < EDGE_EPS) {
+        tag = fold.pathId;
+      } else {
         let bestDist = Infinity, bestTag = 'unknown';
-        for (const { mid, tag } of inputEdgeTags) {
-          const dist = Math.hypot(mx - mid[0], my - mid[1]);
-          if (dist < bestDist) { bestDist = dist; bestTag = tag; }
+        for (const { mid, tag: t } of inputEdgeTags) {
+          const d = Math.hypot(mx - mid[0], my - mid[1]);
+          if (d < bestDist) { bestDist = d; bestTag = t; }
         }
-        if (bestDist < EDGE_EPS) {
-          tags[i] = bestTag;
-        } else {
-          tags[i] = 'unknown';
-          unknownCount++;
-        }
+        if (bestDist < EDGE_EPS) tag = bestTag;
+        else { tag = 'unknown'; totalUnknown++; }
       }
+      result[i] = { mid: [mx, my], tag };
     }
-    return { tags, unknownCount };
+    return result;
   }
 
-  // ── Step 1 & 2: iteratively split ────────────────────────────────────────────
+  // ── Step 1 & 2: iteratively split (cut-trim along authored segment) ──────────
+  // Each fold cuts only its own line segment — extended to the NEAREST
+  // silhouette boundary in each direction (NOT to infinity). For each fold,
+  // walk current regions and find segment/polygon boundary crossings; an even
+  // count → split at consecutive pairs; 0 → leave whole; 1 → degenerate
+  // (interior fold endpoint), keep whole and warn.
+  // Uses fold.start/fold.end (the extension function's bounded output) rather
+  // than fold.authoredStart/authoredEnd, because Alan typically draws fold
+  // segments slightly inside the silhouette (~5–15u short of the boundary);
+  // the bounded extension reaches the boundary cleanly while still being
+  // bounded by adjacent silhouette indentations (no phantom strips).
   let regions = [{
     polygon: silhouette,
     edgeTags: silhouette.map((_, i) => {
@@ -1672,46 +1742,61 @@ function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map(
     })
   }];
 
-  let totalUnknown = 0;
-
   for (const fold of extendedFolds) {
-    const left  = halfPlanePoly(bigBox, fold.start, fold.end, +1);
-    const right = halfPlanePoly(bigBox, fold.start, fold.end, -1);
-    if (!left || !right) {
-      console.warn('[preview.html] halfPlanePoly failed for fold', fold.pathId);
-      continue;
-    }
-
+    const p1 = fold.start;
+    const p2 = fold.end;
     const nextRegions = [];
-    for (const region of regions) {
-      const srcPoly = toPCPoly(region.polygon);
-      const inputEdgeTags = region.edgeTags;
 
-      for (const halfPoly of [left, right]) {
-        let clipped;
-        try {
-          clipped = polygonClipping.intersection(srcPoly, halfPoly);
-        } catch (e) {
-          console.warn('[preview.html] polygon-clipping error on fold', fold.pathId, e);
-          clipped = [];
-        }
-        for (const polygon of clipped) {
-          // polygon = [ outerRing, ...holes ] — we use the outer ring only
-          if (!polygon || !polygon[0] || polygon[0].length < 4) continue;
-          const outPoly = fromRing(polygon[0]);
-          if (outPoly.length < 3) continue;
-          const { tags, unknownCount } = computeEdgeTags(outPoly, inputEdgeTags, fold);
-          totalUnknown += unknownCount;
-          nextRegions.push({
-            polygon: outPoly,
-            edgeTags: outPoly.map((_, i) => ({
-              mid: edgeMidpoint(outPoly, i),
-              tag: tags[i]
-            }))
-          });
-        }
+    for (const region of regions) {
+      const crossings = findSegmentPolygonCrossings(p1, p2, region.polygon);
+
+      if (crossings.length === 0) {
+        nextRegions.push(region);
+        continue;
       }
+      if (crossings.length === 1) {
+        console.warn('[preview.html] fold', fold.pathId, 'has 1 boundary crossing in region — interior fold endpoint? Skipping cut.');
+        nextRegions.push(region);
+        continue;
+      }
+      if (crossings.length % 2 !== 0) {
+        console.warn('[preview.html] fold', fold.pathId, 'has', crossings.length,
+                     'boundary crossings (odd) — dropping last for pairwise cut.');
+        crossings.pop();
+      }
+
+      let workingHalves = [region];
+      for (let i = 0; i < crossings.length; i += 2) {
+        const c1 = crossings[i], c2 = crossings[i + 1];
+        const midX = (c1.point[0] + c2.point[0]) / 2;
+        const midY = (c1.point[1] + c2.point[1]) / 2;
+        const target = workingHalves.find(h => pointInPolygon(midX, midY, h.polygon));
+        if (!target) {
+          console.warn('[preview.html] fold', fold.pathId, 'pair', i / 2, 'midpoint not in any working half');
+          continue;
+        }
+        const rCrossings = findSegmentPolygonCrossings(p1, p2, target.polygon);
+        if (rCrossings.length < 2) {
+          console.warn('[preview.html] fold', fold.pathId, 'multi-cut re-find returned <2');
+          continue;
+        }
+        const matchC1 = rCrossings.find(h => Math.hypot(h.point[0] - c1.point[0], h.point[1] - c1.point[1]) < 1e-3) || rCrossings[0];
+        const matchC2 = rCrossings.find(h => Math.hypot(h.point[0] - c2.point[0], h.point[1] - c2.point[1]) < 1e-3) || rCrossings[1];
+        const [polyA, polyB] = splitPolygonAtChord(target.polygon, matchC1, matchC2);
+        if (polyA.length < 3 || polyB.length < 3) {
+          console.warn('[preview.html] fold', fold.pathId, 'cut produced degenerate halves');
+          continue;
+        }
+        const tagsA = computeEdgeTagsForCut(polyA, target.edgeTags, fold);
+        const tagsB = computeEdgeTagsForCut(polyB, target.edgeTags, fold);
+        const idx = workingHalves.indexOf(target);
+        workingHalves.splice(idx, 1,
+          { polygon: polyA, edgeTags: tagsA },
+          { polygon: polyB, edgeTags: tagsB });
+      }
+      nextRegions.push(...workingHalves);
     }
+
     regions = nextRegions;
   }
 
@@ -1832,190 +1917,59 @@ function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map(
     fold._diagMarkerRegionId = markerRegionId;
   }
 
-  // ── Step 5: adjacency ─────────────────────────────────────────────────────────
+  // ── Step 5: build foldEdges from shared-edge index ────────────────────────────
+  // Cut-trim invariant: every shared edge between two regions is either
+  // (a) a fold's cut chord — both endpoints lie on the fold's authored line
+  //     within EDGE_EPS — in which case it becomes a foldEdge, or
+  // (b) a sliver of original silhouette boundary that happens to sit between
+  //     two regions because consecutive silhouette vertices are co-linear with
+  //     an internal cut. Very rare; ignored (no foldEdge).
+  // One fold may produce multiple shared edges if it cut multiple separate
+  // regions or if its chord was further subdivided by a perpendicular fold.
   const foldEdges = [];
-
-  // Permissive distance threshold for marker-bound geometric adjacency.
-  // Co-linear authored folds (e.g. piece 066's 14 vertical tab/landing folds at
-  // x ≈ 2474/2491/2498/2501) collapse during iterative half-plane cuts: each
-  // tab's left edge gets trimmed to the OUTERMOST co-linear x, so an edge
-  // that's "on" fold-tab-a authored at x=2474 actually sits at x=2501 — 27
-  // units away. ADJ_EPS=1.0 is too tight to bridge that. Use a fraction of
-  // the silhouette diagonal so it scales with piece size; small enough to not
-  // cross-pollute non-co-linear folds.
-  const MARKER_FOLD_EPS = Math.max(ADJ_EPS, 0.003 * diagLen);
-
-  // Helper: is an edge's midpoint near a fold's authored line (within eps)?
-  function edgeOnFold(region, edgeIdx, fold, eps = ADJ_EPS) {
-    const n = region.polygon.length;
-    const [ax, ay] = region.polygon[edgeIdx];
-    const [bx, by] = region.polygon[(edgeIdx + 1) % n];
-    const mx = (ax + bx) / 2, my = (ay + by) / 2;
-    return ptToSegDist(mx, my, fold.start[0], fold.start[1], fold.end[0], fold.end[1]) < eps;
-  }
+  const usedSharedEdgeKeys = new Set();
 
   for (const fold of extendedFolds) {
-    // Find all regions adjacent across this fold.
-    //
-    // For UNIDENTIFIED folds: pathId-tag based — fast and works fine when each
-    // fold has unique geometry.
-    //
-    // For MARKER-BOUND folds (settled 2026-05-04): geometric — regions with
-    // any edge whose midpoint lies on this fold's authored line. Bypasses the
-    // tag-overwrite problem that arises with co-linear authored folds: when
-    // multiple folds share the same line (e.g. piece 066's 14 vertical
-    // tab/landing folds all at x ≈ 2474/2491/2498/2501 right and x ≈ 479/498/502
-    // left), the iterative cut's tag-priority logic lets the LAST same-line
-    // fold overwrite earlier folds' pathId tags. Earlier folds end up with no
-    // regions tagged with their pathId, so tag-based adjacency comes up empty.
-    // Geometric adjacency finds them all.
-    let adjacent = [];
-    if (fold.markerBoundId) {
-      for (const [rId, region] of regionMap) {
-        const hasEdgeOnFold = region.polygon.some((_, i) => edgeOnFold(region, i, fold, MARKER_FOLD_EPS));
-        if (hasEdgeOnFold) adjacent.push(rId);
-      }
-    } else {
-      for (const [rId, region] of regionMap) {
-        const hasTag = region.edgeTags.some(et => et.tag === fold.pathId);
-        if (hasTag) adjacent.push(rId);
-      }
-    }
-
-    // Marker-bound folds: resolve which-region by marker centroid containment.
-    // The marker's centroid identifies the moving region; pairs touching it
-    // become active, all other pairs become passive (kept for BFS connectivity,
-    // no driven hinge).
-    let markerRegionId = null;
-    if (fold.markerBoundId) {
-      const c = marksCentroidsById.get(fold.markerBoundId);
-      if (c) {
-        for (const rId of adjacent) {
-          if (pointInPolygon(c.x, c.y, regionMap.get(rId).polygon)) {
-            markerRegionId = rId;
-            break;
-          }
-        }
-        if (!markerRegionId) {
-          // Marker centroid wasn't in any geometrically-adjacent region —
-          // likely the fold didn't actually subdivide the silhouette near the
-          // marker (degenerate fold or marker placed off-piece). Banner-warn
-          // and fall through to passive-only handling.
-          addBanner(`Marker-bound fold "${fold.markerBoundId}" — centroid not inside any region adjacent across this fold. Falling back to geometric algorithm.`, 'warn');
-        }
-      }
-    }
-
-    // For each pair, check overlap on the fold's infinite line > ADJ_EPS
-    for (let i = 0; i < adjacent.length; i++) {
-      for (let j = i + 1; j < adjacent.length; j++) {
-        const rA = regionMap.get(adjacent[i]);
-        const rB = regionMap.get(adjacent[j]);
-
-        // Collect edges on this fold's line for each region.
-        // Marker-bound folds use geometric matching (edge midpoint near the
-        // fold's authored line) since pathId tags may have been overwritten by
-        // co-linear folds. Unidentified folds use the existing pathId-based
-        // matching.
-        let edgesA, edgesB;
-        if (fold.markerBoundId) {
-          edgesA = rA.polygon.map((_, idx) => edgeOnFold(rA, idx, fold, MARKER_FOLD_EPS) ? idx : -1).filter(x => x >= 0);
-          edgesB = rB.polygon.map((_, idx) => edgeOnFold(rB, idx, fold, MARKER_FOLD_EPS) ? idx : -1).filter(x => x >= 0);
-        } else {
-          edgesA = rA.edgeTags
-            .map((et, idx) => et.tag === fold.pathId ? idx : -1).filter(x => x >= 0);
-          edgesB = rB.edgeTags
-            .map((et, idx) => et.tag === fold.pathId ? idx : -1).filter(x => x >= 0);
-        }
-
-        // Project each edge onto the fold line and find overlap
-        const [fax, fay] = fold.start;
-        const fdx = fold.end[0] - fax, fdy = fold.end[1] - fay;
-        const flen = Math.hypot(fdx, fdy);
-        if (flen < 1e-10) continue;
-        const fux = fdx / flen, fuy = fdy / flen;
-
-        function projectEdge(region, edgeIdx) {
-          const n = region.polygon.length;
-          const [ax, ay] = region.polygon[edgeIdx];
-          const [bx, by] = region.polygon[(edgeIdx + 1) % n];
-          const ta = (ax - fax) * fux + (ay - fay) * fuy;
-          const tb = (bx - fax) * fux + (by - fay) * fuy;
-          return [Math.min(ta, tb), Math.max(ta, tb)];
-        }
-
-        // Pairwise overlap check: find the best-overlapping pair (one edge from A,
-        // one from B). The previous intersection-of-all-intervals approach collapsed
-        // to zero whenever a region had multiple non-overlapping tagged edges on the
-        // same fold line (common for non-convex pieces like 069).
-        // Track best-overlapping pair separately so the sentinel starts at -Infinity
-        // without the NaN pitfall of (-Infinity) - (-Infinity).
-        let bestOverlap = -Infinity, overlapMin = 0, overlapMax = 0;
-        for (const eiA of edgesA) {
-          const [loA, hiA] = projectEdge(rA, eiA);
-          for (const eiB of edgesB) {
-            const [loB, hiB] = projectEdge(rB, eiB);
-            const oMin = Math.max(loA, loB);
-            const oMax = Math.min(hiA, hiB);
-            const o = oMax - oMin;
-            if (o > bestOverlap) {
-              bestOverlap = o;
-              overlapMin = oMin;
-              overlapMax = oMax;
-            }
-          }
-        }
-
-        const overlap = bestOverlap;
-        if (overlap <= ADJ_EPS) continue;
-
-        // Record the shared fold edge segment (midpoint of the overlapping interval)
-        const segMid = (overlapMin + overlapMax) / 2;
-
-        // Mark fold edges whose overlap midpoint falls outside the AUTHORED fold
-        // segment range as "passive". The half-plane cut always clips the full
-        // silhouette, so a fold like valley-5 (authored only for center→g) also
-        // creates fold edges in the left/right arm areas. Rejecting those edges
-        // would orphan the arm sub-regions; instead we keep them for BFS
-        // connectivity but flag them so no driven hinge (and no slider) is created.
-        //
-        // Marker-bound folds (settled 2026-05-04) override this: the marker
-        // centroid containment resolves which-region directly. Pairs touching
-        // markerRegionId are active; pairs not involving markerRegionId are
-        // passive (kept for BFS connectivity, no driven hinge).
-        let passive = false;
-        if (markerRegionId) {
-          // Marker-bound: only edges touching the marker's region are active.
-          if (adjacent[i] !== markerRegionId && adjacent[j] !== markerRegionId) {
-            passive = true;
-          }
-        } else if (fold.authoredStart && fold.authoredEnd) {
-          // Geometric fallback (unidentified folds + marker-bound folds whose
-          // marker centroid couldn't be located in a tagged region).
-          const taMin = (fold.authoredStart[0] - fax) * fux + (fold.authoredStart[1] - fay) * fuy;
-          const taMax = (fold.authoredEnd[0]   - fax) * fux + (fold.authoredEnd[1]   - fay) * fuy;
-          const tLo = Math.min(taMin, taMax) - ADJ_EPS * 10;
-          const tHi = Math.max(taMin, taMax) + ADJ_EPS * 10;
-          if (segMid < tLo || segMid > tHi) passive = true;
-        }
-        const segHalf = overlap / 2;
-        const segA = [fax + (segMid - segHalf) * fux, fay + (segMid - segHalf) * fuy];
-        const segB = [fax + (segMid + segHalf) * fux, fay + (segMid + segHalf) * fuy];
-
-        const fe = {
+    // Match using fold.start/fold.end (cut-trim line), same endpoints used to
+    // perform the cut — keeps tagging consistent with cut geometry.
+    const [fx1, fy1] = fold.start;
+    const [fx2, fy2] = fold.end;
+    for (const se of sharedEdges) {
+      if (usedSharedEdgeKeys.has(se.key)) continue;  // each SE matches at most one fold
+      const [[ax, ay], [bx, by]] = se.endpoints;
+      const dA = ptToSegDist(ax, ay, fx1, fy1, fx2, fy2);
+      const dB = ptToSegDist(bx, by, fx1, fy1, fx2, fy2);
+      if (dA < EDGE_EPS && dB < EDGE_EPS) {
+        foldEdges.push({
           pathId: fold.pathId,
           layer: fold.layer,
           polarity: fold.layer === 'folds-valley' ? 'valley' : 'mountain',
           defaultAngle: fold.defaultAngle,
-          passive,
-          segment: [segA, segB],
+          segment: se.endpoints,
           sourceFold: { id: fold.id, layer: fold.layer, sourceIndex: fold.sourceIndex },
-          regionA: adjacent[i],
-          regionB: adjacent[j]
-        };
-        foldEdges.push(fe);
+          regionA: se.regionA,
+          regionB: se.regionB
+        });
+        usedSharedEdgeKeys.add(se.key);
       }
     }
+  }
+
+  // Banner-warn on folds with no foldEdge — likely degenerate or off-piece.
+  const foldsWithEdge = new Set(foldEdges.map(fe => fe.pathId));
+  for (const fold of extendedFolds) {
+    if (!foldsWithEdge.has(fold.pathId)) {
+      addBanner(`Fold "${fold.pathId}" — no cut chord found in face graph (degenerate fold or off-piece).`, 'warn');
+    }
+  }
+
+  // Defensive: every foldEdge should reference real regions in regionMap.
+  let badFoldEdgeCount = 0;
+  for (const fe of foldEdges) {
+    if (!regionMap.has(fe.regionA) || !regionMap.has(fe.regionB)) badFoldEdgeCount++;
+  }
+  if (badFoldEdgeCount > 0) {
+    addBanner(`Face graph: ${badFoldEdgeCount} foldEdge(s) reference unknown regions — bug.`, 'error');
   }
 
   // ── Step 6: root ──────────────────────────────────────────────────────────────
@@ -2044,68 +1998,52 @@ function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map(
 
   regionMap.get(rootId).isRoot = true;
 
-  // ── Step 7: Two-pass BFS ──────────────────────────────────────────────────────
-  // Pass 1 uses only ACTIVE (non-passive) edges so that regions with both an
-  // active and a passive connection always get their correct driven-hinge parent.
-  // Example: b-tab has an active fold-1 edge to c-panel AND a passive fold-4
-  // edge to right-outer-arm. right-outer-arm has a lower sourceIndex than
-  // c-panel, so a single-pass BFS would claim b-tab from the wrong parent.
-  // Pass 2 picks up any regions that are only reachable via passive edges (arm
-  // sub-regions created by half-plane over-extension) and attaches them to the
-  // nearest already-visited region.
+  // ── Step 6.5: marker → region map ─────────────────────────────────────────────
+  // Forward-look infrastructure for the assembly engine (M4): every authored
+  // marker resolved to the region containing its centroid. Cross-piece pairing
+  // (tab-X.regionId on piece N ⟷ landing-XN.regionId on piece M) drives the
+  // per-piece transforms. Today this is read-only data; no current consumer in
+  // preview.html beyond the diagnostic overlay's per-region marker labels.
+  const markerToRegionId = new Map();
+  const markersByRegion = new Map();
+  for (const [rId] of regionMap) markersByRegion.set(rId, []);
+  for (const [markerId, c] of marksCentroidsById) {
+    for (const [rId, region] of regionMap) {
+      if (pointInPolygon(c.x, c.y, region.polygon)) {
+        markerToRegionId.set(markerId, rId);
+        markersByRegion.get(rId).push(markerId);
+        break;
+      }
+    }
+  }
+
+  // ── Step 7: BFS ──────────────────────────────────────────────────────────────
+  // Single pass: with cut-trim, every foldEdge is a real authored cut chord —
+  // no passive distinction is needed.
   const visited = new Set([rootId]);
   let orphanCount = 0;
 
-  // Build two adjacency lists: active-only and all-edges
-  const adjListActive = new Map();
-  const adjListAll    = new Map();
-  for (const [rId] of regionMap) { adjListActive.set(rId, []); adjListAll.set(rId, []); }
+  const adjList = new Map();
+  for (const [rId] of regionMap) adjList.set(rId, []);
   for (const fe of foldEdges) {
-    adjListAll.get(fe.regionA).push({ neighborId: fe.regionB, fe });
-    adjListAll.get(fe.regionB).push({ neighborId: fe.regionA, fe });
-    if (!fe.passive) {
-      adjListActive.get(fe.regionA).push({ neighborId: fe.regionB, fe });
-      adjListActive.get(fe.regionB).push({ neighborId: fe.regionA, fe });
-    }
+    adjList.get(fe.regionA).push({ neighborId: fe.regionB, fe });
+    adjList.get(fe.regionB).push({ neighborId: fe.regionA, fe });
   }
-  // Sort by sourceIndex for deterministic ordering in both lists
-  for (const [, neighbors] of adjListActive)
-    neighbors.sort((a, b) => a.fe.sourceFold.sourceIndex - b.fe.sourceFold.sourceIndex);
-  for (const [, neighbors] of adjListAll)
+  for (const [, neighbors] of adjList)
     neighbors.sort((a, b) => a.fe.sourceFold.sourceIndex - b.fe.sourceFold.sourceIndex);
 
-  // Pass 1: BFS with active edges only — establishes correct driven-hinge parents
-  const queue1 = [rootId];
-  while (queue1.length > 0) {
-    const curId = queue1.shift();
+  const queue = [rootId];
+  while (queue.length > 0) {
+    const curId = queue.shift();
     const cur = regionMap.get(curId);
-    for (const { neighborId, fe } of (adjListActive.get(curId) || [])) {
+    for (const { neighborId, fe } of (adjList.get(curId) || [])) {
       if (visited.has(neighborId)) continue;
       visited.add(neighborId);
       const neighbor = regionMap.get(neighborId);
       neighbor.parentId = curId;
       neighbor.parentEdge = fe;
       cur.childEdges.push({ childId: neighborId, edge: fe });
-      queue1.push(neighborId);
-    }
-  }
-
-  // Pass 2: BFS with all edges — attaches regions only reachable via passive
-  // edges (e.g. arm sub-regions cut off by half-plane over-extension).
-  // Starts from the full visited frontier so every pass-1 node can serve as
-  // a root for passive-edge attachment.
-  const queue2 = [...visited];
-  while (queue2.length > 0) {
-    const curId = queue2.shift();
-    const cur = regionMap.get(curId);
-    for (const { neighborId, fe } of (adjListAll.get(curId) || [])) {
-      if (visited.has(neighborId)) continue;
-      visited.add(neighborId);
-      const neighbor = regionMap.get(neighborId);
-      neighbor.parentId = curId;
-      neighbor.parentEdge = fe;
-      cur.childEdges.push({ childId: neighborId, edge: fe });
-      queue2.push(neighborId);
+      queue.push(neighborId);
     }
   }
 
@@ -2132,7 +2070,8 @@ function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map(
       vertexCount: r.polygon.length,
       isRoot: r.isRoot,
       parentId: r.parentId,
-      edgeTags: r.edgeTags.map(et => et.tag)
+      edgeTags: r.edgeTags.map(et => et.tag),
+      markerIds: markersByRegion.get(r.id) || []
     })),
     folds: extendedFolds.map(f => ({
       id: f.id,
@@ -2151,7 +2090,6 @@ function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map(
       pathId: fe.pathId,
       layer: fe.layer,
       polarity: fe.polarity,
-      passive: fe.passive,
       regionA: fe.regionA,
       regionB: fe.regionB,
       segment: fe.segment,
@@ -2165,12 +2103,13 @@ function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map(
     marksCentroidsById: Array.from(marksCentroidsById.entries()).map(([id, c]) => ({
       markerId: id, x: c.x, y: c.y
     })),
+    markerToRegionId: Array.from(markerToRegionId.entries()).map(
+      ([markerId, rId]) => ({ markerId, regionId: rId })
+    ),
     summary: {
       regionCount: regionMap.size,
       foldCount: extendedFolds.length,
       foldEdgeCount: foldEdges.length,
-      activeFoldEdgeCount: foldEdges.filter(fe => !fe.passive).length,
-      passiveFoldEdgeCount: foldEdges.filter(fe => fe.passive).length,
       sharedEdgeCount: sharedEdges.length,
       rootId: rootId,
       rootSource: rootSource,
@@ -2187,6 +2126,7 @@ function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map(
     orphanCount,
     unknownTagCount: totalUnknown,
     rootSource,
+    markerToRegionId,
     _diag
   };
 }
@@ -2386,15 +2326,8 @@ async function renderScene(p) {
         const foldDot = childRelX * (-axis.y) + childRelY * axis.x;
         const signFwd = foldDot >= 0 ? 1 : -1;
         hinge.userData.signFwd = signFwd;
-        // Passive edges are outside the authored fold segment (created by the
-        // infinite half-plane cut extending into adjacent arm regions). They
-        // still need to be in the scene hierarchy so those regions aren't
-        // orphaned, but they never animate — targetAngle stays 0.
-        hinge.userData.targetAngle = edge.passive
-          ? 0
-          : signFwd * (-edge.defaultAngle) * Math.PI / 180;
+        hinge.userData.targetAngle = signFwd * (-edge.defaultAngle) * Math.PI / 180;
         hinge.userData.pathId = edge.pathId;
-        hinge.userData.passive = !!edge.passive;
         hinge.quaternion.setFromAxisAngle(axis, 0); // flat at load
 
         // Child slab positioned inside hinge so fold edge midpoint = hinge origin
@@ -2407,12 +2340,9 @@ async function renderScene(p) {
         hinge.add(childSlab);
         parentSlab.add(hinge);
 
-        // Passive hinges: don't register in pathHingeMap (no slider, never animated)
-        if (!edge.passive) {
-          const pid = edge.pathId;
-          if (!pathHingeMap.has(pid)) pathHingeMap.set(pid, []);
-          pathHingeMap.get(pid).push(hinge);
-        }
+        const pid = edge.pathId;
+        if (!pathHingeMap.has(pid)) pathHingeMap.set(pid, []);
+        pathHingeMap.get(pid).push(hinge);
 
         queue.push(childId);
       }
@@ -3047,11 +2977,15 @@ function renderFaceGraphOverlay(diag) {
     }));
   }
 
-  // 7) Region id labels at area-weighted centroids
+  // 7) Region id labels at area-weighted centroids; if the region owns markers,
+  //    append "{markerId, ...}" so authoring can confirm marker→region binding.
   for (const r of regionsArr) {
     if (!r.polygon || r.polygon.length < 3) continue;
     const [cx, cy] = polyCentroid2D(r.polygon);
-    svg.appendChild(mkText(cx, cy, r.id, {
+    const labelText = r.markerIds && r.markerIds.length > 0
+      ? `${r.id} {${r.markerIds.join(', ')}}`
+      : r.id;
+    svg.appendChild(mkText(cx, cy, labelText, {
       'font-size': sw(0.008),
       'text-anchor': 'middle',
       fill: '#fff',
@@ -3074,8 +3008,8 @@ function logFaceGraphSummary(diag) {
   const piece = diag.pieceFile || 'unknown';
   console.log(
     `[face-graph] piece=${piece} regions=${s.regionCount} folds=${s.foldCount} ` +
-    `active-edges=${s.activeFoldEdgeCount} passive-edges=${s.passiveFoldEdgeCount} ` +
-    `shared-edges=${s.sharedEdgeCount} slivers-filtered=${s.sliverFiltered}`
+    `fold-edges=${s.foldEdgeCount} shared-edges=${s.sharedEdgeCount} ` +
+    `slivers-filtered=${s.sliverFiltered}`
   );
   const SUSPECT_DIST = 5;
   console.groupCollapsed('[face-graph] folds:');
