@@ -3,8 +3,13 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# Affinity Designer working files — lock files (open documents) and editor backups
+# Affinity Designer working files — lock files (open documents) and editor backups.
+# Affinity uses different lock-file naming on different platforms:
+#   macOS / Linux:  .~lock.<filename>.af#   (LibreOffice-style)
+#   Windows:        <filename>.af~lock~     (tilde-lock-tilde suffix)
+# Editor-backup form is <filename>.af~ (tilde at end, no further suffix).
 .~lock.*.af#
+*.af~lock~
 *.af~
 
 # Claude Code internals — keep settings.json (committed), ignore worktree state and per-machine overrides
