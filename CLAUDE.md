@@ -132,6 +132,8 @@ Every Cowork session that touches repo files, and every Code session that ships 
 
 **Filename pattern:** `YYYY-MM-DD-HHMM_mode_short-topic.md`
 
+HHMM is **Pacific/Seattle local time** (i.e. what the clock on Zarathale's mac shows — no UTC conversion). Use 24-hour format.
+
 Examples: `2026-04-29-1400_cowork_3d-viewer-spec.md`, `2026-05-15-0900_code_M1-pipeline-plate-d.md`.
 
 **Required front matter:**
@@ -268,6 +270,8 @@ gh pr create \
 ---
 
 ## Ending a Session
+
+**Trigger rule:** Claude never starts the session-closing sequence (session note, doc-sweep, commit message) until Zarathale explicitly says to close the session — e.g. "wrap up", "close the session", "let's close", "ok go ahead", or similar. Claude may *suggest* closing when the work seems naturally complete, but must wait for the go-ahead before doing any closing steps. A suggestion sounds like: "Looks like a good stopping point — want me to close the session?" — then stop.
 
 ### Cowork sessions
 
@@ -435,7 +439,7 @@ Do not reopen these without Zarathale.
 
 > For a scannable cheat sheet of the SVG authoring conventions (layer names, per-element ids, common slips), see `LAYER-CONVENTIONS.md` at repo root. The list below is the authoritative source; the cheat sheet is the distilled version designed to stay open while editing in Affinity.
 
-- **Session notes:** `YYYY-MM-DD-HHMM_mode_short-topic.md` in `sessions/`. Datetime, not date-only. **HHMM collision rule:** if a previous session note already exists for the same `YYYY-MM-DD-HHMM`, bump the new note to a non-colliding HHMM (15:00 + 15:30, not 15:00 + 15:00). Front-matter `start_time` should match the filename's HHMM, even if it's a small fudge from the actual clock — filename and front matter agree, and the HHMM is just a unique-key, not a time log.
+- **Session notes:** `YYYY-MM-DD-HHMM_mode_short-topic.md` in `sessions/`. Datetime, not date-only. HHMM is **Pacific/Seattle local time** (24-hour; what the clock on Zarathale's mac shows — no UTC conversion). **HHMM collision rule:** if a previous session note already exists for the same `YYYY-MM-DD-HHMM`, bump the new note to a non-colliding HHMM (15:00 + 15:30, not 15:00 + 15:00). Front-matter `start_time` should match the filename's HHMM, even if it's a small fudge from the actual clock — filename and front matter agree, and the HHMM is just a unique-key, not a time log.
 - **Orchestration prompts:** `CODE_PROMPT_<target>.md` at repo root. `<target>` is either `M<n>-<short>` for milestone work or `v<x.y.z>` for version ships.
 - **Per-piece source archive:** `source/pieces/NNN.png` (lossless PNG). Three-digit zero-padded. Letter variants suffix lowercase: `092a.png`, `112a.png`.
 - **Per-piece working folder:** `work/pieces/NNN/` holds everything for piece NNN — authoring file `NNN.af` (Affinity Designer; Alan opens this), latest export `NNN.svg`, sidecar `NNN.json`, and any optional pipeline-produced `crop.png`. Three-digit zero-padded piece number; letter variants are appended (`092a.af`, `092a.svg`, `092a.json`). The `piece-` prefix used in the M1 archive (`work/_archive/m1-plate-d-phone/pieces/0NN/piece-0NN.svg`) is retired going forward — the folder name `NNN/` already provides the context, and dropping the prefix makes authoring + export + sidecar filenames parallel with the source archive's bare-form `NNN.png`. Authoring iteration variants (e.g. an exploratory branch) go in a per-piece scratch zone like `work/pieces/NNN/_attic/`, not at the canonical filename. Affinity lock files (`.~lock.NNN.af#`) and editor backups (`NNN.af~`) are gitignored. (Variant suffixes like `NNN-full.af` are accepted by the audit but flagged informationally — pick one canonical and retire the rest.)

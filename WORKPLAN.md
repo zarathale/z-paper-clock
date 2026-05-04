@@ -100,8 +100,8 @@ next_action: Decide which pendulum pieces to author next (in service of the regi
 
 ```yaml
 status: active
-last_updated: 2026-05-04
-next_action: Hand CODE_PROMPT_preview-html-v1b.md (status: ready-for-code, authored 2026-05-03 against current preview.html + SPEC-REGIONS.md) to a Code session. Verify the test SVGs (work/pieces/069/069.svg, work/pieces/066/066.svg — paths bumped during the 2026-05-03 filesystem restructure) still parse to the expected fold counts before kicking off.
+last_updated: 2026-05-03
+next_action: End-to-end verify v1b in-browser — open preview.html from file://, load piece 069 by id, confirm face-graph stats in console (13 regions), move global fold slider 0→100%. Then decide: 0.6.10 (cutouts), 0.6.13 (architecture decision), or both.
 ```
 
 **Hypothesis.** A single-file HTML preview tool at repo root is the right substrate for testing SVG authoring conventions piece-by-piece, while the eventual `work/viewer/` Vite + TS + three.js application is still upstream. Each new convention or fix gets its own `CODE_PROMPT_preview-html-<topic>.md` and ships independently. The architecture decision (graduate into `work/viewer/`, stay separate, or replace `work/viewer/` outright) is intentionally deferred until v1b ships.
@@ -115,6 +115,7 @@ next_action: Hand CODE_PROMPT_preview-html-v1b.md (status: ready-for-code, autho
 
 **Recent log.**
 
+- 2026-05-03 (session-start sweep): v1b end-to-end verification (069 + 066 in-browser) still pending — flagged in ROADMAP.md 0.6.9 task row.
 - 2026-05-04 (just past midnight): **M0.6.14 shipped.** `CODE_PROMPT_preview-html-source-of-truth.md` flipped to `shipped`. `preview.html` now opens any piece by id (Enter, Load button, or `?piece=NNN` URL param) from `work/pieces/NNN/NNN.svg`, with `R` / Reload re-fetching from disk (cache-busted), an optional `NNN.json` `function` sidecar block, drag-drop fallback retained with a soft canonical-home nudge banner when a per-piece-shaped filename is dropped from outside the canonical tree, and a datalist auto-populated from `work/pieces.csv`. No parser or render-pipeline changes. Verified live against pieces 001/066/067/069/070/999 + URL-param + `R` keybind. See `sessions/2026-05-04-0030_code_preview-html-source-of-truth.md`.
 - 2026-05-03 (evening): **`CODE_PROMPT_preview-html-source-of-truth.md` queued (status: ready-for-code).** Pairs with the same-day filesystem restructure. Adds a piece-id loader to `preview.html` so it always knows the canonical location for any piece's latest export — `work/pieces/NNN/NNN.svg`. Drag-drop retained as fallback for ad-hoc inspection. Optional reload + sidecar-surfacing nice-to-have. M0.6.14 in the roadmap. NOTE for the v1b prompt: its verification paths (`inbox/069.svg`, `inbox/066.svg`) get bumped to `work/pieces/069/069.svg` and `work/pieces/066/066.svg` as part of the filesystem restructure CODE_PROMPT.
 - 2026-05-03: clean-start `CODE_PROMPT_preview-html-v1b.md` authored at repo root (status: ready-for-code). Grounded in current `preview.html` (real signatures: `currentSlabPivot`, `buildSlab(polygon, thicknessMm)`, `extractSilhouette` Tier-1/2/3, `parsed.{folds,axles,north,rootCentroid}`, render-on-demand `requestRender()`, etc.) and `work/SPEC-REGIONS.md` (terminology + two-step algorithm: extend folds to silhouette boundary, then iteratively split via `polygon-clipping` half-plane intersection). Eight tasks; verification + manual tests scoped to 069 + 066. Rotation pivot wraps the whole fold tree; polarity in UI is implicit (default angle only). See `sessions/2026-05-03-0300_cowork_v1b-clean-start.md`.
@@ -154,7 +155,7 @@ next_action: Hand CODE_PROMPT_filesystem-restructure.md to a Code session — it
 ```yaml
 status: active
 last_updated: 2026-05-03
-next_action: Hand CODE_PROMPT_tag-pieces-v2-schema.md (status: ready-for-code, repo root) to a Code session — updates tag-pieces.html to read/write the v2 schema and seeds INITIAL_STATE from work/piece_characters_v2.yaml so Alan keeps the work already done. After ship, Alan refines subtypes + flips piece 041. Then Cowork for the pieces.csv `character` + `subtype` merge, expected_layers.yaml v1 keyed by character, and CODE_PROMPT_dashboard-and-audit-v2.md.
+next_action: tag-pieces.html v2 schema shipped. Alan refines subtypes + flips piece 041 in the tagger. Then Cowork: merge `character` + `subtype` into pieces.csv, author expected_layers.yaml v1 keyed by character, draft CODE_PROMPT_dashboard-and-audit-v2.md.
 ```
 
 **Hypothesis.** Per-piece state ("where is each piece in its lifecycle") needs its own surface, separate from work-state (this document). A small Python audit script reads the filesystem (`source/pieces/`, `work/pieces/`, `inbox/`, `source/scans-chunks/`, etc.) and emits a per-piece JSON file (or a single fat `state.json`) reflecting which stages each piece has reached. Generated, never hand-maintained — eliminates the "I forgot to update the CSV" failure mode. Output becomes the basis for an eventual browser-rendered dashboard.

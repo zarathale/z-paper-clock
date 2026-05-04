@@ -48,7 +48,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#1a1a1a; color
 #rotation-section { display:flex; flex-direction:column; gap:6px; }
 #rotation-section[hidden] { display:none; }
 
-#piece-section { display:flex; flex-direction:column; gap:6px; }
+#piece-section { position:relative; display:flex; flex-direction:column; gap:6px; }
 #piece-section .piece-row { display:flex; align-items:center; gap:6px; }
 #piece-section .piece-row label { color:#aaa; }
 #piece-section input#pieceInput {
@@ -58,6 +58,31 @@ html, body { width:100%; height:100%; overflow:hidden; background:#1a1a1a; color
 }
 #piece-section input#pieceInput:focus { outline:none; border-color:#7af; }
 #piece-section button[disabled] { opacity:0.4; cursor:not-allowed; }
+
+/* ── custom piece autocomplete dropdown ────────────────────────────── */
+#piece-dropdown {
+  position:absolute; top:34px; left:0; right:0; z-index:50;
+  background:#252525; border:1px solid #484848; border-radius:4px;
+  max-height:260px; overflow-y:auto;
+  box-shadow:0 4px 14px rgba(0,0,0,.55);
+}
+.po {
+  display:flex; align-items:center; gap:8px;
+  padding:5px 8px; cursor:pointer; user-select:none;
+}
+.po:hover, .po.hi { background:#333; }
+.po img {
+  width:36px; height:36px; object-fit:contain;
+  background:#111; border-radius:2px; flex-shrink:0;
+}
+.po-id {
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  color:#e8e3da; font-size:13px; min-width:36px; flex-shrink:0;
+}
+.po-desc {
+  color:#777; font-size:11px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;
+}
 #sidecar-block {
   display:none; font-family:ui-monospace,Menlo,Consolas,monospace;
   font-size:11px; color:#aaa; white-space:pre;
@@ -93,12 +118,12 @@ button:hover { background:#383838; }
   <div id="piece-section">
     <div class="piece-row">
       <label for="pieceInput">Piece</label>
-      <input id="pieceInput" list="piece-list" placeholder="069 or 092a"
+      <input id="pieceInput" placeholder="069 or 092a"
              pattern="^\d{1,3}[a-z]?$" autocomplete="off" spellcheck="false">
       <button id="loadBtn">Load</button>
       <button id="reloadPieceBtn" disabled title="Re-fetch from disk (R)">Reload</button>
     </div>
-    <datalist id="piece-list"></datalist>
+    <div id="piece-dropdown" hidden></div>
     <div id="sidecar-block"></div>
   </div>
 
@@ -116,6 +141,8 @@ button:hover { background:#383838; }
       <label>Fold all</label>
       <input type="range" id="globalFoldSlider" min="0" max="100" step="1" value="0">
       <span class="val" id="globalFoldVal">0%</span>
+      <button id="flatBtn"     title="Set all folds to flat (0%)"     style="font-size:10px;padding:1px 5px;margin-left:4px;background:#2a2a2a;color:#aaa;border:1px solid #444;border-radius:3px;cursor:pointer">Flat</button>
+      <button id="assembledBtn" title="Set all folds to assembled (100%)" style="font-size:10px;padding:1px 5px;margin-left:2px;background:#2a2a2a;color:#8cf;border:1px solid #4a6a8a;border-radius:3px;cursor:pointer">Assembled</button>
     </div>
     <!-- per-fold sliders: cleared + rebuilt by renderScene -->
     <div id="per-fold-sliders"></div>
@@ -197,7 +224,8 @@ const pieceInput      = document.getElementById('pieceInput');
 const loadBtn         = document.getElementById('loadBtn');
 const reloadPieceBtn  = document.getElementById('reloadPieceBtn');
 const sidecarBlock    = document.getElementById('sidecar-block');
-const pieceListEl     = document.getElementById('piece-list');
+const pieceDropdown   = document.getElementById('piece-dropdown');
+let   allPieceEntries = []; // [{id, notes}] sorted by piece number; populated async
 
 // Piece-id loader: tracks the canonical piece currently displayed (set by
 // loadPieceById, cleared back to null by drag-drop / file-picker paths so
@@ -428,33 +456,137 @@ function hideSidecarBlock() {
   sidecarBlock.textContent = '';
 }
 
-// Best-effort autocomplete: pulls the id column out of work/pieces.csv into
-// the <datalist>. Silent on failure (file:// blocks fetch, CSV missing) —
-// the placeholder text is enough hint without it.
+// ─── CSV line parser (handles quoted fields with commas inside) ───────────────
+function parseCSVLine(line) {
+  const out = []; let cur = '', inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { out.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  out.push(cur);
+  return out;
+}
+
+// ─── Piece autocomplete dropdown ──────────────────────────────────────────────
+// Loads work/pieces.csv, parses id + notes, sorts numerically, then wires a
+// custom dropdown onto #pieceInput. Silent on failure (file:// blocks fetches
+// unless a local server is running; the Load button still works without it).
 async function populatePieceDatalist() {
   try {
-    const r = await fetch('work/pieces.csv');
-    if (!r.ok) return;
-    const text = await r.text();
-    const ids = [];
-    for (const line of text.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const id = trimmed.split(',')[0];
-      if (/^\d{3}[a-z]?$/.test(id)) ids.push(id);
+    // Fetch pieces.csv (descriptions) and state.json (which pieces have SVGs) in parallel.
+    const [csvRes, stateRes] = await Promise.all([
+      fetch('work/pieces.csv'),
+      fetch('work/state.json').catch(() => null)
+    ]);
+    if (!csvRes.ok) return;
+
+    // Build the set of piece IDs that have an SVG on disk.
+    const svgStages = new Set(['svg_drafted', 'svg_validated']);
+    let svgIds = null; // null = state.json unavailable, show everything
+    if (stateRes && stateRes.ok) {
+      try {
+        const state = await stateRes.json();
+        svgIds = new Set(
+          Object.entries(state.pieces || {})
+            .filter(([, info]) => svgStages.has(info.stage))
+            .map(([id]) => id)
+        );
+      } catch { /* malformed state.json — fall back to showing all */ }
     }
-    pieceListEl.innerHTML = ids.map(id => `<option value="${id}">`).join('');
-  } catch { /* expected on file:// — skip silently */ }
+
+    const entries = [];
+    for (const line of (await csvRes.text()).split('\n')) {
+      const t = line.trim();
+      if (!t || t.startsWith('#')) continue;
+      const parts = parseCSVLine(t);
+      const id = parts[0];
+      if (!/^\d{3}[a-z]?$/.test(id)) continue;
+      if (svgIds && !svgIds.has(id)) continue; // skip pieces with no SVG
+      entries.push({ id, notes: parts[5] || '' });
+    }
+    entries.sort((a, b) => {
+      const na = parseInt(a.id, 10), nb = parseInt(b.id, 10);
+      return na !== nb ? na - nb : a.id.localeCompare(b.id);
+    });
+    allPieceEntries = entries;
+  } catch { /* silent — file:// blocks fetch */ }
+}
+
+let acActiveIdx = -1;
+
+function renderDropdown(filter) {
+  const q = filter.trim().toLowerCase();
+  const items = q
+    ? allPieceEntries.filter(e => e.id.includes(q) || e.notes.toLowerCase().includes(q))
+    : allPieceEntries;
+  if (!items.length) { closeDropdown(); return; }
+  pieceDropdown.innerHTML = '';
+  for (const { id, notes } of items) {
+    const el = document.createElement('div');
+    el.className = 'po'; el.dataset.id = id;
+    const img = document.createElement('img');
+    img.src = `source/pieces/${id}.png`; img.loading = 'lazy';
+    img.onerror = () => { img.style.display = 'none'; };
+    const idS = document.createElement('span'); idS.className = 'po-id'; idS.textContent = id;
+    const dS  = document.createElement('span'); dS.className  = 'po-desc'; dS.textContent = notes;
+    el.append(img, idS, dS);
+    el.addEventListener('mousedown', e => {
+      e.preventDefault(); // keep input focused
+      loadPieceById(id);
+      closeDropdown();
+    });
+    pieceDropdown.appendChild(el);
+  }
+  pieceDropdown.hidden = false;
+  acActiveIdx = -1;
+}
+
+function closeDropdown() { pieceDropdown.hidden = true; acActiveIdx = -1; }
+
+function moveAcHighlight(dir) {
+  const opts = Array.from(pieceDropdown.querySelectorAll('.po'));
+  if (!opts.length) return;
+  opts[acActiveIdx]?.classList.remove('hi');
+  acActiveIdx = Math.max(0, Math.min(acActiveIdx + dir, opts.length - 1));
+  opts[acActiveIdx].classList.add('hi');
+  opts[acActiveIdx].scrollIntoView({ block: 'nearest' });
 }
 
 // ─── Piece-section event wiring ───────────────────────────────────────────────
-loadBtn.addEventListener('click', () => loadPieceById(pieceInput.value));
+loadBtn.addEventListener('click', () => { loadPieceById(pieceInput.value); closeDropdown(); });
 reloadPieceBtn.addEventListener('click', () => reloadCurrentPiece());
 
+pieceInput.addEventListener('input', () => renderDropdown(pieceInput.value));
+pieceInput.addEventListener('focus', () => renderDropdown(pieceInput.value));
+
 pieceInput.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (pieceDropdown.hidden) renderDropdown(pieceInput.value);
+    else moveAcHighlight(1);
+    return;
+  }
+  if (e.key === 'ArrowUp')  { e.preventDefault(); moveAcHighlight(-1); return; }
+  if (e.key === 'Escape')   { closeDropdown(); return; }
   if (e.key === 'Enter') {
     e.preventDefault();
-    loadPieceById(pieceInput.value);
+    const hi = pieceDropdown.querySelector('.po.hi');
+    if (!pieceDropdown.hidden && hi) {
+      loadPieceById(hi.dataset.id);
+    } else {
+      loadPieceById(pieceInput.value);
+    }
+    closeDropdown();
+  }
+});
+
+// Close dropdown on click outside the piece-section
+document.addEventListener('mousedown', e => {
+  if (!pieceDropdown.hidden &&
+      !pieceDropdown.contains(e.target) &&
+      e.target !== pieceInput) {
+    closeDropdown();
   }
 });
 
@@ -593,15 +725,8 @@ function parseSVG(text, filename) {
   parseFoldLayer(layerValley,   'folds-valley',   -90);
   parseFoldLayer(layerMountain, 'folds-mountain', +90);
 
-  const hasValley   = layerValley   && layerValley.querySelectorAll('path').length   > 0;
-  const hasMountain = layerMountain && layerMountain.querySelectorAll('path').length > 0;
-  if (!hasValley && !hasMountain) {
-    addBanner('No fold-valley or fold-mountain layers — rendering flat.', 'warn');
-  } else if (!hasValley) {
-    addBanner('No fold-valley layer.', 'warn');
-  } else if (!hasMountain) {
-    // mountain absent is expected on many pieces; no banner
-  }
+  // No banners for missing fold layers here — emitted as green info banners
+  // at the end of renderScene so they sort to the bottom.
 
   // Axles + optional `north` marker (orientation cue).
   // Convention (settled 2026-05-02): inside <g id="axles">, an element with
@@ -627,8 +752,8 @@ function parseSVG(text, filename) {
       if (!isNaN(cx) && !isNaN(cy)) axles.push({ cx, cy });
     }
   }
-  if (!layerAxles || axles.length === 0) addBanner('Axles empty — no pivot marker.', 'warn');
-  if (north && axles.length === 0) addBanner('north marker authored without an axle — orientation cue ignored.', 'warn');
+  // Axles-empty info banner deferred to end of renderScene (green, bottom).
+  if (north && axles.length === 0) addBanner('north element found in <g id="axles"> but no axle markers present — orientation cue ignored.', 'warn');
 
   // Root marker
   let rootCentroid = null;
@@ -668,7 +793,7 @@ function parseSVG(text, filename) {
       if (!isNaN(val) && val > 0) { thicknessMm = val; thicknessSource = 'text-layer'; }
     }
   }
-  if (thicknessSource === 'default') addBanner('Thickness layer missing — using 0.4 mm default.', 'warn');
+  // Thickness-default info banner deferred to end of renderScene (green, bottom).
 
   return {
     filename, viewBox,
@@ -679,7 +804,7 @@ function parseSVG(text, filename) {
     rootCentroid,
     thicknessMm, thicknessDefault: thicknessMm, thicknessSource,
     _svgText: text,   // kept for silhouette fallback path parsing
-    _polygon: null,   // cached silhouette polygon (set by renderScene)
+    _polygons: null,  // cached silhouette polygon array (set by renderScene)
     _faceGraph: null  // cached face graph (set by renderScene, invalidated on new load)
   };
 }
@@ -878,7 +1003,7 @@ function derivePPM(p, callback) {
 //     anything else                     → unrecognised, console.warn
 //   <g id="cutouts"> is a SIBLING layer (interior holes); v1a-fix does NOT consume it.
 //
-// Returns array of [vx, vy] in viewBox coords, or null if layer absent / no cutaways found.
+// Returns array of polygon arrays ([[vx,vy][])[]) or null if layer absent / no cutaways found.
 function extractSilhouetteFromLayer(p) {
   const dom = new DOMParser().parseFromString(p._svgText, 'image/svg+xml');
   const layer = dom.querySelector('g#silhouette');
@@ -925,20 +1050,13 @@ function extractSilhouetteFromLayer(p) {
     return null;
   }
 
-  if (cutaways.length > 1) {
-    addBanner(
-      `Found ${cutaways.length} cutaways (${cutaways.map(c => c.id).join(', ')}); ` +
-      `v1a renders only the first. Multi-slab support is pending.`,
-      'warn'
-    );
-  }
-
-  const chosen = cutaways[0];
-  const simplified = rdp(chosen.poly, 1.0);
-  console.log('[preview.html] Silhouette: from <g id="silhouette"> #' + chosen.id + ',',
-              chosen.poly.length, 'verts →', simplified.length,
-              'simplified, area', polyArea(simplified).toFixed(0), 'units² (source: layer)');
-  return simplified;
+  return cutaways.map(c => {
+    const s = rdp(c.poly, 1.0);
+    console.log('[preview.html] Silhouette: from <g id="silhouette"> #' + c.id + ',',
+                c.poly.length, 'verts →', s.length,
+                'simplified, area', polyArea(s).toFixed(0), 'units² (source: layer)');
+    return s;
+  });
 }
 
 // Convert a leaf shape element to [[vx, vy], ...] in its own local viewBox coords.
@@ -1020,7 +1138,7 @@ async function extractSilhouette(p) {
             console.log('[preview.html] Silhouette: raw', rawPoly.length, 'verts → simplified',
                         simplified.length, 'verts, area', polyArea(simplified).toFixed(0),
                         'units² (source: alpha)');
-            return simplified;
+            return [simplified];
           }
           addBanner('Marching squares produced no contour — falling back to SVG path.', 'error');
         }
@@ -1031,7 +1149,8 @@ async function extractSilhouette(p) {
   // Tier 3: largest closed colored path in the SVG body (heuristic)
   addBanner('No <g id="silhouette"> and no usable PNG alpha — falling back to ' +
             'largest colored path heuristic. This may pick the wrong shape.', 'warn');
-  return extractSilhouettePath(p);
+  const p3 = extractSilhouettePath(p);
+  return p3 ? [p3] : null;
 }
 
 function extractSilhouettePath(p) {
@@ -1329,7 +1448,7 @@ function extendFoldsToSilhouette(silhouette, folds) {
     const ux = (ex - sx) / len; // unit direction
     const uy = (ey - sy) / len;
 
-    // Collect all t values where the infinite line intersects silhouette edges
+    // Collect all t values where the infinite line intersects silhouette edges.
     const ts = [];
     for (let i = 0; i < n; i++) {
       const [p1x, p1y] = silhouette[i];
@@ -1338,12 +1457,14 @@ function extendFoldsToSilhouette(silhouette, folds) {
       if (t !== null) ts.push(t);
     }
 
-    // tMin = smallest t ≤ 0 (extends backward past start), or 0 if none
-    // tMax = largest t ≥ len (extends forward past end), or len if none
+    // Extend to the NEAREST silhouette boundary in each direction from the authored
+    // endpoints — NOT the farthest.
+    // tMin: the nearest intersection behind the start (largest t ≤ 0), or 0 if none
+    // tMax: the nearest intersection ahead of the end (smallest t ≥ len), or len if none
     const before = ts.filter(t => t <= 0 + 1e-6);
     const after  = ts.filter(t => t >= len - 1e-6);
-    const tMin = before.length > 0 ? Math.min(...before) : 0;
-    const tMax = after.length  > 0 ? Math.max(...after)  : len;
+    const tMin = before.length > 0 ? Math.max(...before) : 0;
+    const tMax = after.length  > 0 ? Math.min(...after)  : len;
 
     const pathId = fold.id ||
       (fold.layer === 'folds-valley' ? 'valley-' : 'mountain-') + fold.sourceIndex;
@@ -1356,6 +1477,10 @@ function extendFoldsToSilhouette(silhouette, folds) {
       sourceIndex: fold.sourceIndex,
       start: [sx + (tMin - EPS) * ux, sy + (tMin - EPS) * uy],
       end:   [sx + (tMax + EPS) * ux, sy + (tMax + EPS) * uy],
+      // Authored (pre-extension) start and end — used in adjacency step to reject
+      // fold edges whose overlap midpoint falls outside the segment the author drew.
+      authoredStart: [sx, sy],
+      authoredEnd:   [ex, ey],
     };
   });
 }
@@ -1412,16 +1537,31 @@ function buildFaceGraph(silhouette, extendedFolds) {
 
       // Check if on the fold line
       if (foldLine) {
-        const d = ptToLineDist(mx, my, foldLine.start[0], foldLine.start[1],
-                                       foldLine.end[0],   foldLine.end[1]);
+        const d = ptToSegDist(mx, my, foldLine.start[0], foldLine.start[1],
+                                      foldLine.end[0],   foldLine.end[1]);
         if (d < EDGE_EPS) {
           tags[i] = foldLine.pathId;
           assigned = true;
         }
       }
 
+      // Check ALL previous fold lines — handles edges split by later folds whose
+      // midpoints moved away from the original tagged midpoint.
       if (!assigned) {
-        // Match to nearest input edge by midpoint distance
+        for (const prevFold of extendedFolds) {
+          if (prevFold === foldLine) continue; // already checked above
+          const d = ptToSegDist(mx, my, prevFold.start[0], prevFold.start[1],
+                                        prevFold.end[0],   prevFold.end[1]);
+          if (d < EDGE_EPS) {
+            tags[i] = prevFold.pathId;
+            assigned = true;
+            break;
+          }
+        }
+      }
+
+      if (!assigned) {
+        // Last resort: match to nearest input edge by midpoint distance
         let bestDist = Infinity, bestTag = 'unknown';
         for (const { mid, tag } of inputEdgeTags) {
           const dist = Math.hypot(mx - mid[0], my - mid[1]);
@@ -1561,23 +1701,48 @@ function buildFaceGraph(silhouette, extendedFolds) {
           return [Math.min(ta, tb), Math.max(ta, tb)];
         }
 
-        let overlapMin = -Infinity, overlapMax = Infinity;
-        for (const ei of edgesA) {
-          const [lo, hi] = projectEdge(rA, ei);
-          overlapMin = Math.max(overlapMin, lo);
-          overlapMax = Math.min(overlapMax, hi);
-        }
-        for (const ei of edgesB) {
-          const [lo, hi] = projectEdge(rB, ei);
-          overlapMin = Math.max(overlapMin, lo);
-          overlapMax = Math.min(overlapMax, hi);
+        // Pairwise overlap check: find the best-overlapping pair (one edge from A,
+        // one from B). The previous intersection-of-all-intervals approach collapsed
+        // to zero whenever a region had multiple non-overlapping tagged edges on the
+        // same fold line (common for non-convex pieces like 069).
+        // Track best-overlapping pair separately so the sentinel starts at -Infinity
+        // without the NaN pitfall of (-Infinity) - (-Infinity).
+        let bestOverlap = -Infinity, overlapMin = 0, overlapMax = 0;
+        for (const eiA of edgesA) {
+          const [loA, hiA] = projectEdge(rA, eiA);
+          for (const eiB of edgesB) {
+            const [loB, hiB] = projectEdge(rB, eiB);
+            const oMin = Math.max(loA, loB);
+            const oMax = Math.min(hiA, hiB);
+            const o = oMax - oMin;
+            if (o > bestOverlap) {
+              bestOverlap = o;
+              overlapMin = oMin;
+              overlapMax = oMax;
+            }
+          }
         }
 
-        const overlap = overlapMax - overlapMin;
+        const overlap = bestOverlap;
         if (overlap <= ADJ_EPS) continue;
 
         // Record the shared fold edge segment (midpoint of the overlapping interval)
         const segMid = (overlapMin + overlapMax) / 2;
+
+        // Mark fold edges whose overlap midpoint falls outside the AUTHORED fold
+        // segment range as "passive". The half-plane cut always clips the full
+        // silhouette, so a fold like valley-5 (authored only for center→g) also
+        // creates fold edges in the left/right arm areas. Rejecting those edges
+        // would orphan the arm sub-regions; instead we keep them for BFS
+        // connectivity but flag them so no driven hinge (and no slider) is created.
+        let passive = false;
+        if (fold.authoredStart && fold.authoredEnd) {
+          const taMin = (fold.authoredStart[0] - fax) * fux + (fold.authoredStart[1] - fay) * fuy;
+          const taMax = (fold.authoredEnd[0]   - fax) * fux + (fold.authoredEnd[1]   - fay) * fuy;
+          const tLo = Math.min(taMin, taMax) - ADJ_EPS * 10;
+          const tHi = Math.max(taMin, taMax) + ADJ_EPS * 10;
+          if (segMid < tLo || segMid > tHi) passive = true;
+        }
         const segHalf = overlap / 2;
         const segA = [fax + (segMid - segHalf) * fux, fay + (segMid - segHalf) * fuy];
         const segB = [fax + (segMid + segHalf) * fux, fay + (segMid + segHalf) * fuy];
@@ -1587,6 +1752,7 @@ function buildFaceGraph(silhouette, extendedFolds) {
           layer: fold.layer,
           polarity: fold.layer === 'folds-valley' ? 'valley' : 'mountain',
           defaultAngle: fold.defaultAngle,
+          passive,
           segment: [segA, segB],
           sourceFold: { id: fold.id, layer: fold.layer, sourceIndex: fold.sourceIndex },
           regionA: adjacent[i],
@@ -1623,38 +1789,72 @@ function buildFaceGraph(silhouette, extendedFolds) {
 
   regionMap.get(rootId).isRoot = true;
 
-  // ── Step 7: BFS ───────────────────────────────────────────────────────────────
+  // ── Step 7: Two-pass BFS ──────────────────────────────────────────────────────
+  // Pass 1 uses only ACTIVE (non-passive) edges so that regions with both an
+  // active and a passive connection always get their correct driven-hinge parent.
+  // Example: b-tab has an active fold-1 edge to c-panel AND a passive fold-4
+  // edge to right-outer-arm. right-outer-arm has a lower sourceIndex than
+  // c-panel, so a single-pass BFS would claim b-tab from the wrong parent.
+  // Pass 2 picks up any regions that are only reachable via passive edges (arm
+  // sub-regions created by half-plane over-extension) and attaches them to the
+  // nearest already-visited region.
   const visited = new Set([rootId]);
-  const queue = [rootId];
   let orphanCount = 0;
 
-  // Build adjacency list from foldEdges
-  const adjList = new Map(); // regionId → [{neighborId, foldEdge}]
-  for (const [rId] of regionMap) adjList.set(rId, []);
+  // Build two adjacency lists: active-only and all-edges
+  const adjListActive = new Map();
+  const adjListAll    = new Map();
+  for (const [rId] of regionMap) { adjListActive.set(rId, []); adjListAll.set(rId, []); }
   for (const fe of foldEdges) {
-    adjList.get(fe.regionA).push({ neighborId: fe.regionB, fe });
-    adjList.get(fe.regionB).push({ neighborId: fe.regionA, fe });
+    adjListAll.get(fe.regionA).push({ neighborId: fe.regionB, fe });
+    adjListAll.get(fe.regionB).push({ neighborId: fe.regionA, fe });
+    if (!fe.passive) {
+      adjListActive.get(fe.regionA).push({ neighborId: fe.regionB, fe });
+      adjListActive.get(fe.regionB).push({ neighborId: fe.regionA, fe });
+    }
   }
-  // Sort neighbors by sourceIndex for deterministic BFS
-  for (const [, neighbors] of adjList) {
+  // Sort by sourceIndex for deterministic ordering in both lists
+  for (const [, neighbors] of adjListActive)
     neighbors.sort((a, b) => a.fe.sourceFold.sourceIndex - b.fe.sourceFold.sourceIndex);
-  }
+  for (const [, neighbors] of adjListAll)
+    neighbors.sort((a, b) => a.fe.sourceFold.sourceIndex - b.fe.sourceFold.sourceIndex);
 
-  while (queue.length > 0) {
-    const curId = queue.shift();
+  // Pass 1: BFS with active edges only — establishes correct driven-hinge parents
+  const queue1 = [rootId];
+  while (queue1.length > 0) {
+    const curId = queue1.shift();
     const cur = regionMap.get(curId);
-    for (const { neighborId, fe } of (adjList.get(curId) || [])) {
+    for (const { neighborId, fe } of (adjListActive.get(curId) || [])) {
       if (visited.has(neighborId)) continue;
       visited.add(neighborId);
       const neighbor = regionMap.get(neighborId);
       neighbor.parentId = curId;
       neighbor.parentEdge = fe;
       cur.childEdges.push({ childId: neighborId, edge: fe });
-      queue.push(neighborId);
+      queue1.push(neighborId);
     }
   }
 
-  for (const [rId, region] of regionMap) {
+  // Pass 2: BFS with all edges — attaches regions only reachable via passive
+  // edges (e.g. arm sub-regions cut off by half-plane over-extension).
+  // Starts from the full visited frontier so every pass-1 node can serve as
+  // a root for passive-edge attachment.
+  const queue2 = [...visited];
+  while (queue2.length > 0) {
+    const curId = queue2.shift();
+    const cur = regionMap.get(curId);
+    for (const { neighborId, fe } of (adjListAll.get(curId) || [])) {
+      if (visited.has(neighborId)) continue;
+      visited.add(neighborId);
+      const neighbor = regionMap.get(neighborId);
+      neighbor.parentId = curId;
+      neighbor.parentEdge = fe;
+      cur.childEdges.push({ childId: neighborId, edge: fe });
+      queue2.push(neighborId);
+    }
+  }
+
+  for (const [rId] of regionMap) {
     if (!visited.has(rId)) {
       orphanCount++;
       addBanner(`Region ${rId} is unreachable from root — rendered flat.`, 'warn');
@@ -1724,23 +1924,35 @@ async function renderScene(p) {
   }
   currentAxleWires = [];
 
-  // Extract silhouette — cached on p._polygon so thickness rebuilds skip re-extraction
-  if (!p._polygon) p._polygon = await extractSilhouette(p);
-  const poly = p._polygon;
-  if (!poly) return;
+  // Extract silhouette — cached on p._polygons so thickness rebuilds skip re-extraction
+  if (!p._polygons) p._polygons = await extractSilhouette(p);
+  const polys = p._polygons;
+  if (!polys || polys.length === 0) return;
 
   VB = p.viewBox;
 
   const T = p.thicknessMm;
-  const silBbox = polyBbox(poly);
+  const isMultiCutaway = polys.length > 1;
+
+  // Combined bounding box across all polygons — used as the world-space reference origin.
+  const silBbox = (() => {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const poly of polys)
+      for (const [x, y] of poly) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    return { minX, maxX, minY, maxY, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
+  })();
 
   // ── Face graph or single-slab ─────────────────────────────────────────────
-  // Build (or reuse cached) face graph when the SVG has fold layers.
+  // Build (or reuse cached) face graph when the SVG has fold layers (single-cutaway only).
   let faceGraph = null;
-  if (p.folds.length > 0) {
+  if (!isMultiCutaway && p.folds.length > 0) {
+    const poly0 = polys[0];
     if (!p._faceGraph) {
-      const extFolds = extendFoldsToSilhouette(poly, p.folds);
-      p._faceGraph = buildFaceGraph(poly, extFolds);
+      const extFolds = extendFoldsToSilhouette(poly0, p.folds);
+      p._faceGraph = buildFaceGraph(poly0, extFolds);
     }
     faceGraph = p._faceGraph;
   }
@@ -1749,10 +1961,9 @@ async function renderScene(p) {
 
   if (!useFoldTree) {
     if (p.folds.length > 0 && !faceGraph) {
-      addBanner('Face graph build failed — rendering single slab.', 'warn');
-    } else if (p.folds.length === 0) {
-      addBanner('No folds parsed; rendering single slab.', 'warn');
+      addBanner('Face graph build failed — rendering as single slab.', 'warn');
     }
+    // p.folds.length === 0 case is covered by the green info banner at the end.
   }
 
   // ── Compute active axle in 3js coords ────────────────────────────────────
@@ -1830,8 +2041,23 @@ async function renderScene(p) {
           0
         ).normalize();
         hinge.userData.axis = axis;
-        hinge.userData.targetAngle = edge.defaultAngle * Math.PI / 180;
+        // Compute which direction is "toward viewer" for this child/parent pair.
+        // dot > 0 means the child extends in the naturally forward direction for this axis.
+        // Valley folds (defaultAngle < 0) should fold toward viewer; mountain away.
+        const childRelX = (childBbox.cx - midX) * MM_PER_UNIT;
+        const childRelY = (midY - childBbox.cy) * MM_PER_UNIT;
+        const foldDot = childRelX * (-axis.y) + childRelY * axis.x;
+        const signFwd = foldDot >= 0 ? 1 : -1;
+        hinge.userData.signFwd = signFwd;
+        // Passive edges are outside the authored fold segment (created by the
+        // infinite half-plane cut extending into adjacent arm regions). They
+        // still need to be in the scene hierarchy so those regions aren't
+        // orphaned, but they never animate — targetAngle stays 0.
+        hinge.userData.targetAngle = edge.passive
+          ? 0
+          : signFwd * (-edge.defaultAngle) * Math.PI / 180;
         hinge.userData.pathId = edge.pathId;
+        hinge.userData.passive = !!edge.passive;
         hinge.quaternion.setFromAxisAngle(axis, 0); // flat at load
 
         // Child slab positioned inside hinge so fold edge midpoint = hinge origin
@@ -1844,10 +2070,12 @@ async function renderScene(p) {
         hinge.add(childSlab);
         parentSlab.add(hinge);
 
-        // Register in pathHingeMap for fold slider routing
-        const pid = edge.pathId;
-        if (!pathHingeMap.has(pid)) pathHingeMap.set(pid, []);
-        pathHingeMap.get(pid).push(hinge);
+        // Passive hinges: don't register in pathHingeMap (no slider, never animated)
+        if (!edge.passive) {
+          const pid = edge.pathId;
+          if (!pathHingeMap.has(pid)) pathHingeMap.set(pid, []);
+          pathHingeMap.get(pid).push(hinge);
+        }
 
         queue.push(childId);
       }
@@ -1893,10 +2121,24 @@ async function renderScene(p) {
       targetSlab.add(nmesh);
     }
 
+  } else if (isMultiCutaway) {
+    // Multi-cutaway: build one flat slab per disconnected piece, positioned at its centroid.
+    for (const poly of polys) {
+      const bb = polyBbox(poly);
+      const slab = buildSlab(poly, T);
+      slab.position.set(
+        (bb.cx - silBbox.cx) * MM_PER_UNIT - (activeAxle3js ? activeAxle3js.x : 0),
+        -(bb.cy - silBbox.cy) * MM_PER_UNIT - (activeAxle3js ? activeAxle3js.y : 0),
+        0
+      );
+      pivot.add(slab);
+    }
+    // North marker skipped for multi-cutaway (no single anchor slab).
+
   } else {
     // Single-slab fallback (v1a behaviour)
+    const poly = polys[0];
     const slab = buildSlab(poly, T);
-    const bb = silBbox;
     if (activeAxle3js) {
       slab.position.set(-activeAxle3js.x, -activeAxle3js.y, 0);
     }
@@ -1907,6 +2149,7 @@ async function renderScene(p) {
       const ngeo = new THREE.SphereGeometry(NORTH_R, 16, 12);
       const nmat = new THREE.MeshStandardMaterial({ color: 0xb89e5b, metalness: 0.7, roughness: 0.35 });
       const nmesh = new THREE.Mesh(ngeo, nmat);
+      const bb = polyBbox(poly);
       const nwx =  (p.north.x - bb.cx) * MM_PER_UNIT;
       const nwy = -(p.north.y - bb.cy) * MM_PER_UNIT;
       nmesh.position.set(nwx - activeAxle3js.x, nwy - activeAxle3js.y, T / 2 + NORTH_R + 0.1);
@@ -1950,16 +2193,25 @@ async function renderScene(p) {
 
       const hingeCount = pathHingeMap.get(pid).length;
       const defAngle = fold.defaultAngle;
+      // Authored if the SVG element id explicitly encodes an angle: fold-90, fold+45, etc.
+      const isAuthored = /^fold[+-]/.test(fold.id);
+      // Assembled badge: blue for authored angles, grey for layer defaults.
+      const assembledBadge =
+        `<span title="Assembled angle (authored in SVG id)" ` +
+        `style="color:${isAuthored ? '#8cf' : '#666'};font-size:10px;min-width:36px;` +
+        `text-align:right;flex-shrink:0">→${defAngle > 0 ? '+' : ''}${defAngle}°</span>`;
 
       const row = document.createElement('div');
       row.className = 'slider-row';
       row.dataset.pathId = pid;
       row.dataset.defaultAngle = defAngle;
       row.innerHTML =
-        `<label style="min-width:90px;font-size:11px;overflow:hidden;text-overflow:ellipsis">${pid}</label>` +
+        `<label style="min-width:90px;font-size:11px;overflow:hidden;text-overflow:ellipsis" ` +
+        `title="${isAuthored ? 'Assembled angle authored in SVG id' : 'Layer default angle — add fold±N id to author'}">${pid}</label>` +
         `<input type="range" min="-180" max="180" step="1" value="0">` +
         `<span class="val">0°</span>` +
-        `<span style="color:#666;font-size:10px;min-width:22px">×${hingeCount}</span>`;
+        `<span style="color:#666;font-size:10px;min-width:22px">×${hingeCount}</span>` +
+        assembledBadge;
       perFoldSliders.appendChild(row);
 
       const slider = row.querySelector('input');
@@ -1969,7 +2221,9 @@ async function renderScene(p) {
         valSpan.textContent = deg.toFixed(0) + '°';
         const hinges = pathHingeMap.get(pid) || [];
         for (const h of hinges) {
-          h.quaternion.setFromAxisAngle(h.userData.axis, deg * Math.PI / 180);
+          // signFwd encodes which direction "toward viewer" is for this hinge.
+          // The slider degree uses defaultAngle sign, which needs to be inverted per-hinge.
+          h.quaternion.setFromAxisAngle(h.userData.axis, -(h.userData.signFwd || 1) * deg * Math.PI / 180);
         }
         requestRender();
       });
@@ -2005,7 +2259,12 @@ async function renderScene(p) {
   const mFolds = p.folds.filter(f => f.layer === 'folds-mountain').length;
   console.log('[preview.html] Loaded', p.filename);
   console.log('viewBox:', p.viewBox.w + 'x' + p.viewBox.h);
-  console.log('Silhouette:', poly.length, 'verts, area', polyArea(poly).toFixed(0), 'units²');
+  if (isMultiCutaway) {
+    console.log('Silhouette:', polys.length, 'cutaways,',
+                polys.map((p, i) => `#${i+1}: ${p.length}v`).join(' / '));
+  } else {
+    console.log('Silhouette:', polys[0].length, 'verts, area', polyArea(polys[0]).toFixed(0), 'units²');
+  }
   console.log('Fold lines:', vFolds, 'valley,', mFolds, 'mountain');
   console.log('Root marker:', p.rootCentroid ? 'present' : 'absent');
   console.log('Thickness:', p.thicknessMm, 'mm (source:', p.thicknessSource + ')');
@@ -2023,6 +2282,17 @@ async function renderScene(p) {
     if (faceGraph.orphanCount > 0)    console.log('Orphans (rendered flat):', faceGraph.orphanCount);
     if (faceGraph.unknownTagCount > 0) console.log('Unknown-tag edges:', faceGraph.unknownTagCount);
   }
+
+  // ── Info banners (green, always last so they sort to the bottom) ──────────
+  // These are expected states for many pieces, not authoring errors.
+  if (isMultiCutaway)
+    addBanner(`${polys.length} disconnected cutaways — rendering as flat slabs.`, 'ok');
+  else if (p.folds.length === 0)
+    addBanner('No fold layers — flat piece, no hinge animation.', 'ok');
+  if (p.axles.length === 0)
+    addBanner('No axles — rotation slider hidden.', 'ok');
+  if (p.thicknessSource === 'default')
+    addBanner('Thickness: 0.4 mm default (no thickness layer in SVG).', 'ok');
 }
 
 // ─── buildSlab ────────────────────────────────────────────────────────────────
@@ -2155,9 +2425,21 @@ document.getElementById('globalFoldSlider').addEventListener('input', function (
   }
 });
 
+// ─── Flat / Assembled quick buttons ──────────────────────────────────────────
+function snapGlobalFold(pct) {
+  const slider = document.getElementById('globalFoldSlider');
+  const valEl  = document.getElementById('globalFoldVal');
+  if (!slider) return;
+  slider.value = pct;
+  valEl.textContent = pct + '%';
+  slider.dispatchEvent(new Event('input'));
+}
+document.getElementById('flatBtn')     .addEventListener('click', () => snapGlobalFold(0));
+document.getElementById('assembledBtn').addEventListener('click', () => snapGlobalFold(100));
+
 // ─── Thickness slider ─────────────────────────────────────────────────────────
 // Task 7: face graph is stable across thickness changes; reuse p._faceGraph cache.
-// Only p._polygon is also stable (same silhouette). Both remain valid on rebuild.
+// Only p._polygons is also stable (same silhouette). Both remain valid on rebuild.
 const debouncedRebuild = debounce(() => {
   if (!parsed) return;
   parsed.thicknessMm = parseFloat(thickSlider.value);

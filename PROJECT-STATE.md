@@ -40,7 +40,7 @@ The right frame: most build-side documents are **working hypotheses** that get r
 
 - **Completing piece capture.** Six pieces remain to scan and crop.
 - **SVG layer authoring on per-piece source PNGs.** This is the actual current bottleneck — capture is mostly done, but only a small handful of pieces have started down the layer-authoring pipeline. The SVG layer conventions are themselves still iterating as new piece-types reveal new authoring requirements.
-- **`preview.html` iteration.** v1b (polygon cut + hinge animation) queued; cutouts subtraction, multi-cutaway slabs, and several `TODO`s open. Architecture decision (graduate into `work/viewer/`, stay separate, or replace) deferred.
+- **`preview.html` iteration.** v1b (face graph + polygon cut + hinge tree + fold sliders) shipped 2026-05-03 — end-to-end browser verification against 069 + 066 still pending. Cutouts subtraction (0.6.10), multi-cutaway slabs (0.6.11), and several `TODO`s open. Architecture decision (graduate into `work/viewer/`, stay separate, or replace) deferred until after v1b is verified.
 - **Pipeline reshape.** `01-crop.py` archival pending; `02-trace.py` repoint at `source/pieces/` pending.
 
 ### Not yet real
@@ -165,4 +165,6 @@ Update when the framing changes — when a major track ships, a major direction 
 
 ---
 
-*Last updated: 2026-05-03 — initial authoring. Created as part of a multi-session design conversation that introduced PROJECT-STATE.md + WORKPLAN.md as the two missing operating-layer documents. See `sessions/2026-05-03-0000_cowork_project-state-and-workplan.md` for the design discussion and the asset-state vs. work-state distinction that drove the two-doc split.*
+*Last updated: 2026-05-03 (session-start sweep) — updated "In progress" section: v1b (face graph + hinge tree) noted as shipped (not queued); end-to-end browser verification still pending. See current session note.*
+
+*Earlier 2026-05-03 — initial authoring. Created as part of a multi-session design conversation that introduced PROJECT-STATE.md + WORKPLAN.md as the two missing operating-layer documents. See `sessions/2026-05-03-0000_cowork_project-state-and-workplan.md` for the design discussion and the asset-state vs. work-state distinction that drove the two-doc split.*

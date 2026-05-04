@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
-  "generated_at": "2026-05-03T16:11:21Z",
-  "repo_root": "/Users/mainstage/Documents/GitHub/z-paper-clock/.claude/worktrees/loving-davinci-3f38a4",
+  "schema_version": 2,
+  "generated_at": "2026-05-04T02:45:55Z",
+  "repo_root": "/sessions/lucid-great-cerf/mnt/z-paper-clock",
   "audit_revision": "2026-05-03",
   "summary": {
     "total_pieces": 123,
@@ -172,25 +172,27 @@
         "source_png": "source/pieces/001.png",
         "affinity": [
           {
-            "path": "source/pieces/001.af",
+            "path": "work/pieces/001/001.af",
             "suffix": null
           }
         ],
         "svgs": [
           {
-            "path": "inbox/001.svg",
+            "path": "work/pieces/001/001.svg",
             "suffix": null
           }
         ],
-        "inbox_pngs": [],
-        "derivative_dir_files": [],
+        "derivative_dir_files": [
+          "001.af",
+          "001.svg"
+        ],
         "chunk_membership": []
       },
       "svg_analysis": {
-        "primary_svg": "inbox/001.svg",
-        "primary_svg_mtime": "2026-05-03T15:58:29.914496+00:00",
+        "primary_svg": "work/pieces/001/001.svg",
+        "primary_svg_mtime": "2026-05-04T01:03:18.134996+00:00",
         "all_svgs": [
-          "inbox/001.svg"
+          "work/pieces/001/001.svg"
         ],
         "xml_well_formed": true,
         "view_box": "0 0 28975 4871",
@@ -316,13 +318,14 @@
         "source_png": "source/pieces/002.png",
         "affinity": [
           {
-            "path": "source/pieces/002.af",
+            "path": "work/pieces/002/002.af",
             "suffix": null
           }
         ],
         "svgs": [],
-        "inbox_pngs": [],
-        "derivative_dir_files": [],
+        "derivative_dir_files": [
+          "002.af"
+        ],
         "chunk_membership": []
       },
       "svg_analysis": null,
@@ -343,7 +346,6 @@
         "source_png": "source/pieces/003.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -365,7 +367,6 @@
         "source_png": "source/pieces/004.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/004.jpeg"
@@ -389,7 +390,6 @@
         "source_png": "source/pieces/005.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -411,7 +411,6 @@
         "source_png": "source/pieces/006.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -433,7 +432,6 @@
         "source_png": "source/pieces/007.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -455,7 +453,6 @@
         "source_png": "source/pieces/008.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -477,7 +474,6 @@
         "source_png": "source/pieces/009.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -499,7 +495,6 @@
         "source_png": "source/pieces/010.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/010.jpeg"
@@ -523,7 +518,6 @@
         "source_png": "source/pieces/011.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -545,7 +539,6 @@
         "source_png": "source/pieces/012.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -567,7 +560,6 @@
         "source_png": null,
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -589,7 +581,6 @@
         "source_png": null,
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -611,7 +602,6 @@
         "source_png": "source/pieces/015.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -633,7 +623,6 @@
         "source_png": null,
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -655,7 +644,6 @@
         "source_png": null,
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -677,7 +665,6 @@
         "source_png": "source/pieces/018.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/018.jpeg"
@@ -701,7 +688,6 @@
         "source_png": "source/pieces/019.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/019.jpeg"
@@ -725,7 +711,6 @@
         "source_png": "source/pieces/020.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -747,7 +732,6 @@
         "source_png": "source/pieces/021.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -769,7 +753,6 @@
         "source_png": "source/pieces/022.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -791,7 +774,6 @@
         "source_png": "source/pieces/023.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -813,7 +795,6 @@
         "source_png": "source/pieces/024.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -835,7 +816,6 @@
         "source_png": "source/pieces/025.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -857,7 +837,6 @@
         "source_png": "source/pieces/026.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/026.png"
@@ -881,7 +860,6 @@
         "source_png": "source/pieces/027.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -903,7 +881,6 @@
         "source_png": "source/pieces/028.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -925,7 +902,6 @@
         "source_png": "source/pieces/029.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/029.png"
@@ -949,7 +925,6 @@
         "source_png": "source/pieces/030.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/030.png"
@@ -973,7 +948,6 @@
         "source_png": "source/pieces/031.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/031.jpeg"
@@ -997,7 +971,6 @@
         "source_png": "source/pieces/032.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/032.png"
@@ -1021,7 +994,6 @@
         "source_png": "source/pieces/033.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/033.jpeg",
@@ -1046,7 +1018,6 @@
         "source_png": "source/pieces/034.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/034.png",
@@ -1072,7 +1043,6 @@
         "source_png": "source/pieces/035.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/035.png",
@@ -1098,7 +1068,6 @@
         "source_png": "source/pieces/036.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/036.jpeg"
@@ -1122,7 +1091,6 @@
         "source_png": "source/pieces/037.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/037.jpeg"
@@ -1146,7 +1114,6 @@
         "source_png": "source/pieces/038.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -1168,7 +1135,6 @@
         "source_png": "source/pieces/039.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -1190,7 +1156,6 @@
         "source_png": "source/pieces/040.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/040.jpeg"
@@ -1214,7 +1179,6 @@
         "source_png": "source/pieces/041.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/041.jpeg"
@@ -1238,7 +1202,6 @@
         "source_png": "source/pieces/042.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/042.jpeg"
@@ -1262,7 +1225,6 @@
         "source_png": "source/pieces/043.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/043.jpeg"
@@ -1286,7 +1248,6 @@
         "source_png": "source/pieces/044.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/044.jpeg"
@@ -1310,7 +1271,6 @@
         "source_png": "source/pieces/045.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/045.jpeg"
@@ -1334,7 +1294,6 @@
         "source_png": "source/pieces/046.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -1356,7 +1315,6 @@
         "source_png": "source/pieces/047.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -1378,7 +1336,6 @@
         "source_png": "source/pieces/048.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -1400,7 +1357,6 @@
         "source_png": "source/pieces/049.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -1422,7 +1378,6 @@
         "source_png": "source/pieces/050.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/050.png"
@@ -1446,7 +1401,6 @@
         "source_png": "source/pieces/051.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/051.png"
@@ -1470,7 +1424,6 @@
         "source_png": "source/pieces/052.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/052.png"
@@ -1494,7 +1447,6 @@
         "source_png": "source/pieces/053.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/053.png"
@@ -1518,7 +1470,6 @@
         "source_png": "source/pieces/054.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/054.png"
@@ -1542,7 +1493,6 @@
         "source_png": "source/pieces/055.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/055.jpeg"
@@ -1566,7 +1516,6 @@
         "source_png": "source/pieces/056.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/056.jpeg"
@@ -1590,7 +1539,6 @@
         "source_png": "source/pieces/057.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/057.jpeg"
@@ -1614,13 +1562,14 @@
         "source_png": "source/pieces/058.png",
         "affinity": [
           {
-            "path": "source/pieces/058.af",
+            "path": "work/pieces/058/058.af",
             "suffix": null
           }
         ],
         "svgs": [],
-        "inbox_pngs": [],
-        "derivative_dir_files": [],
+        "derivative_dir_files": [
+          "058.af"
+        ],
         "chunk_membership": []
       },
       "svg_analysis": null,
@@ -1641,13 +1590,14 @@
         "source_png": "source/pieces/059.png",
         "affinity": [
           {
-            "path": "source/pieces/059.af",
+            "path": "work/pieces/059/059.af",
             "suffix": null
           }
         ],
         "svgs": [],
-        "inbox_pngs": [],
-        "derivative_dir_files": [],
+        "derivative_dir_files": [
+          "059.af"
+        ],
         "chunk_membership": []
       },
       "svg_analysis": null,
@@ -1668,7 +1618,6 @@
         "source_png": "source/pieces/060.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -1690,7 +1639,6 @@
         "source_png": "source/pieces/061.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -1712,7 +1660,6 @@
         "source_png": "source/pieces/062.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -1734,7 +1681,6 @@
         "source_png": "source/pieces/063.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -1756,7 +1702,6 @@
         "source_png": "source/pieces/064.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -1778,27 +1723,27 @@
         "source_png": "source/pieces/065.png",
         "affinity": [
           {
-            "path": "source/pieces/065.af",
+            "path": "work/pieces/065/065.af",
             "suffix": null
           }
         ],
         "svgs": [
           {
-            "path": "inbox/065.svg",
+            "path": "work/pieces/065/065.svg",
             "suffix": null
           }
         ],
-        "inbox_pngs": [
-          "inbox/065.png"
+        "derivative_dir_files": [
+          "065.af",
+          "065.svg"
         ],
-        "derivative_dir_files": [],
         "chunk_membership": []
       },
       "svg_analysis": {
-        "primary_svg": "inbox/065.svg",
-        "primary_svg_mtime": "2026-05-03T15:58:29.939204+00:00",
+        "primary_svg": "work/pieces/065/065.svg",
+        "primary_svg_mtime": "2026-05-04T01:03:18.256349+00:00",
         "all_svgs": [
-          "inbox/065.svg"
+          "work/pieces/065/065.svg"
         ],
         "xml_well_formed": true,
         "view_box": "0 0 3925 7484",
@@ -1913,9 +1858,7 @@
         }
       ],
       "stage": "svg_drafted",
-      "anomalies": [
-        "png-in-inbox: inbox/065.png"
-      ]
+      "anomalies": []
     },
     "066": {
       "id": "066",
@@ -1930,27 +1873,27 @@
         "source_png": "source/pieces/066.png",
         "affinity": [
           {
-            "path": "source/pieces/066.af",
+            "path": "work/pieces/066/066.af",
             "suffix": null
           }
         ],
         "svgs": [
           {
-            "path": "inbox/066.svg",
+            "path": "work/pieces/066/066.svg",
             "suffix": null
           }
         ],
-        "inbox_pngs": [
-          "inbox/066.png"
+        "derivative_dir_files": [
+          "066.af",
+          "066.svg"
         ],
-        "derivative_dir_files": [],
         "chunk_membership": []
       },
       "svg_analysis": {
-        "primary_svg": "inbox/066.svg",
-        "primary_svg_mtime": "2026-05-03T15:58:29.962033+00:00",
+        "primary_svg": "work/pieces/066/066.svg",
+        "primary_svg_mtime": "2026-05-04T01:03:18.324564+00:00",
         "all_svgs": [
-          "inbox/066.svg"
+          "work/pieces/066/066.svg"
         ],
         "xml_well_formed": true,
         "view_box": "0 0 2963 18867",
@@ -2074,9 +2017,7 @@
         }
       ],
       "stage": "svg_drafted",
-      "anomalies": [
-        "png-in-inbox: inbox/066.png"
-      ]
+      "anomalies": []
     },
     "067": {
       "id": "067",
@@ -2091,31 +2032,27 @@
         "source_png": "source/pieces/067.png",
         "affinity": [
           {
-            "path": "source/pieces/067-full.af",
-            "suffix": "full"
-          },
-          {
-            "path": "source/pieces/067.af",
+            "path": "work/pieces/067/067.af",
             "suffix": null
           }
         ],
         "svgs": [
           {
-            "path": "inbox/067.svg",
+            "path": "work/pieces/067/067.svg",
             "suffix": null
           }
         ],
-        "inbox_pngs": [
-          "inbox/067.png"
+        "derivative_dir_files": [
+          "067.af",
+          "067.svg"
         ],
-        "derivative_dir_files": [],
         "chunk_membership": []
       },
       "svg_analysis": {
-        "primary_svg": "inbox/067.svg",
-        "primary_svg_mtime": "2026-05-03T15:58:29.975300+00:00",
+        "primary_svg": "work/pieces/067/067.svg",
+        "primary_svg_mtime": "2026-05-04T01:03:18.355067+00:00",
         "all_svgs": [
-          "inbox/067.svg"
+          "work/pieces/067/067.svg"
         ],
         "xml_well_formed": true,
         "view_box": "0 0 3613 7434",
@@ -2232,10 +2169,7 @@
         }
       ],
       "stage": "svg_validated",
-      "anomalies": [
-        "png-in-inbox: inbox/067.png",
-        "affinity-variant-suffix: source/pieces/067-full.af (suffix='full')"
-      ]
+      "anomalies": []
     },
     "068": {
       "id": "068",
@@ -2250,13 +2184,14 @@
         "source_png": "source/pieces/068.png",
         "affinity": [
           {
-            "path": "source/pieces/068.af",
+            "path": "work/pieces/068/068.af",
             "suffix": null
           }
         ],
         "svgs": [],
-        "inbox_pngs": [],
-        "derivative_dir_files": [],
+        "derivative_dir_files": [
+          "068.af"
+        ],
         "chunk_membership": [
           "source/scans-chunks/068.jpeg"
         ]
@@ -2279,35 +2214,29 @@
         "source_png": "source/pieces/069.png",
         "affinity": [
           {
-            "path": "source/pieces/069.af",
-            "suffix": null
-          },
-          {
-            "path": "inbox/069.af",
+            "path": "work/pieces/069/069.af",
             "suffix": null
           }
         ],
         "svgs": [
           {
-            "path": "inbox/069.svg",
+            "path": "work/pieces/069/069.svg",
             "suffix": null
           }
         ],
-        "inbox_pngs": [
-          "inbox/069.png"
-        ],
         "derivative_dir_files": [
-          "piece-069-viewer.html"
+          "069.af",
+          "069.svg"
         ],
         "chunk_membership": [
           "source/scans-chunks/069.jpeg"
         ]
       },
       "svg_analysis": {
-        "primary_svg": "inbox/069.svg",
-        "primary_svg_mtime": "2026-05-03T15:58:29.991509+00:00",
+        "primary_svg": "work/pieces/069/069.svg",
+        "primary_svg_mtime": "2026-05-04T01:03:18.430181+00:00",
         "all_svgs": [
-          "inbox/069.svg"
+          "work/pieces/069/069.svg"
         ],
         "xml_well_formed": true,
         "view_box": "0 0 3417 3342",
@@ -2323,17 +2252,17 @@
             "cutaway"
           ],
           "marks": [
-            "tab-g",
-            "tab-f",
+            "tab-c",
+            "tab-a",
+            "tab-b",
             "tab-e",
             "tab-d",
-            "tab-c",
-            "tab-b",
-            "tab-a",
-            "landing-h",
-            "landing-i",
+            "tab-f",
+            "tab-g",
+            "landing-a",
             "landing-b",
-            "landing-a"
+            "landing-h",
+            "landing-i"
           ],
           "axles": [
             "anchor-pivot"
@@ -2420,7 +2349,7 @@
           "severity": "advisory",
           "result": "fail",
           "evidence": null,
-          "message": "Malformed landing ids: landing-h, landing-i, landing-b, landing-a"
+          "message": "Malformed landing ids: landing-a, landing-b, landing-h, landing-i"
         },
         {
           "id": "landing-markers-in-marks-only",
@@ -2432,10 +2361,7 @@
         }
       ],
       "stage": "svg_validated",
-      "anomalies": [
-        "duplicate-affinity-file",
-        "png-in-inbox: inbox/069.png"
-      ]
+      "anomalies": []
     },
     "070": {
       "id": "070",
@@ -2450,29 +2376,29 @@
         "source_png": "source/pieces/070.png",
         "affinity": [
           {
-            "path": "source/pieces/070.af",
+            "path": "work/pieces/070/070.af",
             "suffix": null
           }
         ],
         "svgs": [
           {
-            "path": "inbox/070.svg",
+            "path": "work/pieces/070/070.svg",
             "suffix": null
           }
         ],
-        "inbox_pngs": [
-          "inbox/070.png"
+        "derivative_dir_files": [
+          "070.af",
+          "070.svg"
         ],
-        "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/070.jpeg"
         ]
       },
       "svg_analysis": {
-        "primary_svg": "inbox/070.svg",
-        "primary_svg_mtime": "2026-05-03T15:58:30.015397+00:00",
+        "primary_svg": "work/pieces/070/070.svg",
+        "primary_svg_mtime": "2026-05-04T01:03:18.520104+00:00",
         "all_svgs": [
-          "inbox/070.svg"
+          "work/pieces/070/070.svg"
         ],
         "xml_well_formed": true,
         "view_box": "0 0 20463 3355",
@@ -2571,9 +2497,7 @@
         }
       ],
       "stage": "svg_drafted",
-      "anomalies": [
-        "png-in-inbox: inbox/070.png"
-      ]
+      "anomalies": []
     },
     "071": {
       "id": "071",
@@ -2588,29 +2512,29 @@
         "source_png": "source/pieces/071.png",
         "affinity": [
           {
-            "path": "source/pieces/071.af",
+            "path": "work/pieces/071/071.af",
             "suffix": null
           }
         ],
         "svgs": [
           {
-            "path": "inbox/071.svg",
+            "path": "work/pieces/071/071.svg",
             "suffix": null
           }
         ],
-        "inbox_pngs": [
-          "inbox/071.png"
+        "derivative_dir_files": [
+          "071.af",
+          "071.svg"
         ],
-        "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/071.jpeg"
         ]
       },
       "svg_analysis": {
-        "primary_svg": "inbox/071.svg",
-        "primary_svg_mtime": "2026-05-03T15:58:30.026368+00:00",
+        "primary_svg": "work/pieces/071/071.svg",
+        "primary_svg_mtime": "2026-05-04T01:03:18.546015+00:00",
         "all_svgs": [
-          "inbox/071.svg"
+          "work/pieces/071/071.svg"
         ],
         "xml_well_formed": true,
         "view_box": "0 0 2334 6917",
@@ -2726,10 +2650,7 @@
         }
       ],
       "stage": "svg_validated",
-      "anomalies": [
-        "affinity-file-open-lock: 071.af~lock~",
-        "png-in-inbox: inbox/071.png"
-      ]
+      "anomalies": []
     },
     "072": {
       "id": "072",
@@ -2744,27 +2665,29 @@
         "source_png": "source/pieces/072.png",
         "affinity": [
           {
-            "path": "source/pieces/072.af",
+            "path": "work/pieces/072/072.af",
             "suffix": null
           }
         ],
         "svgs": [
           {
-            "path": "inbox/072.svg",
+            "path": "work/pieces/072/072.svg",
             "suffix": null
           }
         ],
-        "inbox_pngs": [],
-        "derivative_dir_files": [],
+        "derivative_dir_files": [
+          "072.af",
+          "072.svg"
+        ],
         "chunk_membership": [
           "source/scans-chunks/072.jpeg"
         ]
       },
       "svg_analysis": {
-        "primary_svg": "inbox/072.svg",
-        "primary_svg_mtime": "2026-05-03T15:58:30.029797+00:00",
+        "primary_svg": "work/pieces/072/072.svg",
+        "primary_svg_mtime": "2026-05-04T01:03:18.559465+00:00",
         "all_svgs": [
-          "inbox/072.svg"
+          "work/pieces/072/072.svg"
         ],
         "xml_well_formed": true,
         "view_box": "0 0 1450 6234",
@@ -2884,7 +2807,6 @@
         "source_png": "source/pieces/073.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -2906,7 +2828,6 @@
         "source_png": "source/pieces/074.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -2928,7 +2849,6 @@
         "source_png": "source/pieces/075.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -2950,7 +2870,6 @@
         "source_png": "source/pieces/076.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -2972,7 +2891,6 @@
         "source_png": "source/pieces/077.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -2994,7 +2912,6 @@
         "source_png": "source/pieces/078.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3016,7 +2933,6 @@
         "source_png": "source/pieces/079.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3038,7 +2954,6 @@
         "source_png": "source/pieces/080.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/080.jpeg"
@@ -3062,7 +2977,6 @@
         "source_png": "source/pieces/081.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3084,7 +2998,6 @@
         "source_png": "source/pieces/082.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3106,7 +3019,6 @@
         "source_png": "source/pieces/083.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3128,7 +3040,6 @@
         "source_png": "source/pieces/084.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3150,7 +3061,6 @@
         "source_png": "source/pieces/085.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3172,7 +3082,6 @@
         "source_png": "source/pieces/086.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3194,7 +3103,6 @@
         "source_png": "source/pieces/087.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3216,7 +3124,6 @@
         "source_png": "source/pieces/088.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3238,7 +3145,6 @@
         "source_png": "source/pieces/089.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3260,7 +3166,6 @@
         "source_png": null,
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3282,7 +3187,6 @@
         "source_png": "source/pieces/091.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/091.jpeg"
@@ -3306,7 +3210,6 @@
         "source_png": "source/pieces/092.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/092.png"
@@ -3330,7 +3233,6 @@
         "source_png": "source/pieces/092a.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/092a.png"
@@ -3354,7 +3256,6 @@
         "source_png": "source/pieces/093.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3376,7 +3277,6 @@
         "source_png": "source/pieces/094.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/94_l.jpeg",
@@ -3401,7 +3301,6 @@
         "source_png": "source/pieces/095.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3423,7 +3322,6 @@
         "source_png": "source/pieces/096.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3445,13 +3343,14 @@
         "source_png": "source/pieces/097.png",
         "affinity": [
           {
-            "path": "source/pieces/097.af",
+            "path": "work/pieces/097/097.af",
             "suffix": null
           }
         ],
         "svgs": [],
-        "inbox_pngs": [],
-        "derivative_dir_files": [],
+        "derivative_dir_files": [
+          "097.af"
+        ],
         "chunk_membership": [
           "source/scans-chunks/097.png"
         ]
@@ -3474,7 +3373,6 @@
         "source_png": "source/pieces/098.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/098.jpeg"
@@ -3498,7 +3396,6 @@
         "source_png": "source/pieces/099.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/099.png"
@@ -3522,7 +3419,6 @@
         "source_png": "source/pieces/100.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": [
           "source/scans-chunks/100.png"
@@ -3546,7 +3442,6 @@
         "source_png": "source/pieces/101.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3568,7 +3463,6 @@
         "source_png": "source/pieces/102.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3590,7 +3484,6 @@
         "source_png": "source/pieces/103.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3612,7 +3505,6 @@
         "source_png": "source/pieces/104.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3634,7 +3526,6 @@
         "source_png": "source/pieces/105.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3656,7 +3547,6 @@
         "source_png": "source/pieces/106.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3678,7 +3568,6 @@
         "source_png": "source/pieces/107.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3700,7 +3589,6 @@
         "source_png": "source/pieces/108.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3722,7 +3610,6 @@
         "source_png": "source/pieces/109.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3744,7 +3631,6 @@
         "source_png": null,
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3766,7 +3652,6 @@
         "source_png": "source/pieces/111.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3788,7 +3673,6 @@
         "source_png": "source/pieces/112.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3810,7 +3694,6 @@
         "source_png": "source/pieces/112a.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3832,7 +3715,6 @@
         "source_png": "source/pieces/113.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3854,7 +3736,6 @@
         "source_png": "source/pieces/114.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3876,7 +3757,6 @@
         "source_png": "source/pieces/115.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3898,7 +3778,6 @@
         "source_png": "source/pieces/116.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3920,7 +3799,6 @@
         "source_png": "source/pieces/117.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3942,7 +3820,6 @@
         "source_png": "source/pieces/118.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3964,7 +3841,6 @@
         "source_png": "source/pieces/119.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -3986,7 +3862,6 @@
         "source_png": "source/pieces/120.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },
@@ -4008,7 +3883,6 @@
         "source_png": "source/pieces/121.png",
         "affinity": [],
         "svgs": [],
-        "inbox_pngs": [],
         "derivative_dir_files": [],
         "chunk_membership": []
       },

@@ -264,7 +264,7 @@ The tool entered the repo on 2026-05-02 (v1a foundation) and accumulated cut-lay
 
 ### What it consumes
 
-A single per-piece SVG, loaded by piece id from the canonical home `work/pieces/NNN/NNN.svg` (M0.6.14, queued) — with legacy drag-drop retained for ad-hoc inspection of any SVG outside the canonical tree. The SVG carries the embedded scan PNG (typically as `<image>` referenced through `<use xlink:href="#_ImageN">`, the pattern Affinity Designer exports) and uses the canonical layered structure documented in CLAUDE.md's File Naming Conventions. The tool reads:
+A single per-piece SVG, loaded by piece id from the canonical home `work/pieces/NNN/NNN.svg` (M0.6.14, shipped 2026-05-04) — with legacy drag-drop retained for ad-hoc inspection of any SVG outside the canonical tree. The SVG carries the embedded scan PNG (typically as `<image>` referenced through `<use xlink:href="#_ImageN">`, the pattern Affinity Designer exports) and uses the canonical layered structure documented in CLAUDE.md's File Naming Conventions. The tool reads:
 
 | Layer | What the tool does with it |
 |---|---|
@@ -303,15 +303,16 @@ The chain was settled in `sessions/2026-05-02-1500_cowork_preview-html-cut-layer
 
 ### What's not yet there
 
-The tool ships v1a + cut-layer + texture-flip + back-face-mirror + perf + thickness fix + axle rotation as of 2026-05-02. **v1b is queued** in `CODE_PROMPT_preview-html-v1b.md`: polygon cutting (silhouette × N fold lines → N+1 panels via `polygon-clipping`), adjacency BFS (panels → fold tree rooted at the root-marker panel), per-fold UI sliders + a global fold slider, hinge hierarchy in three.js, and live fold animation. The polygon-clipping library is already loaded via CDN; the `<div id="fold-controls">` shell is present as a placeholder. v1b's prompt is currently `status: draft` and depends on tightening against v1a's actual function signatures before flipping to `ready-for-code`.
+As of 2026-05-03, shipped: v1a + cut-layer + texture-flip + back-face-mirror + perf + thickness fix + axle rotation + **v1b** (face graph: polygon-cut silhouette along fold lines via `polygon-clipping`, adjacency BFS → fold tree, per-fold + global sliders, hinge hierarchy in three.js) + **source-of-truth piece-id loader** (open any piece by id from `work/pieces/NNN/NNN.svg`, reload keybind, optional `function`-block sidecar surfacing, drag-drop fallback). See `sessions/2026-05-03-1000_code_preview-html-v1b.md` and `sessions/2026-05-04-0030_code_preview-html-source-of-truth.md`.
 
-Other deferred work, in rough priority order:
+**v1b end-to-end browser verification still pending** — open `preview.html`, load piece 069, confirm 13 regions in console + fold sliders animate.
 
-- ~~**Source-of-truth piece-id loader (M0.6.14).**~~ **Shipped 2026-05-04.** preview.html now opens any piece by id (`Piece` text input + Enter, Load button, `?piece=NNN` URL param), reloads from disk via the Reload button or `R` keybind (cache-busted), surfaces `work/pieces/NNN/NNN.json` `function`-block contents when present, and falls back to drag-drop with a soft canonical-home nudge banner when a per-piece-shaped filename is dropped from outside the canonical tree. Datalist auto-populates from `work/pieces.csv`. See `CODE_PROMPT_preview-html-source-of-truth.md` (status: shipped) and `sessions/2026-05-04-0030_code_preview-html-source-of-truth.md`.
-- **Cutouts subtraction.** The `cutouts` layer is parsed-aware-of but not yet subtracted from the slab. A piece like 71 (with a center cell) renders as a solid slab today. The convention is locked in; the implementation isn't.
-- **Multi-cutaway slabs.** Pieces with `cutaway-1`, `cutaway-2`, … currently render only the first with a banner. Multi-slab support is a v1b+ concern.
-- **Rotated / skewed `<use>` transforms.** The scan-image transform parser reads `matrix(sx, 0, 0, sy, tx, ty)` only; rotation / skew components (b, c) are silently dropped (`TODO(070)` in code).
-- **UV offsets from `<use>` `x` / `y` / `imageScale`.** Front-face UVs assume the PNG covers `[0, VB.w] × [0, VB.h]` exactly; ~7 px slip on 067, sub-pixel on 069 (`TODO(uv-offsets)` in code).
+Deferred work, in rough priority order:
+
+- **Cutouts subtraction (M0.6.10).** The `cutouts` layer is parsed but not yet subtracted from the slab. Piece 71 (center cell) renders solid today. Convention locked; implementation deferred.
+- **Multi-cutaway slabs (M0.6.11).** Pieces with `cutaway-1`, `cutaway-2`, … render only the first with a banner.
+- **Rotated / skewed `<use>` transforms.** Parser reads `matrix(sx, 0, 0, sy, tx, ty)` only; rotation / skew silently dropped (`TODO(070)` in code).
+- **UV offsets from `<use>` `x` / `y` / `imageScale`.** ~7 px slip on 067, sub-pixel on 069 (`TODO(uv-offsets)` in code).
 
 ### Path forward — preview.html vs. `work/viewer/`
 
