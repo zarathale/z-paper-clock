@@ -270,7 +270,7 @@ A single per-piece SVG, loaded by piece id from the canonical home `work/pieces/
 |---|---|
 | `silhouette` (with `cutaway` / `cutaway-N` children) | Extracts the cut polygon. Tier 1 of the silhouette source chain. |
 | `cutouts` (sibling of silhouette, with `cutout-N` children) | Reserved; not yet consumed. Will be subtracted from the slab when the cutouts pass lands. |
-| `folds-valley` / `folds-mountain` | Parses each fold path (`M..l` or `M..L`) to start / end coords. Currently parsed and counted but not rendered as hinges (v1b territory). |
+| `folds-valley` / `folds-mountain` | Parses each fold path (`M..l` or `M..L`) to start / end coords. v1b face-graph reads these to cut the silhouette into regions and build the hinge tree. Per-element id may carry a marker-bound binding (`id="tab-c"`, `id="landing-h65"`) and an optional default-angle suffix (`id="tab-c-40"`) — see CLAUDE.md "Per-element ids inside fold layers" + LAYER-CONVENTIONS.md. Implementation pending; geometric algorithm is the fallback for unidentified fold paths. |
 | `axles` | Each `<ellipse>` / `<circle>` → axle marker. An optional `id="north"` element inside the same layer defines the +0° orientation cue. |
 | `root` | Optional centroid marker (ellipse / circle / rect / path). Reserved for future fold-tree rooting. |
 | `thickness` | Optional `<text>` node giving thickness in mm. Falls back to 0.4 mm (cardstock-typical). |

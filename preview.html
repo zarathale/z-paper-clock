@@ -703,23 +703,88 @@ function parseSVG(text, filename) {
 
   const layerValley   = getLayer('folds-valley');
   const layerMountain = getLayer('folds-mountain');
+  const layerMarks    = getLayer('marks');
   const layerAxles    = getLayer('axles');
   const layerRoot     = getLayer('root');
   const layerThick    = getLayer('thickness');
 
+  // Marks: index every id'd element's centroid, keyed by id.
+  // Used today by: marker-bound fold ids (tab-X / landing-X<piece> on a fold path
+  // binds the fold to the region containing that marker's centroid). Anything
+  // else id'd in marks (none today, but the map is open) is also indexed.
+  // Convention settled 2026-05-04 — see CLAUDE.md "Marker-bound fold ids".
+  const marksCentroidsById = new Map();
+  if (layerMarks) {
+    for (const el of layerMarks.querySelectorAll('[id]')) {
+      const id = el.getAttribute('id');
+      if (!id) continue;
+      const c = elementCentroid(el);
+      if (c) marksCentroidsById.set(id, c);
+    }
+  }
+
   // Folds
   const folds = [];
+  // Marker-bound fold-path id resolver (settled 2026-05-04). The fold path id
+  // must take the form "fold-<marker-id>" with an optional trailing
+  // "-<digits>" default-angle suffix. The "fold-" prefix sidesteps Affinity
+  // Designer's auto-suffix-on-cross-layer-id-collision behavior (markers and
+  // fold paths used to share an id under an earlier draft of the convention;
+  // Affinity renamed the marker side on export which broke binding). Examples:
+  //   "fold-tab-c"          → marker="tab-c",          angle=null
+  //   "fold-tab-c-40"       → marker="tab-c",          angle=40
+  //   "fold-landing-h65"    → marker="landing-h65",    angle=null   (h65 is letters+digits, not stripped)
+  //   "fold-landing-h65-90" → marker="landing-h65",    angle=90
+  //   "fold-90"             → null  (legacy angle-only form; handled separately)
+  //   "tab-c"               → null  (missing prefix; not marker-bound under the new convention)
+  function parseMarkerBoundFoldId(id) {
+    if (!id || !id.startsWith('fold-')) return null;
+    const stripped = id.slice('fold-'.length);
+    if (marksCentroidsById.has(stripped)) return { markerId: stripped, angle: null };
+    const m = stripped.match(/^(.+)-(\d+)$/);
+    if (m && marksCentroidsById.has(m[1])) {
+      return { markerId: m[1], angle: parseFloat(m[2]) };
+    }
+    return null;
+  }
   function parseFoldLayer(layerEl, layerName, defaultAngle) {
     if (!layerEl) return;
+    const sign = (layerName === 'folds-valley') ? -1 : +1;
     for (const path of layerEl.querySelectorAll('path')) {
       const d = path.getAttribute('d') || '';
       const seg = parseFoldPath(d);
       if (!seg) { console.warn('[preview.html] skipping non-straight fold path:', d.slice(0, 60)); continue; }
       const id = path.getAttribute('id') || '';
       let angle = defaultAngle;
-      const angleMatch = id.match(/^fold([-+])(\d+(?:\.\d+)?)$/);
-      if (angleMatch) angle = (angleMatch[1] === '-' ? -1 : 1) * parseFloat(angleMatch[2]);
-      folds.push({ layer: layerName, id, start: seg.start, end: seg.end, defaultAngle: angle, sourceIndex: folds.length });
+      let markerBoundId = null;
+
+      // Marker-bound fold (settled 2026-05-04). Id form: "fold-<marker-id>"
+      // with optional "-<digits>" angle suffix. Sign of the angle comes from
+      // the layer (valley = negative, mountain = positive); the suffix is the
+      // magnitude only.
+      const mb = parseMarkerBoundFoldId(id);
+      if (mb) {
+        markerBoundId = mb.markerId;
+        if (mb.angle !== null) angle = sign * mb.angle;
+      } else {
+        // Legacy `fold-90` / `fold+90` angle-only authoring (kept for backwards
+        // compat with any pre-2026-05-04 SVG; not the documented direction).
+        const angleMatch = id.match(/^fold([-+])(\d+(?:\.\d+)?)$/);
+        if (angleMatch) angle = (angleMatch[1] === '-' ? -1 : 1) * parseFloat(angleMatch[2]);
+        // Banner-warn ids that LOOK marker-bound under the new convention
+        // (fold- prefix, then non-digit content) but didn't resolve — likely
+        // an authoring miss (typo, marker missing, prefix forgotten).
+        else if (id.startsWith('fold-') && !/^fold[-+]\d/.test(id)) {
+          addBanner(`Fold path id "${id}" — "fold-" prefix but no matching marker in <g id="marks">. Falling back to geometric algorithm.`, 'warn');
+        }
+      }
+      folds.push({
+        layer: layerName, id,
+        start: seg.start, end: seg.end,
+        defaultAngle: angle,
+        sourceIndex: folds.length,
+        markerBoundId
+      });
     }
   }
   parseFoldLayer(layerValley,   'folds-valley',   -90);
@@ -799,6 +864,7 @@ function parseSVG(text, filename) {
     filename, viewBox,
     scanPng, scanWidth, scanHeight, imageScale,
     folds,
+    marksCentroidsById,  // Map<id, {x,y}> — used by marker-bound fold resolution
     axles,
     north,         // {x, y} in viewBox coords, or null if no orientation marker authored
     rootCentroid,
@@ -1475,6 +1541,10 @@ function extendFoldsToSilhouette(silhouette, folds) {
       pathId,
       defaultAngle: fold.defaultAngle,
       sourceIndex: fold.sourceIndex,
+      // Marker-bound fold (settled 2026-05-04): if non-null, the adjacency step
+      // resolves which-region by marker centroid containment instead of by the
+      // authored-segment-range passive check.
+      markerBoundId: fold.markerBoundId || null,
       start: [sx + (tMin - EPS) * ux, sy + (tMin - EPS) * uy],
       end:   [sx + (tMax + EPS) * ux, sy + (tMax + EPS) * uy],
       // Authored (pre-extension) start and end — used in adjacency step to reject
@@ -1487,7 +1557,9 @@ function extendFoldsToSilhouette(silhouette, folds) {
 
 // Task 3: build the face graph from the silhouette and extended folds.
 // Returns {rootId, regions, foldEdges} or null on fatal failure.
-function buildFaceGraph(silhouette, extendedFolds) {
+// marksCentroidsById is the marks-layer centroid index used to resolve
+// marker-bound folds (settled 2026-05-04). Optional; defaults to empty.
+function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map()) {
   const EDGE_EPS  = 0.5;  // viewBox units for edge-tag midpoint matching
   const ADJ_EPS   = 1.0;  // minimum overlap for adjacency
   const bb = polyBbox(silhouette);
@@ -1665,12 +1737,75 @@ function buildFaceGraph(silhouette, extendedFolds) {
   // ── Step 5: adjacency ─────────────────────────────────────────────────────────
   const foldEdges = [];
 
+  // Permissive distance threshold for marker-bound geometric adjacency.
+  // Co-linear authored folds (e.g. piece 066's 14 vertical tab/landing folds at
+  // x ≈ 2474/2491/2498/2501) collapse during iterative half-plane cuts: each
+  // tab's left edge gets trimmed to the OUTERMOST co-linear x, so an edge
+  // that's "on" fold-tab-a authored at x=2474 actually sits at x=2501 — 27
+  // units away. ADJ_EPS=1.0 is too tight to bridge that. Use a fraction of
+  // the silhouette diagonal so it scales with piece size; small enough to not
+  // cross-pollute non-co-linear folds.
+  const MARKER_FOLD_EPS = Math.max(ADJ_EPS, 0.003 * diagLen);
+
+  // Helper: is an edge's midpoint near a fold's authored line (within eps)?
+  function edgeOnFold(region, edgeIdx, fold, eps = ADJ_EPS) {
+    const n = region.polygon.length;
+    const [ax, ay] = region.polygon[edgeIdx];
+    const [bx, by] = region.polygon[(edgeIdx + 1) % n];
+    const mx = (ax + bx) / 2, my = (ay + by) / 2;
+    return ptToSegDist(mx, my, fold.start[0], fold.start[1], fold.end[0], fold.end[1]) < eps;
+  }
+
   for (const fold of extendedFolds) {
-    // Find all regions that have at least one edge tagged with this fold's pathId
-    const adjacent = [];
-    for (const [rId, region] of regionMap) {
-      const hasTag = region.edgeTags.some(et => et.tag === fold.pathId);
-      if (hasTag) adjacent.push(rId);
+    // Find all regions adjacent across this fold.
+    //
+    // For UNIDENTIFIED folds: pathId-tag based — fast and works fine when each
+    // fold has unique geometry.
+    //
+    // For MARKER-BOUND folds (settled 2026-05-04): geometric — regions with
+    // any edge whose midpoint lies on this fold's authored line. Bypasses the
+    // tag-overwrite problem that arises with co-linear authored folds: when
+    // multiple folds share the same line (e.g. piece 066's 14 vertical
+    // tab/landing folds all at x ≈ 2474/2491/2498/2501 right and x ≈ 479/498/502
+    // left), the iterative cut's tag-priority logic lets the LAST same-line
+    // fold overwrite earlier folds' pathId tags. Earlier folds end up with no
+    // regions tagged with their pathId, so tag-based adjacency comes up empty.
+    // Geometric adjacency finds them all.
+    let adjacent = [];
+    if (fold.markerBoundId) {
+      for (const [rId, region] of regionMap) {
+        const hasEdgeOnFold = region.polygon.some((_, i) => edgeOnFold(region, i, fold, MARKER_FOLD_EPS));
+        if (hasEdgeOnFold) adjacent.push(rId);
+      }
+    } else {
+      for (const [rId, region] of regionMap) {
+        const hasTag = region.edgeTags.some(et => et.tag === fold.pathId);
+        if (hasTag) adjacent.push(rId);
+      }
+    }
+
+    // Marker-bound folds: resolve which-region by marker centroid containment.
+    // The marker's centroid identifies the moving region; pairs touching it
+    // become active, all other pairs become passive (kept for BFS connectivity,
+    // no driven hinge).
+    let markerRegionId = null;
+    if (fold.markerBoundId) {
+      const c = marksCentroidsById.get(fold.markerBoundId);
+      if (c) {
+        for (const rId of adjacent) {
+          if (pointInPolygon(c.x, c.y, regionMap.get(rId).polygon)) {
+            markerRegionId = rId;
+            break;
+          }
+        }
+        if (!markerRegionId) {
+          // Marker centroid wasn't in any geometrically-adjacent region —
+          // likely the fold didn't actually subdivide the silhouette near the
+          // marker (degenerate fold or marker placed off-piece). Banner-warn
+          // and fall through to passive-only handling.
+          addBanner(`Marker-bound fold "${fold.markerBoundId}" — centroid not inside any region adjacent across this fold. Falling back to geometric algorithm.`, 'warn');
+        }
+      }
     }
 
     // For each pair, check overlap on the fold's infinite line > ADJ_EPS
@@ -1679,11 +1814,21 @@ function buildFaceGraph(silhouette, extendedFolds) {
         const rA = regionMap.get(adjacent[i]);
         const rB = regionMap.get(adjacent[j]);
 
-        // Collect fold-tagged edges from each region
-        const edgesA = rA.edgeTags
-          .map((et, idx) => et.tag === fold.pathId ? idx : -1).filter(x => x >= 0);
-        const edgesB = rB.edgeTags
-          .map((et, idx) => et.tag === fold.pathId ? idx : -1).filter(x => x >= 0);
+        // Collect edges on this fold's line for each region.
+        // Marker-bound folds use geometric matching (edge midpoint near the
+        // fold's authored line) since pathId tags may have been overwritten by
+        // co-linear folds. Unidentified folds use the existing pathId-based
+        // matching.
+        let edgesA, edgesB;
+        if (fold.markerBoundId) {
+          edgesA = rA.polygon.map((_, idx) => edgeOnFold(rA, idx, fold, MARKER_FOLD_EPS) ? idx : -1).filter(x => x >= 0);
+          edgesB = rB.polygon.map((_, idx) => edgeOnFold(rB, idx, fold, MARKER_FOLD_EPS) ? idx : -1).filter(x => x >= 0);
+        } else {
+          edgesA = rA.edgeTags
+            .map((et, idx) => et.tag === fold.pathId ? idx : -1).filter(x => x >= 0);
+          edgesB = rB.edgeTags
+            .map((et, idx) => et.tag === fold.pathId ? idx : -1).filter(x => x >= 0);
+        }
 
         // Project each edge onto the fold line and find overlap
         const [fax, fay] = fold.start;
@@ -1735,8 +1880,20 @@ function buildFaceGraph(silhouette, extendedFolds) {
         // creates fold edges in the left/right arm areas. Rejecting those edges
         // would orphan the arm sub-regions; instead we keep them for BFS
         // connectivity but flag them so no driven hinge (and no slider) is created.
+        //
+        // Marker-bound folds (settled 2026-05-04) override this: the marker
+        // centroid containment resolves which-region directly. Pairs touching
+        // markerRegionId are active; pairs not involving markerRegionId are
+        // passive (kept for BFS connectivity, no driven hinge).
         let passive = false;
-        if (fold.authoredStart && fold.authoredEnd) {
+        if (markerRegionId) {
+          // Marker-bound: only edges touching the marker's region are active.
+          if (adjacent[i] !== markerRegionId && adjacent[j] !== markerRegionId) {
+            passive = true;
+          }
+        } else if (fold.authoredStart && fold.authoredEnd) {
+          // Geometric fallback (unidentified folds + marker-bound folds whose
+          // marker centroid couldn't be located in a tagged region).
           const taMin = (fold.authoredStart[0] - fax) * fux + (fold.authoredStart[1] - fay) * fuy;
           const taMax = (fold.authoredEnd[0]   - fax) * fux + (fold.authoredEnd[1]   - fay) * fuy;
           const tLo = Math.min(taMin, taMax) - ADJ_EPS * 10;
@@ -1952,7 +2109,7 @@ async function renderScene(p) {
     const poly0 = polys[0];
     if (!p._faceGraph) {
       const extFolds = extendFoldsToSilhouette(poly0, p.folds);
-      p._faceGraph = buildFaceGraph(poly0, extFolds);
+      p._faceGraph = buildFaceGraph(poly0, extFolds, p.marksCentroidsById || new Map());
     }
     faceGraph = p._faceGraph;
   }

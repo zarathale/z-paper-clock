@@ -71,7 +71,19 @@ Open paths. Each path is a single fold line (start → end). Affinity exports as
 
 Don't merge multiple fold lines into one multi-segment path. One fold = one path.
 
-If a fold has an authored "default angle" (e.g. 90° for a folded-up sidewall), encode it as a path id of the form `valley-90` or `mountain-90`. The v1b face-graph reader looks at the trailing `-N` of the id for an initial angle; missing → 0°.
+### Per-element ids inside fold layers (marker-bound folds)
+
+Three flavors of fold-path id, in increasing specificity:
+
+1. **Unidentified path** — no `id` (or an Affinity-auto id like `path123`). Parser uses the layer-default angle for any region split this fold creates. This is the right choice for column-internal folds whose location alone is enough to identify them geometrically.
+
+2. **Marker-bound id** — the fold path's id has the form `fold-<marker-id>` where `<marker-id>` matches the id of an element in `<g id="marks">`. Today's marker types are `tab-<letter>` and `landing-<tab-letter><piece-number>`; both can be referenced. The parser strips the `fold-` prefix, looks up the rest in the marks centroid map, and binds the fold to the region containing that marker's centroid — bypassing the geometric ambiguity that arises when multiple authored folds sit on the same line (every side tab on a long strip sharing the same column-edge x-coordinate, for example). Examples: `id="fold-tab-c"`, `id="fold-tab-aa"`, `id="fold-landing-h65"`, `id="fold-landing-j68"`. The `fold-` prefix exists to sidestep Affinity Designer's cross-layer id-collision auto-rename: under an earlier draft of this convention the fold path and the marker shared an id, and Affinity quietly suffixed the marker side with `1` on export, breaking the binding. Prefixing the fold side gives every fold path a unique id, no collision.
+
+3. **Marker-bound id with default angle** — append `-<N>` where `N` is a non-negative integer in degrees. Examples: `id="fold-tab-c-40"` (drives the tab-c region, default 40°), `id="fold-landing-h65-90"` (drives the landing-h65 region, default 90°). Parsing rule: after stripping the `fold-` prefix, if the remainder ends in `-<digits>`, strip that suffix and treat the digits as the angle; the rest is the marker id. The marker id `landing-h65` ends in `h65` (digits glued to letters), so stripping doesn't see a numeric suffix — `id="fold-landing-h65"` parses as marker only, no angle. `id="fold-landing-h65-90"` parses as marker `landing-h65` + angle `90`.
+
+Sign of the default angle: positive means "fold in the layer's natural direction" (valley = dashed-in-print direction; mountain = plus-sign-in-print direction). The polarity is encoded by the layer the path lives in, not by the angle's sign. If you need to override polarity for a specific fold, move the path to the other layer.
+
+A `fold-` prefix without a matching marker triggers a banner warning and falls through to unidentified-path behavior. The legacy `fold-<digits>` / `fold+<digits>` angle-only form (e.g. `fold-90`, `fold+45`) is preserved as a backward-compat fallback — pre-2026-05-04 SVGs still parse, but new authoring should use marker-bound ids.
 
 ---
 
@@ -127,6 +139,8 @@ Existing pieces don't migrate at convention-change time. The next audit run flag
 
 ---
 
-*Last updated: 2026-05-03 — landing-marker convention added; `marks` layer broken out into its own section (it's no longer purely visual now that it carries landings). The "everything else from the print" layer is named `marks` (not `marks-other`; that was an incorrect name in earlier drafts and has been corrected throughout the docs).*
+*Last updated: 2026-05-04 — marker-bound fold ids subsection added under `folds-valley` / `folds-mountain`. Pattern: `fold-<marker-id>` with optional default-angle suffix (`fold-tab-c-40`, `fold-landing-h65-90`). The `fold-` prefix sidesteps Affinity's cross-layer id-collision auto-rename. Parser implementation is in flight in `preview.html`; geometric-adjacency-based, with a known follow-up to migrate to shared-edge polygon topology in the next iteration.*
+
+*Earlier 2026-05-03 — landing-marker convention added; `marks` layer broken out into its own section (it's no longer purely visual now that it carries landings). The "everything else from the print" layer is named `marks` (not `marks-other`; that was an incorrect name in earlier drafts and has been corrected throughout the docs).*
 
 *Earlier 2026-05-03 — initial authoring. Distilled from `CLAUDE.md` cut-layer convention row (2026-05-02), axles + north convention row (2026-05-02), faithful-trace direction (2026-04-30), and `work/SPEC-3D-VIEWER.md` §"Authoring/QA preview tool".*
