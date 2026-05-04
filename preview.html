@@ -47,6 +47,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#1a1a1a; color
 #thickness-section,
 #rotation-section { display:flex; flex-direction:column; gap:6px; }
 #rotation-section[hidden] { display:none; }
+#diagnostics-section { display:flex; flex-direction:column; gap:6px; }
 
 #piece-section { position:relative; display:flex; flex-direction:column; gap:6px; }
 #piece-section .piece-row { display:flex; align-items:center; gap:6px; }
@@ -166,6 +167,15 @@ button:hover { background:#383838; }
     <button id="resetRotateBtn">Reset rotation</button>
   </div>
 
+  <div id="diagnostics-section">
+    <div class="diag-row" style="display:flex; gap:6px;">
+      <button id="dumpFaceGraphBtn" disabled
+              title="Download the most recent face graph as JSON">Dump face graph</button>
+      <button id="toggleFaceGraphOverlayBtn" disabled
+              title="Toggle the 2D face-graph diagnostic overlay over the 3D view">Show overlay</button>
+    </div>
+  </div>
+
   <div id="help">
     Type a piece id (e.g. <code>069</code>) and press Enter, or drag-drop any SVG.<br>
     If id-load fails on <code>file://</code>, run <code>python3 -m http.server 8000</code> from repo root, then open <code>http://localhost:8000/preview.html</code>.<br>
@@ -225,6 +235,8 @@ const loadBtn         = document.getElementById('loadBtn');
 const reloadPieceBtn  = document.getElementById('reloadPieceBtn');
 const sidecarBlock    = document.getElementById('sidecar-block');
 const pieceDropdown   = document.getElementById('piece-dropdown');
+const dumpFaceGraphBtn          = document.getElementById('dumpFaceGraphBtn');
+const toggleFaceGraphOverlayBtn = document.getElementById('toggleFaceGraphOverlayBtn');
 let   allPieceEntries = []; // [{id, notes}] sorted by piece number; populated async
 
 // Piece-id loader: tracks the canonical piece currently displayed (set by
@@ -1734,6 +1746,92 @@ function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map(
     });
   });
 
+  // ── Step 4.5: Shared-edge index (DIAGNOSTIC ONLY) ────────────────────────────
+  // Index every region edge by canonical endpoint pair. Edges with exactly two
+  // regions are shared seams — the topological adjacency primitive a future
+  // algorithm prompt may consume. For now, exposed only via the debug dump and
+  // overlay; the adjacency algorithm in step 5 below is UNCHANGED.
+  const QUANT = 1e4;  // multiplier; rounding granularity = 1/QUANT viewBox units
+  function quantPt([x, y]) { return [Math.round(x * QUANT), Math.round(y * QUANT)]; }
+  function edgeKey(a, b) {
+    const qa = quantPt(a), qb = quantPt(b);
+    const aBeforeB = (qa[0] < qb[0]) || (qa[0] === qb[0] && qa[1] <= qb[1]);
+    const lo = aBeforeB ? qa : qb;
+    const hi = aBeforeB ? qb : qa;
+    return `${lo[0]},${lo[1]}|${hi[0]},${hi[1]}`;
+  }
+
+  const edgeIndex = new Map();   // key → [{rId, eIdx}, ...]
+  for (const [rId, region] of regionMap) {
+    const n = region.polygon.length;
+    for (let i = 0; i < n; i++) {
+      const k = edgeKey(region.polygon[i], region.polygon[(i + 1) % n]);
+      if (!edgeIndex.has(k)) edgeIndex.set(k, []);
+      edgeIndex.get(k).push({ rId, eIdx: i });
+    }
+  }
+
+  const sharedEdges = [];
+  for (const [k, entries] of edgeIndex) {
+    if (entries.length !== 2) continue;
+    const a = entries[0], b = entries[1];
+    if (a.rId === b.rId) continue;
+    const rA = regionMap.get(a.rId);
+    const [ax, ay] = rA.polygon[a.eIdx];
+    const [bx, by] = rA.polygon[(a.eIdx + 1) % rA.polygon.length];
+    sharedEdges.push({
+      key: k,
+      regionA: a.rId, regionB: b.rId,
+      eIdxA: a.eIdx, eIdxB: b.eIdx,
+      mid: [(ax + bx) / 2, (ay + by) / 2],
+      length: Math.hypot(bx - ax, by - ay),
+      endpoints: [[ax, ay], [bx, by]]
+    });
+  }
+
+  // Per-fold candidate annotation (top-3 shared edges by min distance to fold
+  // line). Marker-bound folds restrict candidates to the marker's region's
+  // shared edges; unidentified folds search all shared edges. Result is
+  // attached to each fold object via _diagCandidates / _diagMarkerRegionId for
+  // exposure in the diagnostic dump and overlay.
+  function ptToFoldLine(px, py, fold) {
+    const [fax, fay] = fold.start;
+    const dx = fold.end[0] - fax, dy = fold.end[1] - fay;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-10) return Infinity;
+    return Math.abs((py - fay) * dx - (px - fax) * dy) / len;
+  }
+
+  const sharedByRegion = new Map();
+  for (const [rId] of regionMap) sharedByRegion.set(rId, []);
+  for (const se of sharedEdges) {
+    sharedByRegion.get(se.regionA).push(se);
+    sharedByRegion.get(se.regionB).push(se);
+  }
+
+  for (const fold of extendedFolds) {
+    let pool = sharedEdges;
+    let markerRegionId = null;
+    if (fold.markerBoundId) {
+      const c = marksCentroidsById.get(fold.markerBoundId);
+      if (c) {
+        for (const [rId, region] of regionMap) {
+          if (pointInPolygon(c.x, c.y, region.polygon)) { markerRegionId = rId; break; }
+        }
+        if (markerRegionId) pool = sharedByRegion.get(markerRegionId) || [];
+      }
+    }
+    const scored = pool.map(se => ({ se, dist: ptToFoldLine(se.mid[0], se.mid[1], fold) }));
+    scored.sort((a, b) => a.dist - b.dist);
+    fold._diagCandidates = scored.slice(0, 3).map(({ se, dist }) => ({
+      sharedEdgeKey: se.key,
+      regionA: se.regionA, regionB: se.regionB,
+      midpoint: se.mid, endpoints: se.endpoints, length: se.length,
+      distToFoldLine: dist
+    }));
+    fold._diagMarkerRegionId = markerRegionId;
+  }
+
   // ── Step 5: adjacency ─────────────────────────────────────────────────────────
   const foldEdges = [];
 
@@ -2020,6 +2118,67 @@ function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map(
 
   if (totalUnknown > 0) console.log('[preview.html] Unknown-tag edges:', totalUnknown);
 
+  // ── Diagnostic payload ────────────────────────────────────────────────────────
+  // Additive instrumentation: a future diagnostic prompt may consume this; the
+  // adjacency and BFS above don't read it. Always attached to the return value.
+  const _diag = {
+    pieceFile: parsed && parsed.filename ? parsed.filename : null,
+    viewBox: parsed && parsed.viewBox ? parsed.viewBox : null,
+    silhouettePolygon: silhouette,
+    regions: Array.from(regionMap.values()).map(r => ({
+      id: r.id,
+      polygon: r.polygon,
+      area: polyArea(r.polygon),
+      vertexCount: r.polygon.length,
+      isRoot: r.isRoot,
+      parentId: r.parentId,
+      edgeTags: r.edgeTags.map(et => et.tag)
+    })),
+    folds: extendedFolds.map(f => ({
+      id: f.id,
+      pathId: f.pathId,
+      layer: f.layer,
+      markerBoundId: f.markerBoundId,
+      defaultAngle: f.defaultAngle,
+      authoredStart: f.authoredStart,
+      authoredEnd: f.authoredEnd,
+      extendedStart: f.start,
+      extendedEnd: f.end,
+      sharedEdgeCandidates: f._diagCandidates || [],
+      markerRegionId: f._diagMarkerRegionId || null
+    })),
+    foldEdges: foldEdges.map(fe => ({
+      pathId: fe.pathId,
+      layer: fe.layer,
+      polarity: fe.polarity,
+      passive: fe.passive,
+      regionA: fe.regionA,
+      regionB: fe.regionB,
+      segment: fe.segment,
+      sourceFoldId: (fe.sourceFold && fe.sourceFold.id) || null
+    })),
+    sharedEdges: sharedEdges.map(se => ({
+      key: se.key,
+      regionA: se.regionA, regionB: se.regionB,
+      midpoint: se.mid, endpoints: se.endpoints, length: se.length
+    })),
+    marksCentroidsById: Array.from(marksCentroidsById.entries()).map(([id, c]) => ({
+      markerId: id, x: c.x, y: c.y
+    })),
+    summary: {
+      regionCount: regionMap.size,
+      foldCount: extendedFolds.length,
+      foldEdgeCount: foldEdges.length,
+      activeFoldEdgeCount: foldEdges.filter(fe => !fe.passive).length,
+      passiveFoldEdgeCount: foldEdges.filter(fe => fe.passive).length,
+      sharedEdgeCount: sharedEdges.length,
+      rootId: rootId,
+      rootSource: rootSource,
+      sliverFiltered: sliverCount,
+      totalUnknownEdgeTags: totalUnknown
+    }
+  };
+
   return {
     rootId,
     regions: regionMap,
@@ -2027,7 +2186,8 @@ function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map(
     sliverCount,
     orphanCount,
     unknownTagCount: totalUnknown,
-    rootSource
+    rootSource,
+    _diag
   };
 }
 
@@ -2062,6 +2222,11 @@ function buildAxleWire(axleX_3js, axleY_3js, slabT_mm) {
 
 // ─── Scene render ─────────────────────────────────────────────────────────────
 async function renderScene(p) {
+  // Disable diagnostics buttons while a new build is in flight; re-enabled at
+  // end when a face graph is available.
+  if (dumpFaceGraphBtn)          dumpFaceGraphBtn.disabled = true;
+  if (toggleFaceGraphOverlayBtn) toggleFaceGraphOverlayBtn.disabled = true;
+
   // Clear previous slab + axle markers, disposing their GPU resources.
   // The scan texture is cached in _scanTexCache and disposed there; the slab's
   // material references it via `map`, so we don't dispose the texture here —
@@ -2105,13 +2270,28 @@ async function renderScene(p) {
   // ── Face graph or single-slab ─────────────────────────────────────────────
   // Build (or reuse cached) face graph when the SVG has fold layers (single-cutaway only).
   let faceGraph = null;
+  let faceGraphFreshBuild = false;
   if (!isMultiCutaway && p.folds.length > 0) {
     const poly0 = polys[0];
     if (!p._faceGraph) {
       const extFolds = extendFoldsToSilhouette(poly0, p.folds);
       p._faceGraph = buildFaceGraph(poly0, extFolds, p.marksCentroidsById || new Map());
+      faceGraphFreshBuild = true;
     }
     faceGraph = p._faceGraph;
+  }
+
+  // Diagnostics: cache for buttons, log structured summary on fresh build,
+  // re-render overlay if it's currently visible. Cached path (thickness slider
+  // rebuilds) skips the console summary so it only fires once per piece load.
+  window.__lastFaceGraph = faceGraph;
+  if (faceGraph && faceGraphFreshBuild) {
+    logFaceGraphSummary(faceGraph._diag);
+  }
+  if (faceGraph && window.__faceGraphOverlay && _faceGraphOverlaySvg) {
+    renderFaceGraphOverlay(faceGraph._diag);
+  } else if (!faceGraph && _faceGraphOverlaySvg) {
+    _faceGraphOverlaySvg.replaceChildren();
   }
 
   const useFoldTree = faceGraph && faceGraph.regions.size > 1;
@@ -2450,6 +2630,10 @@ async function renderScene(p) {
     addBanner('No axles — rotation slider hidden.', 'ok');
   if (p.thicknessSource === 'default')
     addBanner('Thickness: 0.4 mm default (no thickness layer in SVG).', 'ok');
+
+  // Re-enable diagnostics buttons if a face graph is now available.
+  if (dumpFaceGraphBtn)          dumpFaceGraphBtn.disabled          = !faceGraph;
+  if (toggleFaceGraphOverlayBtn) toggleFaceGraphOverlayBtn.disabled = !faceGraph;
 }
 
 // ─── buildSlab ────────────────────────────────────────────────────────────────
@@ -2664,8 +2848,260 @@ function debounce(fn, ms) {
   return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
 }
 
+// ─── Face-graph diagnostics (instrumentation, additive) ──────────────────────
+// The 2D overlay sits in viewBox-space over the 3D canvas — it is NOT
+// projectively aligned with the orbit camera; the dark backdrop signals that.
+let _faceGraphOverlaySvg = null;
+let _faceGraphOverlayLegend = null;
+window.__lastFaceGraph = null;
+window.__faceGraphOverlay = false;
+
+function setupFaceGraphDiagnostics() {
+  const overlaySvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  overlaySvg.id = 'face-graph-overlay';
+  overlaySvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  overlaySvg.style.cssText = [
+    'position:absolute', 'inset:0',
+    'width:100%', 'height:100%',
+    'pointer-events:none',
+    'background:rgba(26,26,26,0.88)',
+    'display:none'
+  ].join(';') + ';';
+  canvasHost.appendChild(overlaySvg);
+  _faceGraphOverlaySvg = overlaySvg;
+
+  const legend = document.createElement('div');
+  legend.id = 'face-graph-legend';
+  legend.style.cssText = [
+    'position:absolute', 'top:8px', 'right:8px',
+    'background:rgba(0,0,0,0.65)', 'color:#ddd',
+    'padding:6px 10px', 'border-radius:4px',
+    'font-size:11px', 'line-height:1.5',
+    'pointer-events:none', 'display:none',
+    'max-width:260px'
+  ].join(';') + ';';
+  legend.innerHTML =
+    '<div style="font-weight:600;margin-bottom:4px">Face-graph diagnostic</div>' +
+    '<div>regions = unique colors (arbitrary)</div>' +
+    '<div><span style="color:#bbb">━</span> shared edges</div>' +
+    '<div><span style="color:#7af">- - -</span> valley folds &nbsp; ' +
+      '<span style="color:#f87">- - -</span> mountain folds</div>' +
+    '<div><span style="color:#7d7">━</span> top candidate (good binding)</div>' +
+    '<div><span style="color:#fc6">━</span> top candidate (suspect)</div>' +
+    '<div style="margin-top:4px;color:#888">2D viewBox-space; not aligned to 3D camera.</div>';
+  canvasHost.appendChild(legend);
+  _faceGraphOverlayLegend = legend;
+
+  dumpFaceGraphBtn.addEventListener('click', downloadFaceGraphDump);
+  toggleFaceGraphOverlayBtn.addEventListener('click', () => {
+    window.__faceGraphOverlay = !window.__faceGraphOverlay;
+    const on = window.__faceGraphOverlay;
+    overlaySvg.style.display = on ? 'block' : 'none';
+    legend.style.display     = on ? 'block' : 'none';
+    toggleFaceGraphOverlayBtn.textContent = on ? 'Hide overlay' : 'Show overlay';
+    if (on && window.__lastFaceGraph && window.__lastFaceGraph._diag) {
+      renderFaceGraphOverlay(window.__lastFaceGraph._diag);
+    }
+  });
+}
+
+function downloadFaceGraphDump() {
+  const fg = window.__lastFaceGraph;
+  if (!fg || !fg._diag) {
+    addBanner('No face graph available — load a piece first.', 'warn');
+    return;
+  }
+  const blob = new Blob([JSON.stringify(fg._diag, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const piece = (fg._diag.pieceFile || 'unknown').replace(/[^A-Za-z0-9_-]/g, '_');
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  const a = document.createElement('a');
+  a.href = url; a.download = `face-graph-${piece}-${ts}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Area-weighted polygon centroid (for region id labels). Falls back to vertex
+// average on degenerate (zero-area) polygons.
+function polyCentroid2D(poly) {
+  let A = 0, cx = 0, cy = 0;
+  const n = poly.length;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    const cross = xj * yi - xi * yj;
+    A += cross;
+    cx += (xj + xi) * cross;
+    cy += (yj + yi) * cross;
+  }
+  A /= 2;
+  if (Math.abs(A) < 1e-10) {
+    let sx = 0, sy = 0;
+    for (const [x, y] of poly) { sx += x; sy += y; }
+    return [sx / n, sy / n];
+  }
+  return [cx / (6 * A), cy / (6 * A)];
+}
+
+function renderFaceGraphOverlay(diag) {
+  if (!_faceGraphOverlaySvg || !diag || !diag.viewBox) return;
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const svg = _faceGraphOverlaySvg;
+  svg.replaceChildren();
+
+  const vb = diag.viewBox;
+  svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  const diagLen = Math.hypot(vb.w, vb.h);
+  const sw = (k) => (diagLen * k).toFixed(4);
+
+  function attr(el, attrs) {
+    for (const k of Object.keys(attrs)) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  function mkPoly(points, attrs) {
+    const el = document.createElementNS(SVG_NS, 'polygon');
+    el.setAttribute('points', points.map(p => `${p[0]},${p[1]}`).join(' '));
+    return attr(el, attrs);
+  }
+  function mkLine(a, b, attrs) {
+    const el = document.createElementNS(SVG_NS, 'line');
+    el.setAttribute('x1', a[0]); el.setAttribute('y1', a[1]);
+    el.setAttribute('x2', b[0]); el.setAttribute('y2', b[1]);
+    return attr(el, attrs);
+  }
+  function mkCircle(cx, cy, r, attrs) {
+    const el = document.createElementNS(SVG_NS, 'circle');
+    el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', r);
+    return attr(el, attrs);
+  }
+  function mkText(x, y, str, attrs) {
+    const el = document.createElementNS(SVG_NS, 'text');
+    el.setAttribute('x', x); el.setAttribute('y', y);
+    el.textContent = str;
+    return attr(el, attrs);
+  }
+
+  // 1) Silhouette outline (thin gray)
+  if (diag.silhouettePolygon && diag.silhouettePolygon.length >= 3) {
+    svg.appendChild(mkPoly(diag.silhouettePolygon, {
+      stroke: '#888', 'stroke-width': sw(0.001), fill: 'none'
+    }));
+  }
+
+  // 2) Regions (golden-angle colors, semi-transparent)
+  const regionsArr = diag.regions || [];
+  for (let i = 0; i < regionsArr.length; i++) {
+    const r = regionsArr[i];
+    if (!r.polygon || r.polygon.length < 3) continue;
+    const hue = (i * 137.508) % 360;
+    svg.appendChild(mkPoly(r.polygon, {
+      fill: `hsl(${hue}, 55%, 62%)`,
+      'fill-opacity': '0.55',
+      stroke: `hsl(${hue}, 45%, 35%)`,
+      'stroke-width': sw(0.0008)
+    }));
+  }
+
+  // 3) Shared edges (gray seams)
+  for (const se of (diag.sharedEdges || [])) {
+    if (!se.endpoints || se.endpoints.length < 2) continue;
+    svg.appendChild(mkLine(se.endpoints[0], se.endpoints[1], {
+      stroke: '#bbb', 'stroke-width': sw(0.0015), 'stroke-linecap': 'round'
+    }));
+  }
+
+  // 4) Fold authored segments (dashed, blue=valley, red=mountain)
+  for (const fold of (diag.folds || [])) {
+    if (!fold.authoredStart || !fold.authoredEnd) continue;
+    const color = fold.layer === 'folds-mountain' ? '#f87' : '#7af';
+    svg.appendChild(mkLine(fold.authoredStart, fold.authoredEnd, {
+      stroke: color, 'stroke-width': sw(0.002),
+      'stroke-dasharray': `${sw(0.005)} ${sw(0.003)}`
+    }));
+  }
+
+  // 5) Top-1 shared-edge candidate per fold (green=good, amber=suspect)
+  for (const fold of (diag.folds || [])) {
+    const cand = (fold.sharedEdgeCandidates || [])[0];
+    if (!cand || !cand.endpoints || cand.endpoints.length < 2) continue;
+    const hasMarkerRegion = fold.markerRegionId !== null && fold.markerRegionId !== undefined;
+    const goodBinding = hasMarkerRegion &&
+      (cand.regionA === fold.markerRegionId || cand.regionB === fold.markerRegionId);
+    const color = goodBinding ? '#7d7' : '#fc6';
+    svg.appendChild(mkLine(cand.endpoints[0], cand.endpoints[1], {
+      stroke: color, 'stroke-width': sw(0.003), 'stroke-linecap': 'round'
+    }));
+  }
+
+  // 6) Marker centroids (white dots + labels)
+  for (const m of (diag.marksCentroidsById || [])) {
+    svg.appendChild(mkCircle(m.x, m.y, sw(0.004), { fill: '#fff' }));
+    svg.appendChild(mkText(m.x + diagLen * 0.006, m.y, m.markerId, {
+      'font-size': sw(0.012),
+      fill: '#fff',
+      'paint-order': 'stroke',
+      stroke: '#000',
+      'stroke-width': sw(0.001),
+      'stroke-linejoin': 'round',
+      'dominant-baseline': 'middle'
+    }));
+  }
+
+  // 7) Region id labels at area-weighted centroids
+  for (const r of regionsArr) {
+    if (!r.polygon || r.polygon.length < 3) continue;
+    const [cx, cy] = polyCentroid2D(r.polygon);
+    svg.appendChild(mkText(cx, cy, r.id, {
+      'font-size': sw(0.008),
+      'text-anchor': 'middle',
+      fill: '#fff',
+      'paint-order': 'stroke',
+      stroke: '#000',
+      'stroke-width': sw(0.001),
+      'stroke-linejoin': 'round',
+      'dominant-baseline': 'middle'
+    }));
+  }
+}
+
+// Structured console summary for a face graph. ✓ = marker-bound, top candidate
+// distance is small (< SUSPECT_DIST viewBox units). ✗ = marker-bound, top
+// candidate distance is large (likely the fold's hinge isn't in the marker's
+// region's shared edges). ⊘ = unidentified fold (no marker binding).
+function logFaceGraphSummary(diag) {
+  if (!diag) return;
+  const s = diag.summary || {};
+  const piece = diag.pieceFile || 'unknown';
+  console.log(
+    `[face-graph] piece=${piece} regions=${s.regionCount} folds=${s.foldCount} ` +
+    `active-edges=${s.activeFoldEdgeCount} passive-edges=${s.passiveFoldEdgeCount} ` +
+    `shared-edges=${s.sharedEdgeCount} slivers-filtered=${s.sliverFiltered}`
+  );
+  const SUSPECT_DIST = 5;
+  console.groupCollapsed('[face-graph] folds:');
+  for (const fold of (diag.folds || [])) {
+    const cand = (fold.sharedEdgeCandidates || [])[0];
+    const candStr = cand
+      ? `top-shared-edge=${cand.regionA}↔${cand.regionB} dist=${cand.distToFoldLine.toFixed(2)}`
+      : 'top-shared-edge=<none>';
+    if (fold.markerBoundId) {
+      const mr = fold.markerRegionId
+        ? `marker-region=${fold.markerRegionId}`
+        : 'marker-region=<not-found>';
+      const suspect = cand && cand.distToFoldLine > SUSPECT_DIST;
+      const mark = suspect ? '✗' : '✓';
+      const tail = suspect ? `  [SUSPECT: distance > ${SUSPECT_DIST}u]` : '';
+      console.log(`  ${mark} ${fold.pathId} (marker-bound: ${fold.markerBoundId}) → ${mr} → ${candStr}${tail}`);
+    } else {
+      console.log(`  ⊘ ${fold.pathId} (unidentified) → ${candStr}`);
+    }
+  }
+  console.groupEnd();
+}
+
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 initScene();
+setupFaceGraphDiagnostics();
 
 // Best-effort autocomplete population (silent on file://).
 populatePieceDatalist();
