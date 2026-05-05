@@ -43,16 +43,18 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 - **Candidate, updated post-DECISIONS #6:** if panels-first authoring on 069 (Now #1) goes well, 069 itself is a strong "first end-to-end" candidate — the inventory already named it as the panels-as-polygons test piece, and folding it through to preview.html would double as the panels-aware parser proof. Pendulum bob (piece 094, plate H) per the inherited Pendulum POC track stays as the alternate.
 - **Not in the queue yet** because the candidacy isn't locked. Earmarked here so it doesn't fall off.
 
-### 6. Ship panels-aware parser pathway in preview.html
+### 6. Ship panels-aware parser pathway in preview.html — `CODE_PROMPT_preview-html-panels-aware.md` ready
 
-- **What:** new code path in `preview.html` that parses the `panels` layer, reads `fold-<a>-<b>` ids to build the panel adjacency graph, and resolves landings + pivots from the `attach-points` layer. Cut-line-first (`buildFaceGraph` + `extendFoldsToSilhouette` + cut-trim) stays alongside as the legacy parser for pre-pivot pieces.
-- **Why not in "Now":** depends on Now #1 landing first. The fold-binding shape (`fold-<a>-<b>` id form vs. JSON sidecar edge list vs. hybrid) might tweak based on what 069 authoring teaches.
-- **How to pull:** Code session via a CODE_PROMPT once the 069 authoring lands. No prompt drafted yet.
+- **What:** new code path in `preview.html` that parses the `panels` layer, reads `fold-<a>-<b>` ids to build the panel adjacency graph, and resolves landings + pivots from the `attach-points` layer. Cut-line-first (`buildFaceGraph` + `extendFoldsToSilhouette` + cut-trim) stays alongside as the legacy parser for pre-pivot pieces. Single-piece scope; multi-piece scene assembly is a follow-up prompt.
+- **Status:** **CODE_PROMPT drafted and ready-for-code** at `CODE_PROMPT_preview-html-panels-aware.md` (repo root). 8 numbered tasks; verification across 069/068/071/099. Conventions are stable (DECISIONS #7) and the connection-graph audit (`claude-work/scripts/build_assembly_graph.py`) provides a reference parser implementation in Python.
+- **How to pull:** open a Code session, hand it `CODE_PROMPT_preview-html-panels-aware.md` and the LAYER-CONVENTIONS.md, follow the numbered tasks and verification checklist.
 
 ---
 
 ## Recently shipped
 
+- ~~**Anchor-pendulum batch panels-first authoring (9 pieces)**~~ → landed 2026-05-05 (afternoon-evening). Alan authored 065/066/067/068/069/070/071/072 + 099 with the panels-first conventions across one extended bench session. End-to-end review surfaced 21 specific convention elements; LAYER-CONVENTIONS.md rewritten as the single canonical reference (LAYERS.md deleted). Connection-graph audit at `claude-work/scripts/build_assembly_graph.py` resolves 24/24 cross-piece edges across the batch. DECISIONS #7 ratifies the conventions.
+- ~~**Cross-piece assembly connection graph**~~ → shipped 2026-05-05 (evening). `claude-work/scripts/build_assembly_graph.py` reads panels-first SVGs and emits `claude-work/state/connection-graph.{md,json}`. 10 panels-first pieces processed; 24/24 cross-piece edges valid; 1 pivot cluster (anchor); 10 untyped landings (closures + back-side + WIP, intentional). The structural backbone for the M4 assembly engine.
 - ~~**Source-side capture closed at 123/123**~~ → 2026-05-05 afternoon. Pieces 090 and 110 both captured + initialized in `work/pieces/`; combined with the morning's 013-017 clone resolution, every piece in the master index now has a PNG in `source/pieces/`. Piece-capture track in STATUS flipped to `complete`.
 - ~~**Plate B brackets 013/014/016/017 capture**~~ → resolved 2026-05-05 by clarification + replication: Alan flagged that 013-017 are all identical drawings to 012 (six bracket pieces, same artwork, different print positions). I replicated `source/pieces/012.png` → `013.png`/`014.png`/`015.png`/`016.png`/`017.png` (overwriting the redundant separate 015 scan). MD5-verified all six identical. `work/pieces.csv` rows updated to `captured` with clone notes.
 - ~~**Cowork conversation: orientation/awareness reset**~~ → landed 2026-05-05 via cowork session `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`. Decision: panels-first (B) + authored-vs-derived (D). DECISIONS row #6 closed. See that row for the full shape.
@@ -72,7 +74,9 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 
 ---
 
-*Last updated: 2026-05-05 (morning) — Alan flagged that plate B brackets 013-017 are all identical to 012; replicated 012.png x5 to fill those slots; pieces.csv + STATUS piece-capture track updated. #2 narrowed to piece 090 only (with parked question about 110 status). #4 lock-file verification closed (returned empty). Two new entries in Recently shipped.*
+*Last updated: 2026-05-05 (late evening) — anchor-pendulum batch panels-first authoring landed (9 pieces); connection-graph audit script shipped (24/24 edges valid); LAYER-CONVENTIONS.md rewritten as canonical (LAYERS.md deleted); CODE_PROMPT_preview-html-panels-aware.md drafted ready-for-code. Soon #6 (panels-aware parser pathway) updated with the prompt status. Source-side capture closed at 123/123. DECISIONS #7 ratifies the convention lock-in.*
+
+*Earlier 2026-05-05 (morning) — Alan flagged that plate B brackets 013-017 are all identical to 012; replicated 012.png x5 to fill those slots; pieces.csv + STATUS piece-capture track updated. #2 narrowed to piece 090 only (with parked question about 110 status). #4 lock-file verification closed (returned empty). Two new entries in Recently shipped.*
 
 *Earlier 2026-05-05 (~01:15) — orientation/awareness reset conversation landed. Old #1 (the reset conversation itself) struck through to Recently shipped; new #1 is "author piece 069 panels-first" with full brief at `claude-work/to-alan/069-panels-first/README.md`. Soon section gained #6 (panels-aware parser pathway in preview.html, blocked on Now #1).*
 

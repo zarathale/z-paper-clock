@@ -1,205 +1,249 @@
-# LAYER-CONVENTIONS.md — z-paper-clock SVG authoring cheat sheet
+# LAYER-CONVENTIONS.md — panels-first authoring reference
 
-Quick reference for naming layers and elements while editing per-piece SVGs in Affinity Designer (or Inkscape). Authoritative sources: `CLAUDE.md` §"File Naming Conventions" + the resolved-decision rows for cut-layer and axles (pre-charter conventions); `claude-work/DECISIONS.md` rows (post-charter conventions; row #6 onward). This file is the distilled scannable version, kept short on purpose so it can stay open on a second window while authoring.
+_The authoritative reference for SVG authoring conventions on z-paper-clock per-piece SVGs. Post-2026-05-05 panels-first pivot per `claude-work/DECISIONS.md` row #6 (and the comprehensive convention pass row #7). Keep open while authoring in Affinity. Replaces the prior cut-line-first-era version of this doc — cut-line-first remains as the legacy parser pathway in `preview.html` for pre-pivot pieces, but new authoring is panels-first._
 
-This file is **co-authored** per CHARTER §3 + DECISIONS #3 — both Alan and Claude write to it. Settled-and-shipped conventions get unilateral edits (typos, examples, wording) with a one-line dated footer note. New conventions or changes to settled ones get talked through in chat first; the agreed shape lands as a CLAUDE.md / DECISIONS.md row, and this file gets updated in the same pass.
-
-The audit script (`work/scripts/audit_state.py`) checks every SVG against these conventions on every run; new conventions are added there as separate checks. Don't be precious about getting everything right on the first pass — convention drift is detected, not enforced. (Audit lives in frozen `work/`; next iteration migrates to `claude-work/` per CHARTER §5. New panels-first checks below are documented but not yet wired into the audit.)
+This file is **co-authored** per CHARTER §3 + DECISIONS #3 — both Alan and Claude write to it. Settled-and-shipped conventions get unilateral edits (typos, examples, wording) with a one-line dated footer note. New conventions or changes to settled ones get talked through in chat first; the agreed shape lands as a DECISIONS.md row, and this file gets updated in the same pass.
 
 ---
 
-## Canonical layer names
+## The eight canonical layers (top-level `<g id="...">`)
 
-Every per-piece SVG contains zero or more of these as top-level `<g>` elements. Names match exactly (lowercase, hyphenated). In Affinity, layer-name → `id` on export. In Inkscape, layer name lands as `inkscape:label`; either works.
+```
+silhouette       outer cut path  (extruded as the slab)
+cutouts          interior holes  (subtracted from the slab)
+panels           closed polygon per region of the piece  (mandatory, even on flat pieces)
+folds-valley     dashed-in-print folds  (paper folds toward you)
+folds-mountain   plus-sign-in-print folds  (paper folds away from you)
+axles            rotation centers  (the wires the piece spins on)
+attach-points    cross-piece structural references  (pivots, attaches, holes, typed landings, letter targets)
+labels           printed text + numerals  (decorative)
+marks            same-piece markers  (decorative letters, multi-instance, alignments, cuts, untyped/closure landings)
+```
 
-| Layer | What goes in it | Required? |
-|---|---|---|
-| `silhouette` | The outer cut-line of the piece. The only layer that extrudes. | **Required for every piece** |
-| `cutouts` | Interior holes punched out of the silhouette (e.g. piece 71's center cell). | Only if the piece has interior cuts |
-| `panels` | One closed polygon per region of the piece (NEW post-2026-05-05; replaces cut-line-first region derivation). | Required for new pieces; not present on legacy/pre-2026-05-05 pieces |
-| `folds-valley` | Open paths along dashed fold lines (valley creases). | Only if the piece folds |
-| `folds-mountain` | Open paths along plus-sign fold lines (mountain creases). | Only if the piece folds |
-| `axles` | Point markers (ellipse / circle) at *rotation* axle centers — the points this piece pivots around. Plus optional `id="north"` for orientation. | Only on rotating pieces (gear train, anchor, hands) |
-| `attach-points` | Pin-holes, mechanical pivots, and landing markers — places where *other* pieces connect to this one (NEW post-2026-05-05; previously these were collapsed into `axles` and `marks`). | Only if the piece has cross-piece connections |
-| `glue-zones` | Closed paths for hatched glue-reception rectangles. | Only if the piece glues to another |
-| `labels` | Text labels and piece numbers as printed. | Optional; informational |
-| `marks` | Construction dotted lines, registration marks, anything else from the print. (Landing markers moved OUT to `attach-points` post-2026-05-05.) | Optional |
-
-Anything outside this list will be flagged as off-spec by the audit. Extending the canonical set is a CLAUDE.md decision-table or `claude-work/DECISIONS.md` row, not a unilateral one.
-
-**Convention age note.** `panels` and `attach-points` are new as of `claude-work/DECISIONS.md` row #6 (2026-05-05). Pre-2026-05-05 pieces (001/002/058/065/066/067/070/071/072/113) live under the older "cut-line-first" convention where regions were derived from silhouette + fold lines, pin-holes lived in `axles`, and landings lived in `marks`. Both conventions are valid; the audit understands which a given piece is on by which layers it carries. Existing pieces don't migrate at convention-change time; they get uplifted on the next time they're touched (per the existing decoupling at the bottom of this file).
+Two layers are NEW since the panels-first pivot: **`panels`** (closed polygon per region) and **`attach-points`** (cross-piece structural references — was previously split across `axles` + `marks`). Two layers narrowed: **`axles`** to rotation-only (pin-holes moved to `attach-points`); **`marks`** to same-piece-or-decorative (typed cross-piece structural refs moved to `attach-points`, though typed landings can still live in either layer — parser reads both).
 
 ---
 
-## `silhouette` layer — the cut
+## Per-element ids inside each layer
 
-Inside `<g id="silhouette">`:
+### silhouette
 
-- `id="cutaway"` — the single outer cut polygon. Use this when the piece has one connected outline.
-- `id="cutaway-1"`, `id="cutaway-2"`, `…` — multiple disconnected outer pieces sharing a single SVG (numeric suffix, scales past 26).
-- `id="mask"` or `id="mask-N"` — visual authoring frame. Parser ignores. Use for an artboard outline you want visible while editing without it leaking into the geometry.
+```
+id="cutaway"                    single piece
+id="cutaway-1", id="cutaway-2"  multiple disconnected outer pieces (rare)
+id="mask", id="mask-N"          visual authoring frame; parser ignores
+```
 
-Affinity wraps silhouette children in an unnamed `<g>` on export. The parser walks descendants, so the wrapper is transparent — no need to flatten.
+### cutouts
 
-`cutaway-N` ≠ `cutout-N`. `cutaway-N` is "another disconnected outer piece" (becomes its own slab). `cutout-N` is "another interior hole in the same piece" (subtracted from the slab). They live in different top-level layers.
+```
+id="cutout"                     single hole
+id="cutout-1", id="cutout-2"    multi-hole; one per interior hole
+```
 
----
+### panels (mandatory)
 
-## `cutouts` layer — interior holes
+Panel ids are **bare aliases** — no `panel-` prefix. The parser does `getElementById(<id>)` directly.
 
-Inside `<g id="cutouts">`:
+```
+id="<descriptive>"              e.g. main, stem, base, sider, sidel, flap1, flap2
+id="<letter>"                   single letter from print labels  (a, b, c, d, g)
+id="<letters>"                  composite letter clusters  (bh, ai, abc — multiple letters glued, no separator)
+id="tab<letter>"                tab panel  (taba, tabb, ..., tabaa for closure tab)
+id="<letter><partner-piece>"    landing region as panel  (b65 = "the b region for partner piece 65"; pairs with a marks-side `landing-b65` — see dual-presence pattern below)
+id="paneN"                      numbered panel  (pane1, pane2, ... — fine when descriptive name doesn't apply)
+id="tabff"                      double-letter tab from the print  (intentional artifact; suffix matches the printed label)
+```
 
-- `id="cutout-1"`, `id="cutout-2"`, `…` — interior holes punched out of the silhouette. Numeric suffix.
+Suffix rules: **lowercase**, **no hyphens** in the panel-id suffix (the hyphen is the fold-id delimiter). Use `tabA` only if the print label is uppercase; otherwise lowercase letters.
 
-Each `cutout-N` is a closed path that gets subtracted from the silhouette extrusion. Convention is locked in; the implementation in `preview.html` lands in M0.6.10.
+### folds-valley / folds-mountain
 
----
+```
+id="fold-<a>-<b>"               binds the fold to panel-<a> and panel-<b>
+                                e.g. fold-pane1-pane2, fold-main-tabb
+                                — order doesn't matter; parser treats it symmetrically
+                                — references panel ids directly (bare aliases)
 
-## `panels` layer — explicit region authoring (NEW 2026-05-05)
+id="fold-<a>-<b>-<deg>"         optional default angle in degrees
+                                e.g. fold-stem-tabA-90
+                                — positive = layer's natural direction (valley = dashed; mountain = plus-sign)
 
-Inside `<g id="panels">`:
+id="fold-<descriptive>"         single-panel folds, curved folds, or folds against unmodelled clusters
+                                e.g. fold-insidetabs, fold-outsidetabs (concentric circle folds on 099)
 
-- One closed polygon per panel of the piece. Each panel polygon gets a descriptive `id` of the form `panel-<descriptive>` (e.g. `panel-stem`, `panel-tab-c`, `panel-base`). Names are unique within the SVG and chosen to make sense when looking at the piece — they don't need to match any external convention; they just need to be unique.
-- The panels collectively tile the piece. A piece with N regions has N panel polygons.
+<circle id="fold-...">          curved fold path; parser reads cx/cy/r directly
+<ellipse id="fold-...">         elliptical fold path
+```
 
-**Why this exists.** Pre-2026-05-05, region structure was *derived* from silhouette + fold geometry by a cut-line-first algorithm in `preview.html` (`buildFaceGraph` + `extendFoldsToSilhouette`). That algorithm worked well on simple pieces but failed on long strips with co-linear folds (piece 066) and trivially on pieces with no folds at all (piece 067). Panels-first inverts: the SVG names what the panels ARE; the parser stops trying to derive what the author already knows.
+Polarity is encoded by the layer the fold lives in. To flip polarity for a specific fold, move the path to the other layer. Sign of the optional default angle: positive = layer's natural direction.
 
-**What pieces need this.** New pieces author panels. Pre-2026-05-05 pieces stay on cut-line-first as legacy until they're being touched anyway — no bulk migration. The audit knows which convention a given piece is on by whether `panels` is present.
+### axles (rotation-only)
 
-**Status:** convention is provisional. **Piece 069 is the test piece** — see `claude-work/to-alan/069-panels-first/`. If 069 authoring proves panels-first workable in Affinity, the convention rolls forward. If it's painful, we either build an authoring helper (preview.html grows a "propose panels from cut-line-first, accept/edit" tool) or revisit the form.
+```
+unidentified <ellipse>/<circle> axle markers — no id needed
+id="<descriptive>-pivot"        e.g. anchor-pivot — names the axle/pin-hole on this piece
+id="north"                      optional orientation cue: +0° points from axle to this marker
+                                slider sign: +deg = CW (clock convention) viewed from front
+```
 
----
+The `axles` layer holds the actual axle pin-hole markers on this piece. The cross-piece reference to a *shared* pivot lives in `attach-points` as `pivot-<name>` — the two layers can use slightly different naming (`anchor-pivot` in `axles` vs. `pivot-anchor` in `attach-points`) because layer membership disambiguates the role.
 
-## `axles` layer — rotation centers + orientation
+### attach-points (cross-piece structural references)
 
-Inside `<g id="axles">`:
+Anything that's structurally part of the cross-piece connection graph. The parser builds the connection graph from this layer plus typed landings in `marks`.
 
-- Plain ellipses / circles / paths — *rotation* axle markers. The points around which this piece itself pivots (gear axles, anchor axles, hand axles). One per piece in current pieces; multi-axle support deferred. No id required on these.
-- `id="north"` — *optional*, one per piece. Defines the +0° rotation direction via the vector from the active axle (currently `axles[0]`) to this element's centroid.
+```
+id="attach-<letter><piece>"     this piece glues onto letter <letter> on piece <piece>
+                                e.g. attach-g69, attach-h69, attach-i69 (068's attaches to 069's body cells)
+                                e.g. attach-b66, attach-c66, ..., attach-h66 (065's attaches to 066's letter regions)
 
-Sign convention for any rotation slider that consumes axles: **+deg = clockwise** when viewed from the front (clock convention). `id="north"` renders in `preview.html` as a brass-gold sphere; the framework wire is silver. The two are deliberately distinct so they read as separate roles.
+id="landing-<tab><piece>"       this piece receives tab <tab> from piece <piece>
+                                e.g. landing-c69 (067 receives tab c from 069)
+                                e.g. landing-j68 (066 receives j from 068)
+                                — typed landings can also live in `marks`; parser reads both layers
 
-If `id="north"` exists without an axle, the audit flags it (banner-warned + ignored at render time).
+id="pivot-<name>"               shared rotation pivot with peer pieces
+                                e.g. pivot-anchor (067 + 069 share the anchor cluster pivot)
 
-**Convention narrowing 2026-05-05:** `axles` is now rotation-only. Pin-holes (static through-holes that accept *other* pieces' wires, previously authored as `id="hole-..."` here on pieces 001/002/113) move to the new `attach-points` layer. Mechanical pivots (`anchor-pivot` on pieces 067/069) also move to `attach-points`. Pre-2026-05-05 pieces still carry these in `axles`; the audit understands the legacy form.
+id="hole"                       bare = same-piece generic hardware-pin hole, no cross-piece partner
+id="hole-<letter><piece>"       cross-piece pin hole receiving wire/pin from another piece
 
----
+id="<letter>"                   bare letter = "letter <letter> is structurally referenced here on this piece"
+                                e.g. j on 068 — the partner-side reference target for 066's `landing-j68`
 
-## `attach-points` layer — where other pieces connect (NEW 2026-05-05)
+id="back-<form>"                back-side annotation; the rest follows the standard form
+                                e.g. back-landing-d, back-attach-X69, back-pivot-Y
+                                — parser dispatches on leading token: `back-` first → side="back", rest standard
+                                — distinct from `landing-back-g`: there `back-g` is the tab letter, not a side annotation
+```
 
-Inside `<g id="attach-points">`:
+### marks (same-piece markers)
 
-- `id="pin-<descriptive>"` — pin-holes. Static through-holes that accept *another* piece's wire. Examples: `pin-f115` ("hole for the wire from piece 115's f-axle"), `pin-g116`. Pre-2026-05-05 these lived in `axles` as `hole-f...` / `hole-g...`.
-- `id="pivot-<descriptive>"` — mechanical pivots. Where another piece physically rocks/swings around a point on this piece (the anchor escapement is the canonical case). Example: `pivot-anchor`. Distinct from `pin-` — pivots imply motion that's part of the function block; pins are static structural.
-- `id="landing-<tab-letter><piece-number>"` — landing markers. The panel on this piece that *receives* a tab from another piece. Format: `landing-c70` reads as "this piece's landing for tab `c` from piece 70." Pre-2026-05-05 these lived in `marks`. (See "Cross-piece pairing" below.)
+Everything that's not a typed cross-piece structural reference. Per-piece metadata only.
 
-Authored as small ellipse / circle / path elements; the centroid is the connection point. All three categories are points (not regions) for now.
+```
+id="<letter>"                   bare letter = printed letter from the book; decorative
+                                — duplicates allowed: 12 ellipses with id="a" = 12 instances of the same logical marker
 
-**Why this exists.** Pre-2026-05-05, three genuinely different concepts were collapsed into the wrong bins: pin-holes lived in `axles` (which is supposed to be rotation centers, not static holes), mechanical pivots had nowhere clean to live (some pieces just had `id="anchor-pivot"` outside any canonical layer), and landings lived in `marks` alongside construction dotted lines. The 22:00 inventory (`sessions/2026-05-04-2200_cowork_orientation-reset-research.md`) showed this as a real source of authoring drift across pieces 001/002/067/069/113. The split: `axles` = rotation centers for *this* piece; `attach-points` = connection points for *other* pieces.
+id="landing-<panel-id>"         same-piece closure landing  (tab wraps around to land here on the same piece)
+                                e.g. landing-taba, landing-tabb (closures on 069); landing-tabaa (066 closure)
+                                — uses the panel-id form (matching the closure tab's panel id)
 
-**Cross-piece pairing.** A tab `c` on piece 70's `glue-zones` layer ⟷ `landing-c70` on piece 71's `attach-points` layer. That pairing is the connection-graph primitive the assembly engine (M4) will read; nothing consumes it today, but it's worth authoring as you go — re-deriving it later from scanned annotations is harder than capturing it once.
+id="landing-<tab><piece>"       typed cross-piece landing (alternative to placement in attach-points; both OK)
+                                e.g. landing-c69, landing-h65 (parser reads both layers for the connection graph)
 
----
+id="align-<letter><partner-piece>"   cross-piece registration marker (paired symmetric form)
+                                e.g. align-a99 on 100; align-a100 on 099
 
-## `folds-valley` and `folds-mountain` — creases
+id="cut-<descriptive>"          cuts (prefix form, not suffix)
+                                e.g. cut-lower, cut-upper (passage cuts on 100 — a strip passes through)
+                                e.g. cut-a72 (accommodation cut on 070 — tab a is trimmed to make room for piece 72)
 
-Open paths. Each path is a single fold line (start → end). Affinity exports as `<path d="M..L.." />`.
+id="back-<id>"                  back-side variant of any of the above
+```
 
-- Valley = dashed in print → goes in `folds-valley`.
-- Mountain = plus-sign in print → goes in `folds-mountain`.
+### labels
 
-Don't merge multiple fold lines into one multi-segment path. One fold = one path.
-
-### Per-element ids inside fold layers — panels-first form (NEW 2026-05-05)
-
-When the SVG carries a `panels` layer, each fold path's id declares the two panels it joins:
-
-- **`id="fold-<a>-<b>"`** — the fold sits between panels `panel-<a>` and `panel-<b>`. Example: `id="fold-stem-tabA"` joins `panel-stem` and `panel-tabA`. Order doesn't matter; the parser treats it symmetrically. The `fold-` prefix gives every fold path a unique id within the SVG, sidestepping Affinity's cross-layer id-collision auto-rename. Note: in the v0 form, **panel id suffixes should not contain hyphens** (use `panel-tabA` not `panel-tab-a`) — the hyphen is the parser's delimiter between the two panel-name halves of the fold id. If hyphenated suffixes prove necessary at the canvas, the convention adapts (sidecar JSON edge list, or a different separator).
-
-- **`id="fold-<a>-<b>-<N>"`** — same plus an optional default-angle suffix in degrees. Example: `id="fold-stem-tabA-40"` (default 40° fold). Parsing rule: after stripping the `fold-` prefix, if the trailing token parses as a non-negative integer, treat it as the angle; the remaining two tokens name the two panels.
-
-Polarity: positive angle means "fold in the layer's natural direction" (valley = dashed-in-print direction; mountain = plus-sign-in-print direction). Polarity is encoded by which layer the path lives in, not by the sign of the angle. Override polarity by moving the path to the other layer.
-
-If a fold path's id names a panel pair that doesn't resolve (one or both panels missing), the audit flags it (banner warning) and the parser falls through to unidentified-path behavior.
-
-**Status note on the form.** This shape is provisional — it's what the 069 panels-first authoring brief at `claude-work/to-alan/069-panels-first/` proposes. If Affinity collision-renames any (rare; only when two folds bind the same pair), or the no-hyphens-in-panel-ids constraint feels awkward at the canvas, or the form feels awkward in any other way, the convention may evolve to a sidecar JSON edge list (fold paths get arbitrary ids; bindings live in per-piece JSON) or a hybrid. The 069 experiment is the test.
-
-### Per-element ids inside fold layers — cut-line-first form (LEGACY pre-2026-05-05)
-
-For pieces authored before 2026-05-05 that don't carry a `panels` layer, the older marker-bound fold convention applies. Three flavors of fold-path id, in increasing specificity:
-
-1. **Unidentified path** — no `id` (or an Affinity-auto id like `path123`). Parser uses the layer-default angle for any region split this fold creates. This is the right choice for column-internal folds whose location alone is enough to identify them geometrically.
-
-2. **Marker-bound id** — `id="fold-<marker-id>"` where `<marker-id>` matches an element in `<g id="marks">` (landings) or otherwise identifies a region by an authored marker. The parser strips the `fold-` prefix, looks up the rest in the marks centroid map, and binds the fold to the region containing that marker's centroid. Examples: `id="fold-tab-c"`, `id="fold-landing-h65"`. (Tab markers `tab-<letter>` historically lived in `glue-zones`; the parser walked all marks-bearing layers.)
-
-3. **Marker-bound id with default angle** — append `-<N>`. Examples: `id="fold-tab-c-40"`, `id="fold-landing-h65-90"`. The marker id `landing-h65` ends in `h65` (digits glued to letters), so stripping doesn't see a numeric suffix — `id="fold-landing-h65"` parses as marker only, no angle.
-
-Sign of the default angle: same convention as panels-first form (positive = layer's natural direction; polarity by layer membership).
-
-A `fold-` prefix without a matching marker triggers a banner warning. The legacy `fold-<digits>` / `fold+<digits>` angle-only form (e.g. `fold-90`, `fold+45`) is preserved as a backward-compat fallback — pre-2026-05-04 SVGs still parse.
-
-**Migration:** legacy pieces stay legacy until they're being touched. When a legacy piece is re-authored panels-first, fold-path ids change shape from `fold-<marker-id>` to `fold-<panel-a>-<panel-b>`; the marker side moves out of `marks` into `attach-points`.
-
----
-
-## `marks` layer — construction marks only (post-2026-05-05)
-
-Inside `<g id="marks">`:
-
-- Unidentified ellipse / circle / path / line elements — construction lines, dotted alignment guides, registration marks, anything else carried from the print that's neither cut nor fold nor connection. No id required.
-- `mark-<descriptive>` ids are also fine — `mark-h`, `mark-i` on piece 069 are examples of construction marks the author chose to id.
-
-**Convention narrowing 2026-05-05:** landings moved out of `marks` into `attach-points`. Pre-2026-05-05 pieces still carry `landing-<tab-letter><piece-number>` ids inside `<g id="marks">`; the audit understands the legacy form. New pieces author landings in `attach-points`.
-
----
-
-## `glue-zones`, `labels` — purely visual layers
-
-These layers are rendered into the front-face decal but don't drive geometry. Author them as you see them in the print — closed paths for glue-zones (so the hatch is the fill), text or text-as-paths for labels.
-
----
-
-## "Faithful trace" direction
-
-The default for the build is to trace each piece **faithfully** — the SVG geometry preserves the human-drawn, human-scanned messiness as the artifact. Don't "clean up the gear teeth" against the SVG. If mechanism geometry needs to be captured (gear-train pieces in §II.B + escapement in §II.C), it goes in the per-piece JSON sidecar's optional `function` block, not back into the SVG.
-
-This means a piece that looks slightly bowed or off-tooth in the SVG is correct as long as it matches the print. The mechanism animation (M6, deferred) reads from the `function` block, not the trace.
+```
+no required ids                 printed text/numerals captured for decal rendering
+```
 
 ---
 
-## Common authoring slips the audit will catch
+## Quick mental model
 
-- Top-level `<g>` with a name that isn't on the canonical list (typos like `silhoutte`, `axle`, `fold-valley`, reversed `mountain-folds` / `valley-folds`)
-- An `<g id="silhouette">` with no `cutaway` or `cutaway-N` child
-- A bare `<path>` directly under `<svg>` (everything should live in a layered group)
-- An SVG saved into `source/pieces/` (per `source/pieces/README.md`, SVGs belong in `work/pieces/NNN/` — there is no inbox)
-- A `cutout-letter-suffix` instead of `cutout-N` (audit currently advises numeric)
-- An `id="north"` without an axle in the same SVG
-- (Post-2026-05-05) `id="hole-..."` inside `<g id="axles">` — should be in `attach-points` as `pin-...`
-- (Post-2026-05-05) `id="landing-..."` inside `<g id="marks">` — should be in `attach-points`
-- (Post-2026-05-05) `id="anchor-pivot"` outside `<g id="attach-points">` — should be in `attach-points` as `pivot-anchor`
-- (Post-2026-05-05) A `panels` layer where panel polygons aren't fully closed, or where panel-ids aren't unique within the SVG, or where a fold path's `fold-<a>-<b>` id names a panel that doesn't exist
+> **The SVG names what panels ARE, what folds JOIN, what pieces ATTACH where, and what markers reference what. The parser doesn't try to derive any of these from geometry.**
 
-Run `python work/scripts/audit_state.py --piece NNN` to see what the audit thinks of any specific piece. (Audit script is in the now-frozen `work/`; the next iteration migrates to `claude-work/` per CHARTER §5 — the new panels-first checks above are not yet in the audit; they land when the audit moves.)
+If the parser would have to guess, the SVG is missing an id.
 
 ---
 
-## When conventions change
+## Parser rules (panels-aware preview.html / connection-graph script)
 
-When a new authoring convention lands (e.g. the cut-layer / axles-with-north conventions both shipped 2026-05-02), the change shows up in three places:
+These are the rules the parser follows when consuming a panels-first SVG. They're the formal counterpart of the conventions above.
 
-1. A new row in `CLAUDE.md` §"Architectural Decisions (Closed)" describing the rule.
-2. An updated section in this file (or a new section) describing the rule in scannable form.
-3. A new check in `work/scripts/audit_state.py`.
+**Panel resolution.** Direct lookup via `getElementById(<id>)`. Bare aliases enable this.
 
-Existing pieces don't migrate at convention-change time. The next audit run flags them as failing the new check; pieces get uplifted on the next time they're touched (or in a deliberate uplift pass). This keeps convention evolution and authoring throughput decoupled.
+**Fold binding.** Parse `fold-<a>-<b>` ids by trying every possible split point; the first split where both sides are panel ids resolves the binding. Order of (a, b) is symmetric. Descriptive form `fold-<x>` (single token, no panel pair) uses single-panel-or-curved fallback.
+
+**Cross-piece feature lookup (fuzzy substring + tiebreaker).** When piece A references letter `X` on piece B (e.g., `attach-X<B>` or `landing-X<B>`), find the matching feature on B by:
+
+1. Exact panel id == `X`
+2. Exact panel id == `tab<X>`
+3. Partner attach-points: parsed letter field == `X`
+4. Fuzzy substring on panel id (composite letter clusters like `bh`/`ai` match this way)
+5. Fuzzy substring on attach-points semantic part (after stripping prefixes like `attach-`/`landing-`/etc., so the prefix word doesn't leak into the match)
+
+When multiple panels match by substring, **prefer the shortest panel id** (`ai` beats `main` for letter `i`). Ties broken alphabetically.
+
+**Side annotation.** Id starting with `back-` followed by a recognized prefix (`landing-`, `tab-`, `attach-`, `hole-`, `pivot-`) means the annotation is on the back side of the paper. Strip the `back-` and parse the rest as standard.
+
+**Multi-instance markers.** In `marks` (and only `marks`), an id appearing on multiple elements is an intentional multi-instance marker. The parser treats them as a SET of points sharing one logical id. For N≥2 instances, the set defines an oriented frame (vector + rotation), not just a position.
+
+**Affinity collision-suffix tolerance.** When Affinity auto-renames duplicate ids on export (e.g., `cutaway` + `cutaway1`, or `landing-d` + `landing-d` + `landing-d1`), treat `<id><digits>` (no hyphen separator) as the same logical id as the base.
+
+**Parser tolerance.** Inside `<g id="panels">`, ignore any element with id starting with `cutaway` or `cutout-` (these belong in silhouette/cutouts; treat as authoring slip). Author's stated goal is to delete them on sight, but parser doesn't break.
+
+**Panels mandatory.** Every piece must have `<g id="panels">` with at least one panel — even flat pieces (`<panel id="main">`). Pieces without a panels layer fall back to the legacy cut-line-first parser.
 
 ---
 
-*Last updated: 2026-05-05 — panels-first convention added per `claude-work/DECISIONS.md` row #6. New `panels` layer (closed polygon per region, `id="panel-<descriptive>"`); new `attach-points` layer (pin-holes / pivots / landings, previously collapsed into `axles` and `marks`). `axles` narrows to rotation-only; `marks` narrows to construction/registration only. Fold-path id form gains a panels-first variant `fold-<panel-a>-<panel-b>` (with optional `-<N>` angle suffix); the cut-line-first marker-bound form is preserved as legacy for pre-2026-05-05 pieces. Provisional status — piece 069 is the test piece (brief at `claude-work/to-alan/069-panels-first/`); convention rolls forward if 069 authoring proves workable, otherwise we revisit the form. Co-authored update per CHARTER §3 + DECISIONS #3.*
+## Patterns and design rules
 
-*Earlier 2026-05-04 — marker-bound fold ids subsection added under `folds-valley` / `folds-mountain`. Pattern: `fold-<marker-id>` with optional default-angle suffix (`fold-tab-c-40`, `fold-landing-h65-90`). The `fold-` prefix sidesteps Affinity's cross-layer id-collision auto-rename. Parser implementation is in flight in `preview.html`; geometric-adjacency-based, with a known follow-up to migrate to shared-edge polygon topology in the next iteration. (Note 2026-05-05: this form is now LEGACY; new pieces use the panels-first form above.)*
+### Dual-presence pattern (typed landing as both panel and mark)
 
-*Earlier 2026-05-03 — landing-marker convention added; `marks` layer broken out into its own section (it's no longer purely visual now that it carries landings). The "everything else from the print" layer is named `marks` (not `marks-other`; that was an incorrect name in earlier drafts and has been corrected throughout the docs).*
+When a typed landing region is itself a folding panel — meaning it has its own fold relationships and is a distinct material area — author **both**:
 
-*Earlier 2026-05-03 — initial authoring. Distilled from `CLAUDE.md` cut-layer convention row (2026-05-02), axles + north convention row (2026-05-02), faithful-trace direction (2026-04-30), and `work/SPEC-3D-VIEWER.md` §"Authoring/QA preview tool".*
+- Panel `<letter><piece>` in `<g id="panels">` (the folding/material region, e.g. `b65` on 066)
+- Mark `landing-<letter><piece>` in `<g id="marks">` *or* `<g id="attach-points">` (the connection-graph entry, e.g. `landing-b65`)
+
+When the landing is just a point on a larger panel (no own folds, no distinct material area), only the mark is needed.
+
+The parser handles both cases uniformly — for connection-graph purposes, the mark is the edge; the panel (when present) provides the geometric region for decals/material.
+
+### Derived pivots
+
+Not every piece in a rotating assembly needs its own `pivot-<name>`. Pieces *rigidly attached* to a pivot-bearing piece **inherit** the rotation through their cross-piece attach/landing edges. The assembly engine resolves any piece's rotation by walking the rigid-attachment edges back to a pivot-bearing piece.
+
+Example: in the anchor cluster (065/066/067/068/069), 065 carries the actual axle pin-hole (`anchor-pivot` in `axles`); 067 and 069 carry the cross-piece pivot (`pivot-anchor` in `attach-points`); 068 inherits rotation through `attach-g69`/`attach-h69`/`attach-i69` (rigid attachment to 069); 066 inherits rotation through 7 typed landings to 065 plus 1 to 068. Only the pivot-bearing pieces need `pivot-<name>` markers.
+
+### Composite letter panels
+
+A single panel can carry multiple letter labels in the print (e.g., 069 has panel `bh` carrying letters b and h, and panel `ai` carrying letters a and i). The convention is to use the concatenated form as the panel id. Cross-piece references then use fuzzy substring matching to resolve to these composite ids — `attach-h69` matches `bh`; `attach-i69` matches `ai`.
+
+When fuzzy match has multiple candidates, the parser prefers the shortest panel id (so `ai` beats `main` for letter `i`).
+
+### Closure landings
+
+When a tab wraps around the piece itself and lands within the same piece (e.g., the closure tab on a tube), use the panel-id form `landing-<panel-id>` (no piece number) in `marks`. The matching closure tab is `tab<letter>` (or `taba`/`tabaa` for a long closure tab).
+
+Example: 066 has tab `tabaa` (the closure tab that wraps the cylinder) which lands on `landing-tabaa` within 066 itself. 069 has closure landings `landing-taba` and `landing-tabb` for tabs `taba` and `tabb`.
+
+---
+
+## Common slips to avoid
+
+- **Hyphens inside panel suffixes.** `panel-tab-a` would break `fold-tab-a-stem` parsing. Use `tabA` or just `taba`.
+- **`panel-` prefix on panel ids.** Panel ids are bare aliases. Direct ids: `main`, `tabb`, `bh`. Not `panel-main`.
+- **Bare untyped landings still in `attach-points`.** Untyped (no piece suffix) landings like `landing-h` or `back-landing-d` are reference markers and live in `marks`. Cross-piece typed landings like `landing-c69` can live in either layer; parser reads both.
+- **Pin-holes still in `axles`.** Pin-holes moved to `attach-points` as `hole` (bare) or `hole-<letter><piece>` (typed). `axles` is rotation-only.
+- **Reversed fold layer names.** Canonical is `folds-valley` and `folds-mountain` (plural-first). `mountain-folds` is wrong.
+- **Cut suffix instead of prefix.** `cut-lower` not `lower-cut`. Reads as "cut: [for what]."
+- **Affinity auto-rename suffixes.** If you see `tab-c1` / `panel-stem1` / `landing-d1` after export, two elements had the same id and Affinity disambiguated. Parser tolerates these as same logical id, but cleanest is to fix the duplicate.
+- **`cutaway` slipping into `panels` layer.** Parser-tolerated (ignored), but author's goal is to delete on sight.
+- **Forgetting `<g id="panels">` on flat pieces.** Required even with one `main` panel.
+
+---
+
+## Cross-references
+
+- `claude-work/DECISIONS.md` — decision records (row #6 panels-first pivot; row #7 comprehensive convention lock-in 2026-05-05).
+- `claude-work/scripts/build_assembly_graph.py` — connection-graph extraction script; the formal parser of these conventions.
+- `claude-work/state/connection-graph.{md,json}` — current cross-piece graph + per-piece state (regenerate via the script).
+- `claude-work/CHARTER.md` — collaboration charter.
+- `CLAUDE.md` — repo working conventions (some entries are pre-pivot; defer to this doc when in conflict).
+
+---
+
+*Last updated: 2026-05-05 — comprehensive panels-first lock-in pass after the anchor-pendulum batch (065/066/067/068/069 + 070/071/072 + 099/100). Replaces the prior cut-line-first-era version of this doc; LAYERS.md (the v0 cheat sheet from earlier the same day) consolidated and removed in the same pass. Conventions ratified by 24/24 cross-piece edges resolving cleanly across the batch.*

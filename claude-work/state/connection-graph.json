@@ -1,0 +1,1639 @@
+{
+  "pieces": {
+    "065": {
+      "id": "065",
+      "layers": [
+        "silhouette",
+        "panels",
+        "axles",
+        "attach-points",
+        "marks"
+      ],
+      "panels": [
+        "main"
+      ],
+      "panel_count": 1,
+      "folds": [],
+      "fold_count": 0,
+      "fold_unresolved": [],
+      "attach_points": [
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "e",
+          "partner": "66",
+          "raw_id": "attach-e66",
+          "element": "path"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "h",
+          "partner": "66",
+          "raw_id": "attach-h66",
+          "element": "path"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "b",
+          "partner": "66",
+          "raw_id": "attach-b66",
+          "element": "path"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "c",
+          "partner": "66",
+          "raw_id": "attach-c66",
+          "element": "path"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "d",
+          "partner": "66",
+          "raw_id": "attach-d66",
+          "element": "path"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "g",
+          "partner": "66",
+          "raw_id": "attach-g66",
+          "element": "path"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "f",
+          "partner": "66",
+          "raw_id": "attach-f66",
+          "element": "path"
+        }
+      ],
+      "marks": [],
+      "cutouts": []
+    },
+    "066": {
+      "id": "066",
+      "layers": [
+        "silhouette",
+        "panels",
+        "folds-valley",
+        "folds-mountain",
+        "attach-points",
+        "marks"
+      ],
+      "panels": [
+        "b65",
+        "c65",
+        "d65",
+        "e65",
+        "f65",
+        "g65",
+        "h65",
+        "pane1",
+        "pane2",
+        "pane3",
+        "pane4",
+        "pane5",
+        "pane6",
+        "pane7",
+        "taba",
+        "tabaa",
+        "tabb",
+        "tabc",
+        "tabd",
+        "tabe",
+        "tabf",
+        "tabg"
+      ],
+      "panel_count": 22,
+      "folds": [
+        {
+          "id": "fold-taba-pane1",
+          "polarity": "valley",
+          "a": "taba",
+          "b": "pane1"
+        },
+        {
+          "id": "fold-tabb-pane2",
+          "polarity": "valley",
+          "a": "tabb",
+          "b": "pane2"
+        },
+        {
+          "id": "fold-tabc-pane3",
+          "polarity": "valley",
+          "a": "tabc",
+          "b": "pane3"
+        },
+        {
+          "id": "fold-tabd-pane4",
+          "polarity": "valley",
+          "a": "tabd",
+          "b": "pane4"
+        },
+        {
+          "id": "fold-e65-pane4",
+          "polarity": "valley",
+          "a": "e65",
+          "b": "pane4"
+        },
+        {
+          "id": "fold-pane7-pane6",
+          "polarity": "valley",
+          "a": "pane7",
+          "b": "pane6"
+        },
+        {
+          "id": "fold-h65-pane7",
+          "polarity": "valley",
+          "a": "h65",
+          "b": "pane7"
+        },
+        {
+          "id": "fold-tabg-pane7",
+          "polarity": "valley",
+          "a": "tabg",
+          "b": "pane7"
+        },
+        {
+          "id": "fold-g65-pane6",
+          "polarity": "valley",
+          "a": "g65",
+          "b": "pane6"
+        },
+        {
+          "id": "fold-tabf-pane6",
+          "polarity": "valley",
+          "a": "tabf",
+          "b": "pane6"
+        },
+        {
+          "id": "fold-pane6-pane5",
+          "polarity": "valley",
+          "a": "pane6",
+          "b": "pane5"
+        },
+        {
+          "id": "fold-f65-pane5",
+          "polarity": "valley",
+          "a": "f65",
+          "b": "pane5"
+        },
+        {
+          "id": "fold-tabe-pane5",
+          "polarity": "valley",
+          "a": "tabe",
+          "b": "pane5"
+        },
+        {
+          "id": "fold-d65-pane3",
+          "polarity": "valley",
+          "a": "d65",
+          "b": "pane3"
+        },
+        {
+          "id": "fold-c65-pane2",
+          "polarity": "valley",
+          "a": "c65",
+          "b": "pane2"
+        },
+        {
+          "id": "fold-b65-pane1",
+          "polarity": "valley",
+          "a": "b65",
+          "b": "pane1"
+        },
+        {
+          "id": "fold-tabaa-pane7",
+          "polarity": "valley",
+          "a": "tabaa",
+          "b": "pane7"
+        },
+        {
+          "id": "fold-pane3-pane2",
+          "polarity": "valley",
+          "a": "pane3",
+          "b": "pane2"
+        },
+        {
+          "id": "fold-pane1-pane2",
+          "polarity": "valley",
+          "a": "pane1",
+          "b": "pane2"
+        },
+        {
+          "id": "fold-pane5-pane4",
+          "polarity": "mountain",
+          "a": "pane5",
+          "b": "pane4"
+        },
+        {
+          "id": "fold-pane4-pane3",
+          "polarity": "mountain",
+          "a": "pane4",
+          "b": "pane3"
+        }
+      ],
+      "fold_count": 21,
+      "fold_unresolved": [],
+      "attach_points": [
+        {
+          "kind": "landing",
+          "side": "front",
+          "tab": "j",
+          "partner": "68",
+          "raw_id": "landing-j68",
+          "element": "rect"
+        }
+      ],
+      "marks": [
+        {
+          "id": "tab-g",
+          "side": "front",
+          "kind": "tab-marker",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "tab-f",
+          "side": "front",
+          "kind": "tab-marker",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "tab-e",
+          "side": "front",
+          "kind": "tab-marker",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "tab-d",
+          "side": "front",
+          "kind": "tab-marker",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "tab-c",
+          "side": "front",
+          "kind": "tab-marker",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "tab-b",
+          "side": "front",
+          "kind": "tab-marker",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "tab-a",
+          "side": "front",
+          "kind": "tab-marker",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "tab-aa",
+          "side": "front",
+          "kind": "tab-marker",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "landing-h65",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "ellipse",
+          "tab": "h",
+          "partner": "65"
+        },
+        {
+          "id": "landing-g65",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "ellipse",
+          "tab": "g",
+          "partner": "65"
+        },
+        {
+          "id": "landing-f65",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "ellipse",
+          "tab": "f",
+          "partner": "65"
+        },
+        {
+          "id": "landing-e65",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "ellipse",
+          "tab": "e",
+          "partner": "65"
+        },
+        {
+          "id": "landing-d65",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "ellipse",
+          "tab": "d",
+          "partner": "65"
+        },
+        {
+          "id": "landing-c65",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "ellipse",
+          "tab": "c",
+          "partner": "65"
+        },
+        {
+          "id": "landing-b65",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "ellipse",
+          "tab": "b",
+          "partner": "65"
+        },
+        {
+          "id": "landing-tabaa",
+          "side": "front",
+          "kind": "landing-untyped",
+          "count": 1,
+          "element": "path",
+          "tab": "tabaa",
+          "partner": null
+        }
+      ],
+      "cutouts": []
+    },
+    "067": {
+      "id": "067",
+      "layers": [
+        "silhouette",
+        "panels",
+        "attach-points",
+        "marks"
+      ],
+      "panels": [
+        "main"
+      ],
+      "panel_count": 1,
+      "folds": [],
+      "fold_count": 0,
+      "fold_unresolved": [],
+      "attach_points": [
+        {
+          "kind": "pivot",
+          "side": "front",
+          "name": "anchor",
+          "partner": null,
+          "raw_id": "pivot-anchor",
+          "element": "ellipse"
+        }
+      ],
+      "marks": [
+        {
+          "id": "landing-e69",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "path",
+          "tab": "e",
+          "partner": "69"
+        },
+        {
+          "id": "landing-c69",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "path",
+          "tab": "c",
+          "partner": "69"
+        },
+        {
+          "id": "landing-d69",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "path",
+          "tab": "d",
+          "partner": "69"
+        },
+        {
+          "id": "landing-f69",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "path",
+          "tab": "f",
+          "partner": "69"
+        }
+      ],
+      "cutouts": []
+    },
+    "068": {
+      "id": "068",
+      "layers": [
+        "silhouette",
+        "cutouts",
+        "panels",
+        "folds-valley",
+        "folds-mountain",
+        "attach-points",
+        "marks"
+      ],
+      "panels": [
+        "b",
+        "c1",
+        "c2",
+        "flap1",
+        "flap2",
+        "g",
+        "pane1",
+        "pane2",
+        "pane3",
+        "pane4",
+        "pane5",
+        "pane6",
+        "pane7",
+        "pane8",
+        "sidel",
+        "sider",
+        "taba",
+        "tabb",
+        "tabff"
+      ],
+      "panel_count": 19,
+      "folds": [
+        {
+          "id": "fold-pane1-pane2",
+          "polarity": "valley",
+          "a": "pane1",
+          "b": "pane2"
+        },
+        {
+          "id": "fold-pane2-pane3",
+          "polarity": "valley",
+          "a": "pane2",
+          "b": "pane3"
+        },
+        {
+          "id": "fold-pane3-pane4",
+          "polarity": "valley",
+          "a": "pane3",
+          "b": "pane4"
+        },
+        {
+          "id": "fold-pane4-tabff",
+          "polarity": "valley",
+          "a": "pane4",
+          "b": "tabff"
+        },
+        {
+          "id": "fold-pane8-flap2",
+          "polarity": "valley",
+          "a": "pane8",
+          "b": "flap2"
+        },
+        {
+          "id": "fold-pane1-pane5",
+          "polarity": "valley",
+          "a": "pane1",
+          "b": "pane5"
+        },
+        {
+          "id": "fold-c1-c2",
+          "polarity": "valley",
+          "a": "c1",
+          "b": "c2"
+        },
+        {
+          "id": "fold-sidel-c2",
+          "polarity": "valley",
+          "a": "sidel",
+          "b": "c2"
+        },
+        {
+          "id": "fold-c2-sider",
+          "polarity": "valley",
+          "a": "c2",
+          "b": "sider"
+        },
+        {
+          "id": "fold-pane8-taba",
+          "polarity": "valley",
+          "a": "pane8",
+          "b": "taba"
+        },
+        {
+          "id": "fold-pane7-tabb",
+          "polarity": "valley",
+          "a": "pane7",
+          "b": "tabb"
+        },
+        {
+          "id": "fold-pane7-pane8",
+          "polarity": "valley",
+          "a": "pane7",
+          "b": "pane8"
+        },
+        {
+          "id": "fold-pane6-flap1",
+          "polarity": "valley",
+          "a": "pane6",
+          "b": "flap1"
+        },
+        {
+          "id": "fold-pane6-pane7",
+          "polarity": "valley",
+          "a": "pane6",
+          "b": "pane7"
+        },
+        {
+          "id": "fold-pane5-pane6",
+          "polarity": "valley",
+          "a": "pane5",
+          "b": "pane6"
+        },
+        {
+          "id": "fold-pane5-b",
+          "polarity": "valley",
+          "a": "pane5",
+          "b": "b"
+        },
+        {
+          "id": "fold-pane7-g",
+          "polarity": "mountain",
+          "a": "pane7",
+          "b": "g"
+        }
+      ],
+      "fold_count": 17,
+      "fold_unresolved": [],
+      "attach_points": [
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "g",
+          "partner": "69",
+          "raw_id": "attach-g69",
+          "element": "rect"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "h",
+          "partner": "69",
+          "raw_id": "attach-h69",
+          "element": "path"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "i",
+          "partner": "69",
+          "raw_id": "attach-i69",
+          "element": "path"
+        },
+        {
+          "kind": "letter-target",
+          "side": "front",
+          "letter": "j",
+          "partner": null,
+          "raw_id": "j",
+          "element": "rect"
+        }
+      ],
+      "marks": [
+        {
+          "id": "d",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "path",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "h",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "path",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "i",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "path",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "e",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "rect",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "back-g",
+          "side": "back",
+          "kind": "decorative",
+          "count": 1,
+          "element": "path",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "back-landing-d",
+          "side": "back",
+          "kind": "landing-untyped",
+          "count": 1,
+          "element": "path",
+          "tab": "d",
+          "partner": null
+        },
+        {
+          "id": "landing-h",
+          "side": "front",
+          "kind": "landing-untyped",
+          "count": 1,
+          "element": "path",
+          "tab": "h",
+          "partner": null
+        },
+        {
+          "id": "landing-i",
+          "side": "front",
+          "kind": "landing-untyped",
+          "count": 1,
+          "element": "path",
+          "tab": "i",
+          "partner": null
+        },
+        {
+          "id": "landing-back-g",
+          "side": "front",
+          "kind": "landing-untyped",
+          "count": 1,
+          "element": "path",
+          "tab": "back-g",
+          "partner": null
+        },
+        {
+          "id": "back-landing-e",
+          "side": "back",
+          "kind": "landing-untyped",
+          "count": 1,
+          "element": "rect",
+          "tab": "e",
+          "partner": null
+        }
+      ],
+      "cutouts": [
+        "cutout"
+      ]
+    },
+    "069": {
+      "id": "069",
+      "layers": [
+        "silhouette",
+        "panels",
+        "folds-valley",
+        "attach-points",
+        "marks"
+      ],
+      "panels": [
+        "abc",
+        "ai",
+        "bh",
+        "g",
+        "main",
+        "taba",
+        "tabb",
+        "tabc",
+        "tabd",
+        "tabe",
+        "tabf"
+      ],
+      "panel_count": 11,
+      "folds": [
+        {
+          "id": "fold-taba-abc",
+          "polarity": "valley",
+          "a": "taba",
+          "b": "abc"
+        },
+        {
+          "id": "fold-main-ai",
+          "polarity": "valley",
+          "a": "main",
+          "b": "ai"
+        },
+        {
+          "id": "fold-abc-tabb",
+          "polarity": "valley",
+          "a": "abc",
+          "b": "tabb"
+        },
+        {
+          "id": "fold-main-bh",
+          "polarity": "valley",
+          "a": "main",
+          "b": "bh"
+        },
+        {
+          "id": "fold-bh-tabe",
+          "polarity": "valley",
+          "a": "bh",
+          "b": "tabe"
+        },
+        {
+          "id": "fold-abc-tabc",
+          "polarity": "valley",
+          "a": "abc",
+          "b": "tabc"
+        },
+        {
+          "id": "fold-main-abc",
+          "polarity": "valley",
+          "a": "main",
+          "b": "abc"
+        },
+        {
+          "id": "fold-main-g",
+          "polarity": "valley",
+          "a": "main",
+          "b": "g"
+        },
+        {
+          "id": "fold-tabf-g",
+          "polarity": "valley",
+          "a": "tabf",
+          "b": "g"
+        },
+        {
+          "id": "fold-tabd-ai",
+          "polarity": "valley",
+          "a": "tabd",
+          "b": "ai"
+        }
+      ],
+      "fold_count": 10,
+      "fold_unresolved": [],
+      "attach_points": [
+        {
+          "kind": "pivot",
+          "side": "front",
+          "name": "anchor",
+          "partner": null,
+          "raw_id": "pivot-anchor",
+          "element": "ellipse"
+        }
+      ],
+      "marks": [
+        {
+          "id": "mark-h",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "mark-i",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "landing-taba",
+          "side": "front",
+          "kind": "landing-untyped",
+          "count": 1,
+          "element": "ellipse",
+          "tab": "taba",
+          "partner": null
+        },
+        {
+          "id": "landing-tabb",
+          "side": "front",
+          "kind": "landing-untyped",
+          "count": 1,
+          "element": "ellipse",
+          "tab": "tabb",
+          "partner": null
+        }
+      ],
+      "cutouts": []
+    },
+    "070": {
+      "id": "070",
+      "layers": [
+        "silhouette",
+        "panels",
+        "folds-mountain",
+        "marks"
+      ],
+      "panels": [
+        "flap1",
+        "flap2",
+        "panel1",
+        "panel1splitend",
+        "panel2",
+        "panel3",
+        "panel3splitend",
+        "panel4",
+        "sideb",
+        "sidec",
+        "tabaa",
+        "tabb",
+        "tabc"
+      ],
+      "panel_count": 13,
+      "folds": [
+        {
+          "id": "fold-panelsideb-tabb",
+          "polarity": "mountain",
+          "a": null,
+          "b": null,
+          "descriptive": "panelsideb-tabb"
+        },
+        {
+          "id": "fold-panelsidec-tabc",
+          "polarity": "mountain",
+          "a": null,
+          "b": null,
+          "descriptive": "panelsidec-tabc"
+        }
+      ],
+      "fold_count": 2,
+      "fold_unresolved": [
+        "fold-panelsideb-tabb",
+        "fold-panelsidec-tabc"
+      ],
+      "attach_points": [],
+      "marks": [
+        {
+          "id": "cut-a72",
+          "side": "front",
+          "kind": "cut",
+          "count": 1,
+          "element": "path",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "cut-a721",
+          "side": "front",
+          "kind": "cut",
+          "count": 1,
+          "element": "path",
+          "tab": null,
+          "partner": null
+        }
+      ],
+      "cutouts": []
+    },
+    "071": {
+      "id": "071",
+      "layers": [
+        "silhouette",
+        "cutouts",
+        "panels",
+        "folds-valley",
+        "marks"
+      ],
+      "panels": [
+        "a",
+        "b",
+        "c",
+        "cutaway1",
+        "d"
+      ],
+      "panel_count": 5,
+      "folds": [
+        {
+          "id": "fold-c-d",
+          "polarity": "valley",
+          "a": "c",
+          "b": "d"
+        },
+        {
+          "id": "fold-c-b",
+          "polarity": "valley",
+          "a": "c",
+          "b": "b"
+        },
+        {
+          "id": "fold-b-a",
+          "polarity": "valley",
+          "a": "b",
+          "b": "a"
+        }
+      ],
+      "fold_count": 3,
+      "fold_unresolved": [],
+      "attach_points": [],
+      "marks": [
+        {
+          "id": "landing-c70",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "rect",
+          "tab": "c",
+          "partner": "70"
+        },
+        {
+          "id": "landing-b70",
+          "side": "front",
+          "kind": "landing-typed",
+          "count": 1,
+          "element": "rect",
+          "tab": "b",
+          "partner": "70"
+        }
+      ],
+      "cutouts": [
+        "cutout-2",
+        "cutout-1"
+      ]
+    },
+    "072": {
+      "id": "072",
+      "layers": [
+        "silhouette",
+        "panels",
+        "attach-points",
+        "marks"
+      ],
+      "panels": [
+        "main"
+      ],
+      "panel_count": 1,
+      "folds": [],
+      "fold_count": 0,
+      "fold_unresolved": [],
+      "attach_points": [
+        {
+          "kind": "hole",
+          "side": "front",
+          "letter": null,
+          "partner": null,
+          "raw_id": "hole",
+          "element": "ellipse"
+        }
+      ],
+      "marks": [
+        {
+          "id": "landing-a",
+          "side": "front",
+          "kind": "landing-untyped",
+          "count": 1,
+          "element": "rect",
+          "tab": "a",
+          "partner": null
+        }
+      ],
+      "cutouts": []
+    },
+    "099": {
+      "id": "099",
+      "layers": [
+        "silhouette",
+        "panels",
+        "folds-valley",
+        "marks"
+      ],
+      "panels": [
+        "main",
+        "tabb"
+      ],
+      "panel_count": 2,
+      "folds": [
+        {
+          "id": "fold-insidetabs",
+          "polarity": "valley",
+          "a": null,
+          "b": null,
+          "descriptive": "insidetabs"
+        },
+        {
+          "id": "fold-outsidetabs",
+          "polarity": "valley",
+          "a": null,
+          "b": null,
+          "descriptive": "outsidetabs"
+        },
+        {
+          "id": "fold-main-tabb",
+          "polarity": "valley",
+          "a": "main",
+          "b": "tabb"
+        }
+      ],
+      "fold_count": 3,
+      "fold_unresolved": [
+        "fold-insidetabs",
+        "fold-outsidetabs"
+      ],
+      "attach_points": [],
+      "marks": [
+        {
+          "id": "landing-tabb",
+          "side": "front",
+          "kind": "landing-untyped",
+          "count": 1,
+          "element": "path",
+          "tab": "tabb",
+          "partner": null
+        },
+        {
+          "id": "alignment-a100",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "path",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "c",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "d100",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "d1001",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "a",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "a1",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "a2",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "a3",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "a4",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "a5",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "a6",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "a7",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "a8",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "a9",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "a10",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "a11",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        }
+      ],
+      "cutouts": []
+    },
+    "110": {
+      "id": "110",
+      "layers": [
+        "silhouette",
+        "panels"
+      ],
+      "panels": [
+        "panel-a",
+        "panel-b",
+        "panel-c",
+        "panel-main",
+        "panel-xy"
+      ],
+      "panel_count": 5,
+      "folds": [],
+      "fold_count": 0,
+      "fold_unresolved": [],
+      "attach_points": [],
+      "marks": [],
+      "cutouts": []
+    }
+  },
+  "graph": {
+    "edges": [
+      {
+        "from": "065",
+        "to": "066",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "e",
+        "raw_id": "attach-e66",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "tabe",
+        "matched_via": "panel-tab"
+      },
+      {
+        "from": "065",
+        "to": "066",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "h",
+        "raw_id": "attach-h66",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "h65",
+        "matched_via": "panel-substring"
+      },
+      {
+        "from": "065",
+        "to": "066",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "b",
+        "raw_id": "attach-b66",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "tabb",
+        "matched_via": "panel-tab"
+      },
+      {
+        "from": "065",
+        "to": "066",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "c",
+        "raw_id": "attach-c66",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "tabc",
+        "matched_via": "panel-tab"
+      },
+      {
+        "from": "065",
+        "to": "066",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "d",
+        "raw_id": "attach-d66",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "tabd",
+        "matched_via": "panel-tab"
+      },
+      {
+        "from": "065",
+        "to": "066",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "g",
+        "raw_id": "attach-g66",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "tabg",
+        "matched_via": "panel-tab"
+      },
+      {
+        "from": "065",
+        "to": "066",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "f",
+        "raw_id": "attach-f66",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "tabf",
+        "matched_via": "panel-tab"
+      },
+      {
+        "from": "066",
+        "to": "068",
+        "kind": "landing",
+        "side": "front",
+        "tab": "j",
+        "letter": null,
+        "raw_id": "landing-j68",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "j",
+        "matched_via": "attach-letter-target-letter"
+      },
+      {
+        "from": "066",
+        "to": "065",
+        "kind": "landing",
+        "side": "front",
+        "tab": "h",
+        "letter": null,
+        "raw_id": "landing-h65",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "attach-h66",
+        "matched_via": "attach-attach-letter"
+      },
+      {
+        "from": "066",
+        "to": "065",
+        "kind": "landing",
+        "side": "front",
+        "tab": "g",
+        "letter": null,
+        "raw_id": "landing-g65",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "attach-g66",
+        "matched_via": "attach-attach-letter"
+      },
+      {
+        "from": "066",
+        "to": "065",
+        "kind": "landing",
+        "side": "front",
+        "tab": "f",
+        "letter": null,
+        "raw_id": "landing-f65",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "attach-f66",
+        "matched_via": "attach-attach-letter"
+      },
+      {
+        "from": "066",
+        "to": "065",
+        "kind": "landing",
+        "side": "front",
+        "tab": "e",
+        "letter": null,
+        "raw_id": "landing-e65",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "attach-e66",
+        "matched_via": "attach-attach-letter"
+      },
+      {
+        "from": "066",
+        "to": "065",
+        "kind": "landing",
+        "side": "front",
+        "tab": "d",
+        "letter": null,
+        "raw_id": "landing-d65",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "attach-d66",
+        "matched_via": "attach-attach-letter"
+      },
+      {
+        "from": "066",
+        "to": "065",
+        "kind": "landing",
+        "side": "front",
+        "tab": "c",
+        "letter": null,
+        "raw_id": "landing-c65",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "attach-c66",
+        "matched_via": "attach-attach-letter"
+      },
+      {
+        "from": "066",
+        "to": "065",
+        "kind": "landing",
+        "side": "front",
+        "tab": "b",
+        "letter": null,
+        "raw_id": "landing-b65",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "attach-b66",
+        "matched_via": "attach-attach-letter"
+      },
+      {
+        "from": "067",
+        "to": "069",
+        "kind": "landing",
+        "side": "front",
+        "tab": "e",
+        "letter": null,
+        "raw_id": "landing-e69",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "tabe",
+        "matched_via": "panel-tab"
+      },
+      {
+        "from": "067",
+        "to": "069",
+        "kind": "landing",
+        "side": "front",
+        "tab": "c",
+        "letter": null,
+        "raw_id": "landing-c69",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "tabc",
+        "matched_via": "panel-tab"
+      },
+      {
+        "from": "067",
+        "to": "069",
+        "kind": "landing",
+        "side": "front",
+        "tab": "d",
+        "letter": null,
+        "raw_id": "landing-d69",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "tabd",
+        "matched_via": "panel-tab"
+      },
+      {
+        "from": "067",
+        "to": "069",
+        "kind": "landing",
+        "side": "front",
+        "tab": "f",
+        "letter": null,
+        "raw_id": "landing-f69",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "tabf",
+        "matched_via": "panel-tab"
+      },
+      {
+        "from": "068",
+        "to": "069",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "g",
+        "raw_id": "attach-g69",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "g",
+        "matched_via": "panel-exact"
+      },
+      {
+        "from": "068",
+        "to": "069",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "h",
+        "raw_id": "attach-h69",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "bh",
+        "matched_via": "panel-substring"
+      },
+      {
+        "from": "068",
+        "to": "069",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "i",
+        "raw_id": "attach-i69",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "ai",
+        "matched_via": "panel-substring"
+      },
+      {
+        "from": "071",
+        "to": "070",
+        "kind": "landing",
+        "side": "front",
+        "tab": "c",
+        "letter": null,
+        "raw_id": "landing-c70",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "tabc",
+        "matched_via": "panel-tab"
+      },
+      {
+        "from": "071",
+        "to": "070",
+        "kind": "landing",
+        "side": "front",
+        "tab": "b",
+        "letter": null,
+        "raw_id": "landing-b70",
+        "source_layer": "marks",
+        "valid": true,
+        "matched_panel": "tabb",
+        "matched_via": "panel-tab"
+      }
+    ],
+    "pivot_clusters": {
+      "anchor": [
+        "067",
+        "069"
+      ]
+    },
+    "untyped_landings": [
+      {
+        "piece": "066",
+        "id": "landing-tabaa",
+        "side": "front"
+      },
+      {
+        "piece": "068",
+        "id": "back-landing-d",
+        "side": "back"
+      },
+      {
+        "piece": "068",
+        "id": "landing-h",
+        "side": "front"
+      },
+      {
+        "piece": "068",
+        "id": "landing-i",
+        "side": "front"
+      },
+      {
+        "piece": "068",
+        "id": "landing-back-g",
+        "side": "front"
+      },
+      {
+        "piece": "068",
+        "id": "back-landing-e",
+        "side": "back"
+      },
+      {
+        "piece": "069",
+        "id": "landing-taba",
+        "side": "front"
+      },
+      {
+        "piece": "069",
+        "id": "landing-tabb",
+        "side": "front"
+      },
+      {
+        "piece": "072",
+        "id": "landing-a",
+        "side": "front"
+      },
+      {
+        "piece": "099",
+        "id": "landing-tabb",
+        "side": "front"
+      }
+    ]
+  }
+}

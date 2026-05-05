@@ -69,7 +69,7 @@ next_action: None — source-side capture closed at 123/123. Track stays open as
 ```yaml
 status: active
 last_updated: 2026-05-05
-next_action: Alan pulls the 069 panels-first brief (QUEUE.md #1 / `claude-work/to-alan/069-panels-first/`). Per DECISIONS #6, panels-first is the new convention going forward. Existing pieces stay on cut-line-first until they're being touched anyway — no bulk re-authoring pass.
+next_action: With the anchor-pendulum batch landed and conventions ratified (DECISIONS #7), the next authoring batch is the bob pieces (094 + 095 + 096 + 097 + 098 + 093) and the escape wheel (likely 087 in the reduction-gear cluster). No urgency; pull when bench time happens. The convention is stable; new pieces should drop into the established pattern.
 ```
 
 **Hypothesis.** The actual current bottleneck. Conventions are still iterating as new piece-types reveal new authoring requirements (cut-layer + axles-with-north + marker-bound fold ids all shipped in the past week). Each new piece both applies the conventions and stress-tests them.
@@ -97,6 +97,7 @@ next_action: Alan pulls the 069 panels-first brief (QUEUE.md #1 / `claude-work/t
 
 **Recent log.**
 
+- 2026-05-05 (afternoon-evening): anchor-pendulum batch panels-first authoring landed across 9 pieces (065/066/067/068/069/070/071/072 + 099). Conventions ratified end-to-end via DECISIONS #7 (21 specific convention elements). LAYER-CONVENTIONS.md rewritten as the single canonical reference; LAYERS.md (the v0 cheat sheet) deleted. Cross-piece audit script `claude-work/scripts/build_assembly_graph.py` produces `claude-work/state/connection-graph.{md,json}` with 24/24 cross-piece edges valid. See `sessions/2026-05-05-2330_cowork_panels-first-batch-and-graph.md`.
 - 2026-05-05 (~01:15): orientation/awareness model decision landed (DECISIONS #6: panels-first + authored-vs-derived). LAYER-CONVENTIONS.md updated; 069 brief drafted; cut-line-first becomes legacy parser. See `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`.
 - 2026-05-04 (morning): marker-bound fold ids convention settled — and revised within the same session for the `fold-` prefix (Affinity collision). Parser landed in preview.html. 066 improved 19 → 5 orphan regions; cylinder still folds into shards. Closure constraint still parked. See `sessions/2026-05-04-0815_cowork_marker-bound-fold-ids.md`.
 - 2026-05-04 (late morning): diagnose-first pivot — see preview.html iteration track.
@@ -109,7 +110,7 @@ next_action: Alan pulls the 069 panels-first brief (QUEUE.md #1 / `claude-work/t
 ```yaml
 status: active
 last_updated: 2026-05-05
-next_action: Wait for 069 panels-first authoring to land (QUEUE.md #1), then draft a CODE_PROMPT for the panels-aware parser pathway — new code path that reads the `panels` layer, parses `fold-<a>-<b>` ids into the panel adjacency graph, and resolves landings + pivots from `attach-points`. Cut-line-first stays as legacy. Snap-only-extension follow-up KILLED by DECISIONS #6 — not investing more in cut-line-first.
+next_action: Code session against `CODE_PROMPT_preview-html-panels-aware.md` (drafted, ready-for-code at repo root). Adds the panels-aware parser pathway alongside the legacy cut-line-first path. Single-piece scope; multi-piece scene assembly comes in a follow-up prompt. Verification across 069/068/071/099.
 ```
 
 **Hypothesis.** Carried forward from WORKPLAN. A single-file HTML preview tool at repo root is the right substrate for testing SVG authoring conventions piece-by-piece, while the eventual viewer is still upstream. Each new convention or fix gets its own CODE_PROMPT and ships independently. The architecture decision (graduate / stay separate / replace) is intentionally deferred until the reset conversation settles.
@@ -130,6 +131,7 @@ next_action: Wait for 069 panels-first authoring to land (QUEUE.md #1), then dra
 
 **Recent log.**
 
+- 2026-05-05 (late evening): `CODE_PROMPT_preview-html-panels-aware.md` drafted ready-for-code. Conventions stable (DECISIONS #7); `claude-work/scripts/build_assembly_graph.py` provides reference parser implementation in Python. Ships when Alan opens a Code session against the prompt. See `sessions/2026-05-05-2330_cowork_panels-first-batch-and-graph.md`.
 - 2026-05-05 (~01:15): orientation/awareness reset landed; snap-only-extension follow-up killed; panels-aware parser pathway queued, blocked on 069 authoring. See `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`.
 - 2026-05-04 (~21:00): cut-trim shipped via PR #14. See above.
 - 2026-05-04 (~11:45): face-graph diagnostic harness shipped via PR #13. See above.
@@ -262,7 +264,9 @@ closed_reason: Superseded by claude-work/. The operations-layer goal — give th
 
 ---
 
-*Last updated: 2026-05-05 (morning) — piece capture track: plate B brackets 013-017 resolved as clones of 012 (Alan's clarification: six bracket pieces are all the same drawing). Replicated 012.png → 013/014/015/016/017 (MD5-verified); pieces.csv updated; QUEUE.md #2 narrowed to piece 090 only; lock-file verification (#4) closed (`git ls-files | grep -F "af~lock~"` returned empty). Repo hygiene track: lock-file ask resolved. Source-side capture is now 122/123, pending only 090 (and possibly 110 TBD).*
+*Last updated: 2026-05-05 (late evening) — anchor-pendulum batch panels-first authoring landed across 9 pieces; conventions ratified via DECISIONS #7 (21 specific elements); LAYER-CONVENTIONS.md rewritten as the single canonical reference (LAYERS.md deleted); cross-piece audit script `claude-work/scripts/build_assembly_graph.py` shipped resolving 24/24 cross-piece edges; CODE_PROMPT_preview-html-panels-aware.md drafted ready-for-code. SVG layer authoring track unblocks for the bob pieces + escape wheel batch. preview.html iteration track unblocks for the panels-aware Code session. Source-side capture closed at 123/123 earlier the same day.*
+
+*Earlier 2026-05-05 (morning) — piece capture track: plate B brackets 013-017 resolved as clones of 012 (Alan's clarification: six bracket pieces are all the same drawing). Replicated 012.png → 013/014/015/016/017 (MD5-verified); pieces.csv updated; QUEUE.md #2 narrowed to piece 090 only; lock-file verification (#4) closed (`git ls-files | grep -F "af~lock~"` returned empty). Repo hygiene track: lock-file ask resolved. Source-side capture is now 122/123, pending only 090 (and possibly 110 TBD).*
 
 *Earlier 2026-05-05 (~01:15) — orientation/awareness reset landed (DECISIONS #6 closed: panels-first + authored-vs-derived). Six tracks updated: orientation/awareness model (now executing, waiting on Alan), SVG layer authoring (unblocks for 069), preview.html iteration (snap-only killed; panels-aware parser pathway queued), regions/face-graph design (paused; cut-line-first becomes legacy), charter rollout (the conversation landed; 069 becomes a strong "first end-to-end" candidate), repo hygiene (unchanged). LAYER-CONVENTIONS.md updated co-authored in the same pass; first to-alan/ dropbox entry created at `to-alan/069-panels-first/`.*
 

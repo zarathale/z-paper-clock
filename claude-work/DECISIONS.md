@@ -90,9 +90,51 @@ A row per decision. Each row captures:
 
 - **Reopen?** closed in current form. Will only reopen if 069 authoring proves panels-first impractical at the Affinity surface — in which case the conversation shifts to "build authoring helper first" rather than "abandon panels-first."
 
+### #7 — Panels-first conventions ratified across the anchor-pendulum batch
+
+- **Date:** 2026-05-05 (evening)
+- **Decision:** The complete set of panels-first authoring conventions is locked across an end-to-end batch of 9 panels-first-authored pieces (065/066/067/068/069/070/071/072 + 099) plus 100 (flat, no panels). The connection-graph audit (`claude-work/scripts/build_assembly_graph.py`) resolves all 24 cross-piece edges cleanly. The conventions, in summary form (full reference in `LAYER-CONVENTIONS.md`):
+
+  1. **Bare-alias panel ids** — no `panel-` prefix. Direct `getElementById(<id>)`.
+  2. **`fold-<a>-<b>`** binds a fold to two panel ids by their bare aliases; symmetric, optional `-<deg>` suffix for default angle.
+  3. **`fold-<descriptive>`** for single-panel or curved folds (e.g. `fold-insidetabs` on 099).
+  4. **Curved fold elements** — `<circle>` or `<ellipse>` inside fold layers.
+  5. **Composite letter panels** — concatenated multi-letter ids (e.g. `bh`, `ai` on 069) when print labels share a panel; resolved by fuzzy substring match with shortest-match tiebreaker.
+  6. **`attach-points` = structural cross-piece refs** (pivots, attaches, holes, typed landings, letter targets like bare `j` on 068).
+  7. **`marks` = same-piece-or-decorative** (printed letters, multi-instance markers, alignments, cuts, untyped/closure landings; typed landings can also live here — parser reads both).
+  8. **`attach-<letter><piece>`** = direct face/edge attachment to partner's body letter (distinct from tab-landing).
+  9. **`landing-<panel-id>`** (no piece suffix) = same-piece closure landing.
+  10. **`align-<letter><partner-piece>`** registration markers (paired symmetric form on both pieces).
+  11. **`cut-<descriptive>`** prefix form (cut-lower, cut-upper, cut-a72) — distinguishes accommodation cuts from passage cuts.
+  12. **Bare `hole`** = same-piece generic hardware-pin hole; `hole-<letter><piece>` typed cross-piece.
+  13. **`back-<form>` prefix** = back-side annotation; parser dispatches on leading token.
+  14. **`landing-back-X`** vs `back-landing-X` — disambiguated by leading token (back- first → side; landing- first → standard form for tab "back-X").
+  15. **Multi-instance markers** in `marks` — duplicates allowed, define a SET of points sharing one logical id; N≥2 instances define an oriented frame.
+  16. **Affinity collision-suffix tolerance** — parser treats `<id><digits>` (no separator) as same logical id as base.
+  17. **Parser tolerance** for `cutaway` / `cutout-` slipping into `panels` layer (ignore; author's goal is delete on sight).
+  18. **Panels mandatory** on every piece, even flat single-region (`<panel id="main">`).
+  19. **Derived pivots** — only pieces with their own axle/pin need `pivot-<name>`; rigidly attached neighbors inherit rotation through their connection edges.
+  20. **Dual-presence pattern** — typed landing region as both panel (folding/material) and mark (connection-graph centroid), when the landing is a discrete folding region.
+  21. **Fuzzy substring matching** for cross-piece feature lookup, with prefix-stripping (so `attach-` doesn't leak into the match) and shortest-match tiebreaker (so `ai` beats `main` for letter `i`).
+
+- **Why:** these conventions emerged through end-to-end authoring of the anchor-pendulum batch — each piece stress-tested the conventions and surfaced refinements (the back- side annotation came from 068, the multi-instance markers came from 099's 12-dot pattern, the dual-presence pattern came from 066's `b65/c65/...` panels paired with `landing-b65/...` marks, the bare letter target came from 068's `j` paired with 066's `landing-j68`). The connection-graph audit script ratified everything by resolving 24/24 cross-piece edges across the batch — the conventions form a coherent, self-consistent specification.
+
+- **Type:** Co-authored. Conventions surfaced through Alan's authoring + Claude's parser-side reasoning; locked in chat per CHARTER §3 + Decision #3 routine. `LAYER-CONVENTIONS.md` updated in the same pass.
+
+- **Downstream effects:**
+  - `LAYERS.md` (the v0 cheat sheet from earlier 2026-05-05) deleted; `LAYER-CONVENTIONS.md` is now the single canonical reference.
+  - `claude-work/scripts/build_assembly_graph.py` is the formal parser of these conventions; produces `claude-work/state/connection-graph.{md,json}` as the output state.
+  - `CODE_PROMPT_preview-html-panels-aware.md` queued for the Code session that adds the panels-first parser pathway to `preview.html` (single-piece scope; multi-piece scene assembly follows).
+  - DECISIONS #4 (preview.html ↔ work/viewer/ architecture): still deferred, but the panels-aware parser path informs the eventual answer.
+  - DECISIONS #6: ratified in practice — all the framing-B + framing-D principles held up across 9 authored pieces.
+
+- **Reopen?** closed in current form. New conventions land as they're discovered (per the LAYER-CONVENTIONS co-authoring routine in Decision #3). Sweeping reversals would require a fresh decision row and a real reason — the conventions are now stress-tested across 9 pieces with a 100% cross-piece edge resolution rate.
+
 ---
 
-*Last updated: 2026-05-05 — Decision #6 closed: panels-first (B) + authored-vs-derived (D). The course-change conversation surfaced at the end of the 22:00 research session landed in this same evening; Alan locked the direction with explicit "lock it in" after the recommendation + defense. Concrete shape captured in the row body; LAYER-CONVENTIONS.md update + 069 authoring ask + STATUS.md track updates ride on the same cowork commit.*
+*Last updated: 2026-05-05 (late evening) — Decision #7 closed: comprehensive panels-first conventions ratified across the anchor-pendulum batch (065/066/067/068/069/070/071/072 + 099 + 100). 21 specific convention elements locked. LAYER-CONVENTIONS.md rewritten as the single canonical reference; LAYERS.md deleted. CODE_PROMPT_preview-html-panels-aware.md queued for the next Code session. Connection-graph audit at 24/24 edges valid is the empirical proof.*
+
+*Earlier 2026-05-05 — Decision #6 closed: panels-first (B) + authored-vs-derived (D). The course-change conversation surfaced at the end of the 22:00 research session landed in this same evening; Alan locked the direction with explicit "lock it in" after the recommendation + defense. Concrete shape captured in the row body; LAYER-CONVENTIONS.md update + 069 authoring ask + STATUS.md track updates ride on the same cowork commit.*
 
 *Earlier 2026-05-05 (~00:30) — reconciliation pass. Added #5 (cut-trim implementation deviation) and #6 (orientation/awareness model open). Updated #4 with the 2026-05-05 status note: diagnostic + cut-trim ships happened, but #6 now sits between #4 and any new code.*
 
