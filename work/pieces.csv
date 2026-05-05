@@ -40,16 +40,16 @@ id,plate,section,bucket,status,notes
 002,A,framework,,reviewed,U-channel frame strip
 006,A,framework,,captured,U-channel frame strip
 007,A,framework,,captured,U-channel frame strip
-110,A,face-case,,pending,Face-frame end rail; X/Y end-match markers to 111/112
+110,A,face-case,,captured,Face-frame end rail; X/Y end-match markers to 111/112
 003,B,framework,,captured,Vertical frame strip (paired with 1)
 005,B,framework,,captured,Vertical frame strip (paired with 2)
 008,B,framework,,captured,Vertical frame strip (paired with 6)
-012,B,framework,,captured,Bracket piece (12/13/14 top row)
-013,B,framework,,pending,Bracket piece
-014,B,framework,,pending,Bracket piece
-015,B,framework,,captured,Bracket piece (15/16/17 bottom row)
-016,B,framework,,pending,Bracket piece
-017,B,framework,,pending,Bracket piece
+012,B,framework,,captured,"Bracket piece; canonical scan for 012-017 (all six brackets are identical drawings)"
+013,B,framework,,captured,"Bracket piece; clone of 012 (identical drawing)"
+014,B,framework,,captured,"Bracket piece; clone of 012 (identical drawing)"
+015,B,framework,,captured,"Bracket piece; clone of 012 (identical drawing; previous separate scan reconciled 2026-05-05)"
+016,B,framework,,captured,"Bracket piece; clone of 012 (identical drawing)"
+017,B,framework,,captured,"Bracket piece; clone of 012 (identical drawing)"
 093,B,anchor-pendulum,,captured,"Pendulum-bob inner brace; printed as 6 copies, glued in pairs to make 3 braces"
 113,B,face-case,,captured,Cross-shaped brace piece for face frame (1 of 4: 113-116)
 114,B,face-case,,captured,Cross-shaped brace piece for face frame
@@ -117,7 +117,7 @@ id,plate,section,bucket,status,notes
 087,F,reduction-gear,,captured,Reduction-gear disc; cut out center
 088,F,reduction-gear,,captured,Pulley/gear stack disc
 089,F,reduction-gear,,captured,Pulley disc for hands mechanism; also appears on plate H
-090,F,reduction-gear,,pending,Pulley/gear stack disc
+090,F,reduction-gear,,captured,Pulley/gear stack disc
 120,F,reference,,captured,Axle-mount cardboard square (model for all mounting squares)
 033,G,motor-wheel,,captured,Large disc with internal triangle (motor-wheel back face); a35 corner labels
 034,G,motor-wheel,,captured,Long zig-zag teeth strip (motor-wheel teeth); engages between 33 and 36

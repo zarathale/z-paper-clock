@@ -46,17 +46,20 @@ next_action: Watch how 069 authoring lands as the first real test of panels-firs
 ## Track: Piece capture (chunk-and-crop)
 
 ```yaml
-status: active
-last_updated: 2026-05-04
-next_action: Capture remaining 6 pieces (013, 014, 016, 017, 090, 110) on the home flat-bed scanner; crop to source/pieces/.
+status: complete
+last_updated: 2026-05-05
+next_action: None — source-side capture closed at 123/123. Track stays open as decision record; flip to `killed` at next planning beat if no new captures surface.
 ```
 
-**Hypothesis.** Carried forward from WORKPLAN. The chunk-and-crop workflow is reliable; quality is better than gen-1 phone scans. Six pieces still pending out of 123: 013 / 014 / 016 / 017 (plate B brackets), 090 (plate F reduction-gear pulley), 110 (plate A face-frame end rail). All Alan's hands; Claude tracks.
+**Hypothesis.** Carried forward from WORKPLAN. The chunk-and-crop workflow is reliable; quality is better than gen-1 phone scans. **Capture closed 2026-05-05 at 123/123.** Plate B brackets 013/014/015/016/017 resolved as clones of 012; 090 + 110 captured the same day.
 
-**Blockers.** Bench time + scanner access.
+**Blockers.** None — track closed.
 
 **Recent log.**
 
+- 2026-05-05 (afternoon): piece 110 (plate A face-frame end rail) captured. PNG in `source/pieces/110.png`; `work/pieces/110/` initialized with 110.af + starter 110.svg. Authoring in progress alongside the anchor-pendulum batch. **Source-side capture closed at 123/123.**
+- 2026-05-05 (afternoon): piece 090 (plate F reduction-gear pulley/disc) captured. PNG in `source/pieces/090.png`; `work/pieces/090/` initialized with 090.af + starter 090.svg.
+- 2026-05-05 (morning): plate B brackets 013-017 resolved as clones of 012. Alan flagged the six bracket pieces (012-017) are all identical drawings — same artwork, different positions on the print. Replicated `source/pieces/012.png` → 013/014/015/016/017 (overwriting the redundant separate 015 scan; MD5-verified all six identical). `work/pieces.csv` updated: 013/014/016/017 flipped pending → captured; 012 + 015 notes amended.
 - 2026-05-04: track inherited at charter sign-off, no new captures since 2026-05-01. See WORKPLAN entries for 2026-04-30 → 2026-05-01 batches.
 
 ---
@@ -234,14 +237,15 @@ next_action: In the next cowork session, confirm exact piece IDs for the pendulu
 ```yaml
 status: paused
 last_updated: 2026-05-05
-next_action: Alan-side: run `git rm --cached` on any tracked Affinity Windows lock files (the 22:00 note lists 5 candidates under work/pieces/{001,002,058,066,113}; current `git ls-files` doesn't show them, so the set may already be clean — verify on next bench session). Otherwise watch-and-react.
+next_action: Watch-and-react. No active asks.
 ```
 
 **Hypothesis.** Carried forward from WORKPLAN, status downgraded to `paused`. Velocity has come down enough that proactive hygiene work would be premature. The asset-state audit catches the things it can; doc-sweep catches the rest.
 
 **Recent log.**
 
-- 2026-05-04 (~22:00): `.gitignore` extended with the Windows Affinity lock pattern (`*.af~lock~`) alongside the existing macOS/Linux `.~lock.*.af#` and editor-backup `*.af~`. Comment block above the patterns documents which pattern matches which platform. The 22:00 session note flagged 5 tracked lock files (`work/pieces/{001,002,058,066,113}/NNN.af~lock~`) needing `git rm --cached`; reconciliation pass on 2026-05-05 didn't find them in `git ls-files` — they may have been swept already, or the note's listing may have been from a worktree state. Verify on next bench. See `sessions/2026-05-04-2200_cowork_orientation-reset-research.md` Addendum.
+- 2026-05-05 (morning): lock-file verification closed. Alan ran `git ls-files | grep -F "af~lock~"` and it returned empty — no tracked Windows Affinity lock files to clean up. The `.gitignore` pattern from the 22:00 session prevents recurrence. QUEUE #4 struck.
+- 2026-05-04 (~22:00): `.gitignore` extended with the Windows Affinity lock pattern (`*.af~lock~`) alongside the existing macOS/Linux `.~lock.*.af#` and editor-backup `*.af~`. Comment block above the patterns documents which pattern matches which platform. The 22:00 session note flagged 5 tracked lock files (`work/pieces/{001,002,058,066,113}/NNN.af~lock~`) needing `git rm --cached`; verified clean on 2026-05-05.
 - 2026-05-03 (evening): filesystem restructure shipped (`.af` + `.svg` colocation; `inbox/` retired). See `sessions/2026-05-03-2345_cowork_filesystem-restructure.md`.
 
 ---
@@ -258,7 +262,9 @@ closed_reason: Superseded by claude-work/. The operations-layer goal — give th
 
 ---
 
-*Last updated: 2026-05-05 (~01:15) — orientation/awareness reset landed (DECISIONS #6 closed: panels-first + authored-vs-derived). Six tracks updated: orientation/awareness model (now executing, waiting on Alan), SVG layer authoring (unblocks for 069), preview.html iteration (snap-only killed; panels-aware parser pathway queued), regions/face-graph design (paused; cut-line-first becomes legacy), charter rollout (the conversation landed; 069 becomes a strong "first end-to-end" candidate), repo hygiene (unchanged). LAYER-CONVENTIONS.md updated co-authored in the same pass; first to-alan/ dropbox entry created at `to-alan/069-panels-first/`.*
+*Last updated: 2026-05-05 (morning) — piece capture track: plate B brackets 013-017 resolved as clones of 012 (Alan's clarification: six bracket pieces are all the same drawing). Replicated 012.png → 013/014/015/016/017 (MD5-verified); pieces.csv updated; QUEUE.md #2 narrowed to piece 090 only; lock-file verification (#4) closed (`git ls-files | grep -F "af~lock~"` returned empty). Repo hygiene track: lock-file ask resolved. Source-side capture is now 122/123, pending only 090 (and possibly 110 TBD).*
+
+*Earlier 2026-05-05 (~01:15) — orientation/awareness reset landed (DECISIONS #6 closed: panels-first + authored-vs-derived). Six tracks updated: orientation/awareness model (now executing, waiting on Alan), SVG layer authoring (unblocks for 069), preview.html iteration (snap-only killed; panels-aware parser pathway queued), regions/face-graph design (paused; cut-line-first becomes legacy), charter rollout (the conversation landed; 069 becomes a strong "first end-to-end" candidate), repo hygiene (unchanged). LAYER-CONVENTIONS.md updated co-authored in the same pass; first to-alan/ dropbox entry created at `to-alan/069-panels-first/`.*
 
 *Earlier 2026-05-05 (~00:30) — reconciliation pass against on-disk state. Day-one skeleton confirmed present (Code session that "saw only CHARTER.md" was running in a worktree). Tracks updated for the two sessions that ran after the kickoff drafted its plan: cut-trim ship (PR #14) and orientation-reset research. New "Orientation / awareness model" track opened to hold the four framings + five questions surfaced at 22:00 — that's the live conversation. Charter rollout, SVG layer authoring, preview.html iteration, regions/face-graph design, and repo hygiene all updated. Pre-charter history still lives in WORKPLAN.md.*
 

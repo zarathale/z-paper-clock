@@ -14,12 +14,13 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 - **Effort estimate:** unknown. That's the experiment. My guess is "an evening's authoring time including the duplicate-and-relabel," but I want your real number.
 - **How to pull:** Affinity session. When `069-panels.svg` is up, drop a one-liner in chat and I'll review + decide whether to ship the panels-aware preview.html pathway next.
 
-### 2. Capture the 6 pending pieces
+### 2. Anchor + pendulum-rod authoring batch (panels-first, in-place uplift)
 
-- **Pieces:** 013, 014, 016, 017 (plate B brackets), 090 (plate F reduction-gear pulley/disc), 110 (plate A face-frame end rail).
-- **Workflow:** flat-bed scanner → chunk(s) into `source/scans-chunks/` → editor crop → per-piece PNG into `source/pieces/NNN.png`. Per `source/SCAN-INTAKE-CHECKLIST.md`.
-- **Why next:** clears the source-side onboarding entirely (123/123 captured). Independent of the orientation-reset thread — Alan's hands, no Claude conversation needed.
-- **Splittable:** yes — plate B's four brackets are a single chunk; 090 + 110 are separate plates. Two sittings is fine; one is fine too.
+- **Pieces, ordered easier-to-harder:** 067 (anchor rear plate) → 068 (anchor fork) → 072 (pendulum blade) → 070 (pendulum rod) → 066 (pendulum-blade tube/casing — the acid test for panels-first vs. the co-linear-fold failure mode). 069 already done. 065 and the bob pieces (094/097/098/etc.) ride in the next batch.
+- **Why this stack:** it's the structural heart of the ticking mechanism (anchor + pendulum rod), all five pieces already have `work/pieces/NNN/` folders authored cut-line-first so you can uplift in place rather than start from scratch. 066 specifically tests whether panels-first cleanly resolves the failure mode (14 co-linear vertical folds) that broke cut-line-first.
+- **Workflow:** edit canonical `work/pieces/NNN/NNN.{af,svg}` directly. No `-panels` variant — convention shift from the 069 experiment landing.
+- **Reference:** `LAYERS.md` at repo root for the cheat sheet; `claude-work/to-alan/069-panels-first/README.md` for the worked example.
+- **In progress as of 2026-05-05:** Alan started the batch immediately after the 069 experiment landed. Captured + initialized 090 and 110 in parallel during the same bench session — source-side capture is now 123/123 (closed).
 
 ### 3. Tag 123 pieces in tag-pieces.html
 
@@ -27,11 +28,9 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 - **Why next:** unblocks the post-tagging cowork pass (merge `character` + `subtype` columns into `pieces.csv`, author `expected_layers.yaml` v1 keyed by archetype, then the dashboard + audit-v2 CODE_PROMPT). See STATUS asset-state track.
 - **Pre-req:** the v2-schema CODE_PROMPT (`CODE_PROMPT_tag-pieces-v2-schema.md`) ships to a Code session first if you want the v2 schema active before tagging. Otherwise the v1 tagger works and a re-tag pass against the v2 schema can happen post-ship; pick what feels right.
 
-### 4. Verify Affinity lock-file cleanup (Alan-side, ~30s)
+### ~~4. Verify Affinity lock-file cleanup (Alan-side, ~30s)~~
 
-- **What:** the 22:00 orientation-reset session flagged 5 tracked Windows Affinity lock files at `work/pieces/{001,002,058,066,113}/NNN.af~lock~` and prepared a `git rm --cached` block. The 2026-05-05 reconciliation pass didn't find them in `git ls-files` — they may have been swept already, or the listing may have been from a worktree state.
-- **How to pull:** `git ls-files | grep -F "af~lock~"` from repo root. If empty, this entry is satisfied; strike it. If non-empty, run the `git rm --cached` block from the 22:00 session-note Addendum.
-- **Why low-cost:** new lock files are now caught by the `.gitignore` pattern that landed with the 22:00 note. This is just sweeping the index if anything's stuck.
+~~The 22:00 orientation-reset session flagged 5 tracked Windows Affinity lock files at `work/pieces/{001,002,058,066,113}/NNN.af~lock~`.~~ → **resolved 2026-05-05:** Alan ran `git ls-files | grep -F "af~lock~"` and it returned empty. Index is clean; the `.gitignore` pattern landed in the 22:00 note prevents recurrence. Migrating to Recently shipped on next sweep of this file.
 
 ---
 
@@ -53,6 +52,8 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 
 ## Recently shipped
 
+- ~~**Source-side capture closed at 123/123**~~ → 2026-05-05 afternoon. Pieces 090 and 110 both captured + initialized in `work/pieces/`; combined with the morning's 013-017 clone resolution, every piece in the master index now has a PNG in `source/pieces/`. Piece-capture track in STATUS flipped to `complete`.
+- ~~**Plate B brackets 013/014/016/017 capture**~~ → resolved 2026-05-05 by clarification + replication: Alan flagged that 013-017 are all identical drawings to 012 (six bracket pieces, same artwork, different print positions). I replicated `source/pieces/012.png` → `013.png`/`014.png`/`015.png`/`016.png`/`017.png` (overwriting the redundant separate 015 scan). MD5-verified all six identical. `work/pieces.csv` rows updated to `captured` with clone notes.
 - ~~**Cowork conversation: orientation/awareness reset**~~ → landed 2026-05-05 via cowork session `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`. Decision: panels-first (B) + authored-vs-derived (D). DECISIONS row #6 closed. See that row for the full shape.
 - ~~**Ship the face-graph diagnostics CODE_PROMPT**~~ → shipped 2026-05-04 via PR #13 (`6ecdb45`). Diagnostic harness is permanent in preview.html. See `sessions/2026-05-04-1145_code_preview-html-face-graph-diagnostics.md`.
 - ~~**Cut-trim algorithm refactor**~~ → shipped 2026-05-04 via PR #14 (`e0cb5cb`). 066 improved (19 → 13 orphans, all 17 markers resolve, no broken-graph banners). Snap-only-extension follow-up on standby — **killed 2026-05-05 by DECISIONS #6** (not investing more in cut-line-first). See `sessions/2026-05-04-2103_code_preview-html-cut-trim.md`.
@@ -70,7 +71,9 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 
 ---
 
-*Last updated: 2026-05-05 (~01:15) — orientation/awareness reset conversation landed. Old #1 (the reset conversation itself) struck through to Recently shipped; new #1 is "author piece 069 panels-first" with full brief at `claude-work/to-alan/069-panels-first/README.md`. Soon section gained #6 (panels-aware parser pathway in preview.html, blocked on Now #1).*
+*Last updated: 2026-05-05 (morning) — Alan flagged that plate B brackets 013-017 are all identical to 012; replicated 012.png x5 to fill those slots; pieces.csv + STATUS piece-capture track updated. #2 narrowed to piece 090 only (with parked question about 110 status). #4 lock-file verification closed (returned empty). Two new entries in Recently shipped.*
+
+*Earlier 2026-05-05 (~01:15) — orientation/awareness reset conversation landed. Old #1 (the reset conversation itself) struck through to Recently shipped; new #1 is "author piece 069 panels-first" with full brief at `claude-work/to-alan/069-panels-first/README.md`. Soon section gained #6 (panels-aware parser pathway in preview.html, blocked on Now #1).*
 
 *Earlier 2026-05-05 (~00:30) — reconciliation pass. The original QUEUE #2 (face-graph diagnostics) shipped at 11:45 the same day the kickoff drafted the queue, so it was stale on arrival; cut-trim shipped at 21:00. Both struck through and moved to "Recently shipped." New #1 is the orientation/awareness reset conversation — the live thread post-22:00 research note. Old #1 (capture 6 pending pieces) and old #3 (tag 123 pieces) carried forward. Added #4 for the Affinity lock-file cleanup verification.*
 
