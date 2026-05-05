@@ -31,6 +31,7 @@ A row per decision. Each row captures:
 
 - **Date:** 2026-05-04
 - **Decision:** `claude-work/STATUS.md` is the live work-state surface as of charter sign-off. `WORKPLAN.md` is frozen as the pre-charter record; not deleted, not maintained going forward. Eight tracks carried forward; one (Operations layer) closed; one (Charter rollout) opened.
+- **Why:** CHARTER §3 + §10 row 7. WORKPLAN.md was a pre-charter artifact in the operations-layer track; the work it captured is now Claude-owned, so its successor lives under `claude-work/`. Keeping WORKPLAN in place avoids the find/replace pain of folder/path renames in the inherited docs and leaves a clean decision record of what was open at hand-off.
 - **Type:** Claude-led (within the charter's mandate; CHARTER §10 row 7 explicitly resolved this).
 - **Reopen?** closed. If STATUS.md proves insufficient, the move would be amend the format, not unwind the succession.
 
