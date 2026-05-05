@@ -14,13 +14,14 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 - **Effort estimate:** unknown. That's the experiment. My guess is "an evening's authoring time including the duplicate-and-relabel," but I want your real number.
 - **How to pull:** Affinity session. When `069-panels.svg` is up, drop a one-liner in chat and I'll review + decide whether to ship the panels-aware preview.html pathway next.
 
-### 2. Anchor + pendulum-rod authoring batch (panels-first, in-place uplift)
+### 2. Anchor + pendulum + circles authoring batch (panels-first, in-place uplift)
 
-- **Pieces, ordered easier-to-harder:** 067 (anchor rear plate) → 068 (anchor fork) → 072 (pendulum blade) → 070 (pendulum rod) → 066 (pendulum-blade tube/casing — the acid test for panels-first vs. the co-linear-fold failure mode). 069 already done. 065 and the bob pieces (094/097/098/etc.) ride in the next batch.
-- **Why this stack:** it's the structural heart of the ticking mechanism (anchor + pendulum rod), all five pieces already have `work/pieces/NNN/` folders authored cut-line-first so you can uplift in place rather than start from scratch. 066 specifically tests whether panels-first cleanly resolves the failure mode (14 co-linear vertical folds) that broke cut-line-first.
+- **Pieces, ordered easier-to-harder:** 067 (anchor rear plate) → 068 (anchor fork) → 072 (pendulum blade) → 070 (pendulum rod) → 066 (pendulum-blade tube/casing — the acid test for panels-first vs. the co-linear-fold failure mode) → 099 (saw-toothed crescent) → 100 (bob-position disc with F/S arrows). 069 already done. 065 and the rest of the bob pieces (094/097/098/etc.) ride in the next batch.
+- **Why this stack:** it's the structural heart of the ticking mechanism (anchor + pendulum rod), all anchor/rod pieces already have `work/pieces/NNN/` folders authored cut-line-first so you can uplift in place. 066 specifically tests whether panels-first cleanly resolves the failure mode (14 co-linear vertical folds) that broke cut-line-first. **099 + 100 added 2026-05-05** to surface the "circle authoring" question (saw-tooth boundary, disc with sector markings) before we tackle the gear discs in the next batch — gears inherit whatever convention answers these.
 - **Workflow:** edit canonical `work/pieces/NNN/NNN.{af,svg}` directly. No `-panels` variant — convention shift from the 069 experiment landing.
-- **Reference:** `LAYERS.md` at repo root for the cheat sheet; `claude-work/to-alan/069-panels-first/README.md` for the worked example.
-- **In progress as of 2026-05-05:** Alan started the batch immediately after the 069 experiment landed. Captured + initialized 090 and 110 in parallel during the same bench session — source-side capture is now 123/123 (closed).
+- **Reference:** `LAYERS.md` at repo root for the cheat sheet (held at v0 pending the curve-case lock-in); `claude-work/to-alan/069-panels-first/README.md` for the worked example.
+- **Format observations from the first review (2026-05-05 afternoon):** panel ids are bare aliases (no `panel-` prefix); folds reference them directly via `fold-<a>-<b>`; cut marks for accommodation cuts use `cut-<tab><piece>` in `marks`; closure landings use `landing-<tab>` (no piece suffix); shared `pivot-<name>` pairs pieces at that mechanical pivot. Patches needed on first-batch pieces: 070's two fold ids reference stale `panelsideb`/`panelsidec` (rename to `sideb`/`sidec`) and the rest of its strip folds need authoring; 071's `cutaway` element drifted into panels layer (relocate to silhouette). Parser will tolerate cutaway-in-panels going forward but Alan's goal is to delete on sight.
+- **In progress as of 2026-05-05 afternoon:** 067/069/071/072 panels-first complete and exportable; 070 partial; 066 not yet uplifted; 099 + 100 authoring in flight; 068 deferred until format locks in (most complex of original five).
 
 ### 3. Tag 123 pieces in tag-pieces.html
 
