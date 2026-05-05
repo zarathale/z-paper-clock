@@ -799,8 +799,18 @@ function parseSVG(text, filename) {
       });
     }
   }
-  parseFoldLayer(layerValley,   'folds-valley',   -90);
-  parseFoldLayer(layerMountain, 'folds-mountain', +90);
+  // Skip the legacy (cut-line-first) fold parser when the SVG has a non-empty
+  // <g id="panels"> layer. Panels-first SVGs use fold-<a>-<b> ids that resolve
+  // against panel ids, not marker ids — running the legacy marker-bound resolver
+  // over them would emit a "no matching marker" banner per fold. The panels-first
+  // parser later in this function handles them.
+  const panelsLayerProbe = getLayer('panels');
+  const isPanelsFirstAuthoring = panelsLayerProbe &&
+    panelsLayerProbe.querySelectorAll('path,rect,circle,ellipse,polygon,polyline').length > 0;
+  if (!isPanelsFirstAuthoring) {
+    parseFoldLayer(layerValley,   'folds-valley',   -90);
+    parseFoldLayer(layerMountain, 'folds-mountain', +90);
+  }
 
   // No banners for missing fold layers here — emitted as green info banners
   // at the end of renderScene so they sort to the bottom.
@@ -872,6 +882,27 @@ function parseSVG(text, filename) {
   }
   // Thickness-default info banner deferred to end of renderScene (green, bottom).
 
+  // ── Panels-first parser dispatch (settled 2026-05-05, LAYER-CONVENTIONS.md) ──
+  // If <g id="panels"> contains any drawable, this piece is panels-first and we
+  // pre-build the panel + fold + hinge-tree bundle here. Pieces without that
+  // layer fall through to the legacy cut-line-first parser at render time.
+  const layerPanels = getLayer('panels');
+  const layerAttach = getLayer('attach-points');
+  let panelsFirst = null;
+  if (layerPanels) {
+    const panelsMap = parsePanelsLayer(layerPanels);
+    if (panelsMap.size > 0) {
+      const pfFolds = parsePanelsFirstFolds(layerValley, layerMountain, panelsMap);
+      const hingeTree = buildHingeTree(panelsMap, pfFolds);
+      panelsFirst = {
+        panels: panelsMap, folds: pfFolds, hingeTree,
+        // Inert today; consumed by the next prompt's multi-piece scene assembly.
+        attachPoints: parsePanelsFirstAttachPoints(layerAttach),
+        marks: parsePanelsFirstMarks(layerMarks),
+      };
+    }
+  }
+
   return {
     filename, viewBox,
     scanPng, scanWidth, scanHeight, imageScale,
@@ -881,6 +912,7 @@ function parseSVG(text, filename) {
     north,         // {x, y} in viewBox coords, or null if no orientation marker authored
     rootCentroid,
     thicknessMm, thicknessDefault: thicknessMm, thicknessSource,
+    panelsFirst,      // null = cut-line-first; non-null = panels-first parsed bundle
     _svgText: text,   // kept for silhouette fallback path parsing
     _polygons: null,  // cached silhouette polygon array (set by renderScene)
     _faceGraph: null  // cached face graph (set by renderScene, invalidated on new load)
@@ -2131,6 +2163,589 @@ function buildFaceGraph(silhouette, extendedFolds, marksCentroidsById = new Map(
   };
 }
 
+// ─── Panels-first parser (settled 2026-05-05) ────────────────────────────────
+// Detect, parse, and render SVGs authored under the panels-first convention
+// (LAYER-CONVENTIONS.md). Each panel is a closed polygon in <g id="panels">;
+// each fold path's id binds it to two panels by their bare aliases
+// (fold-<a>-<b>, optionally fold-<a>-<b>-<deg>). Curved folds (<circle> or
+// <ellipse> inside fold layers) are descriptive (no two-panel binding) and
+// render with an approximate per-host-panel rotation around the synthesized
+// tangent axis at the closest point on the fold's circle to the host panel's
+// centroid — see CODE_PROMPT_preview-html-panels-aware.md task 7.
+//
+// Mirrors the Python parser at claude-work/scripts/build_assembly_graph.py
+// (parse_panel_ids, parse_fold_bindings, parse_attach_points, parse_marks).
+
+function ellipseToPolygon(cx, cy, rx, ry, n) {
+  const verts = [];
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * Math.PI * 2;
+    verts.push([cx + rx * Math.cos(t), cy + ry * Math.sin(t)]);
+  }
+  return verts;
+}
+
+// Convert one element inside <g id="panels"> to a closed polygon in viewBox
+// coords. Reuses shapeToPolygon for path/rect/polygon and adds circle/ellipse/
+// polyline handling — circular face plates and elliptical regions can be panels.
+function panelElementToPolygon(el) {
+  const tag = el.tagName.toLowerCase();
+  if (tag === 'path' || tag === 'rect' || tag === 'polygon') return shapeToPolygon(el);
+  if (tag === 'circle') {
+    const cx = parseFloat(el.getAttribute('cx') || 0);
+    const cy = parseFloat(el.getAttribute('cy') || 0);
+    const r  = parseFloat(el.getAttribute('r')  || 0);
+    return r > 0 ? ellipseToPolygon(cx, cy, r, r, 64) : null;
+  }
+  if (tag === 'ellipse') {
+    const cx = parseFloat(el.getAttribute('cx') || 0);
+    const cy = parseFloat(el.getAttribute('cy') || 0);
+    const rx = parseFloat(el.getAttribute('rx') || 0);
+    const ry = parseFloat(el.getAttribute('ry') || 0);
+    return (rx > 0 && ry > 0) ? ellipseToPolygon(cx, cy, rx, ry, 64) : null;
+  }
+  if (tag === 'polyline') {
+    const pts = (el.getAttribute('points') || '').trim().split(/[\s,]+/).map(Number);
+    const verts = [];
+    for (let i = 0; i + 1 < pts.length; i += 2) verts.push([pts[i], pts[i + 1]]);
+    return verts.length >= 3 ? verts : null;
+  }
+  return null;
+}
+
+// Walk a panels layer and return Map<id, {id, polygon, bbox, centroid, element}>.
+// Tolerates parser-slip ids per LAYER-CONVENTIONS (cutaway* / cutout-*) which
+// the audit reports separately but should not break the parser.
+function parsePanelsLayer(layerEl) {
+  const panels = new Map();
+  const VALID_TAGS = new Set(['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline']);
+  for (const el of layerEl.querySelectorAll('[id]')) {
+    const id = el.getAttribute('id') || '';
+    if (!id || id === 'panels') continue;
+    if (/^cutaway/.test(id)) continue;  // belongs in <g id="silhouette">
+    if (/^cutout-/.test(id)) continue;  // belongs in <g id="cutouts">
+    if (!VALID_TAGS.has(el.tagName.toLowerCase())) continue;
+    const polygon = panelElementToPolygon(el);
+    if (!polygon || polygon.length < 3) {
+      console.warn('[preview.html] panel id="' + id + '" — could not parse as closed polygon');
+      continue;
+    }
+    const bbox = polyBbox(polygon);
+    panels.set(id, {
+      id, polygon, bbox,
+      centroid: { x: bbox.cx, y: bbox.cy },
+      element: el
+    });
+  }
+  return panels;
+}
+
+// Try every split point in `rest` and return the first (a, b) where both are
+// panel ids. If a trailing -<digits> follows b, treat as default-angle suffix.
+function resolvePanelPair(rest, panels) {
+  for (let i = 1; i < rest.length; i++) {
+    if (rest[i] !== '-') continue;
+    const a = rest.slice(0, i), b = rest.slice(i + 1);
+    if (panels.has(a) && panels.has(b)) return { a, b, defaultAngle: null };
+  }
+  const angleMatch = rest.match(/^(.+)-(\d+)$/);
+  if (angleMatch) {
+    const stem = angleMatch[1];
+    const angle = parseInt(angleMatch[2], 10);
+    for (let i = 1; i < stem.length; i++) {
+      if (stem[i] !== '-') continue;
+      const a = stem.slice(0, i), b = stem.slice(i + 1);
+      if (panels.has(a) && panels.has(b)) return { a, b, defaultAngle: angle };
+    }
+  }
+  return null;
+}
+
+// Walk <g id="folds-valley"> and <g id="folds-mountain">, parse each id-bearing
+// drawable as a fold record. Two-panel folds (fold-<a>-<b>) carry a/b panel ids;
+// descriptive folds (fold-<x>) carry a `descriptive` field. Geometry can be
+// 'line' (path / line element) or 'circle' / 'ellipse' (curved fold).
+function parsePanelsFirstFolds(layerValley, layerMountain, panels) {
+  const out = [];
+  function processLayer(layerEl, polarity) {
+    if (!layerEl) return;
+    for (const el of layerEl.querySelectorAll('[id]')) {
+      const id = el.getAttribute('id') || '';
+      if (!id || id === 'folds-valley' || id === 'folds-mountain') continue;
+      if (!id.startsWith('fold-')) continue;
+      const rest = id.slice('fold-'.length);
+      const pair = resolvePanelPair(rest, panels);
+      const fold = {
+        id, polarity,
+        a: pair ? pair.a : null,
+        b: pair ? pair.b : null,
+        descriptive: pair ? null : rest,
+        defaultAngle: pair ? pair.defaultAngle : null,
+        geometry: null,
+        sourceIndex: out.length
+      };
+      const tag = el.tagName.toLowerCase();
+      if (tag === 'path') {
+        const seg = parseFoldPath(el.getAttribute('d') || '');
+        if (!seg) {
+          console.warn('[preview.html] fold path "' + id + '" could not be parsed; skipping');
+          continue;
+        }
+        fold.geometry = 'line';
+        fold.start = seg.start;
+        fold.end = seg.end;
+      } else if (tag === 'line') {
+        fold.geometry = 'line';
+        fold.start = [parseFloat(el.getAttribute('x1') || 0), parseFloat(el.getAttribute('y1') || 0)];
+        fold.end   = [parseFloat(el.getAttribute('x2') || 0), parseFloat(el.getAttribute('y2') || 0)];
+      } else if (tag === 'circle') {
+        fold.geometry = 'circle';
+        fold.cx = parseFloat(el.getAttribute('cx') || 0);
+        fold.cy = parseFloat(el.getAttribute('cy') || 0);
+        fold.r  = parseFloat(el.getAttribute('r')  || 0);
+      } else if (tag === 'ellipse') {
+        fold.geometry = 'ellipse';
+        fold.cx = parseFloat(el.getAttribute('cx') || 0);
+        fold.cy = parseFloat(el.getAttribute('cy') || 0);
+        fold.rx = parseFloat(el.getAttribute('rx') || 0);
+        fold.ry = parseFloat(el.getAttribute('ry') || 0);
+      } else {
+        continue;
+      }
+      out.push(fold);
+    }
+  }
+  processLayer(layerValley, 'valley');
+  processLayer(layerMountain, 'mountain');
+  return out;
+}
+
+// Build a BFS spanning forest of panels via two-panel fold edges. Each
+// connected component becomes its own sub-tree rooted at the highest-degree
+// unvisited panel (ties alphabetical). The primary root (`root`) is the first
+// sub-root — typically the largest component. Cycle folds are folds not in any
+// sub-tree (rare; only when a connected component has a true cycle).
+function buildHingeTree(panels, folds) {
+  const nodes = new Map();
+  for (const id of panels.keys()) nodes.set(id, { parent: null, fold: null, children: [] });
+
+  const twoPanelFolds = folds.filter(f => f.a && f.b);
+  const descriptiveFolds = folds.filter(f => !(f.a && f.b));
+
+  const adj = new Map();
+  for (const id of panels.keys()) adj.set(id, []);
+  for (const fold of twoPanelFolds) {
+    adj.get(fold.a).push({ neighbor: fold.b, fold });
+    adj.get(fold.b).push({ neighbor: fold.a, fold });
+  }
+
+  const sortedIds = [...panels.keys()].sort();
+  const visited = new Set();
+  const usedFoldIds = new Set();
+  const subRoots = [];
+
+  while (visited.size < panels.size) {
+    // Pick the unvisited panel with highest degree, ties alphabetical.
+    let subRoot = null, maxDeg = -1;
+    for (const id of sortedIds) {
+      if (visited.has(id)) continue;
+      const deg = (adj.get(id) || []).length;
+      if (deg > maxDeg) { maxDeg = deg; subRoot = id; }
+    }
+    if (subRoot === null) break;
+    subRoots.push(subRoot);
+
+    visited.add(subRoot);
+    const queue = [subRoot];
+    while (queue.length > 0) {
+      const cur = queue.shift();
+      for (const { neighbor, fold } of (adj.get(cur) || [])) {
+        if (visited.has(neighbor)) continue;
+        visited.add(neighbor);
+        usedFoldIds.add(fold.id);
+        nodes.get(neighbor).parent = cur;
+        nodes.get(neighbor).fold = fold;
+        nodes.get(cur).children.push({ childId: neighbor, fold });
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  const cycleFolds = twoPanelFolds.filter(f => !usedFoldIds.has(f.id));
+
+  return {
+    root: subRoots[0] || null,
+    subRoots,
+    nodes, descriptiveFolds, cycleFolds,
+    orphanPanels: []  // legacy field; multi-component support folds these into sub-trees
+  };
+}
+
+// Inert today; consumed by the next prompt's multi-piece scene assembly. We
+// stash the raw ids so the connection-graph parser can run when needed without
+// re-walking the SVG.
+function parsePanelsFirstAttachPoints(layerEl) {
+  if (!layerEl) return [];
+  const out = [];
+  for (const el of layerEl.querySelectorAll('[id]')) {
+    const id = el.getAttribute('id') || '';
+    if (!id || id === 'attach-points') continue;
+    out.push({ id, element: el.tagName.toLowerCase() });
+  }
+  return out;
+}
+
+function parsePanelsFirstMarks(layerEl) {
+  if (!layerEl) return [];
+  const out = [];
+  for (const el of layerEl.querySelectorAll('[id]')) {
+    const id = el.getAttribute('id') || '';
+    if (!id || id === 'marks') continue;
+    out.push({ id, element: el.tagName.toLowerCase() });
+  }
+  return out;
+}
+
+// Render a panels-first piece. Mirrors renderScene's slab+hinge wiring (per-
+// panel buildSlab, parent→child hinge as Object3D, slider drives quaternion)
+// but takes panels and the hinge tree directly from the panels-first parsed
+// bundle instead of deriving them from cut-trim. Curved folds wrap their host
+// panel's slab with an extra rotator group so the slider produces approximate
+// movement (CODE_PROMPT task 7 — "non-broken is the bar").
+async function renderPanelsFirstScene(p) {
+  const pf = p.panelsFirst;
+  if (!pf || pf.panels.size === 0) {
+    addBanner('panels-first dispatched but no panels found — bug.', 'error');
+    return;
+  }
+
+  VB = p.viewBox;
+  const T = p.thicknessMm;
+
+  // World reference origin = union bbox of all panels.
+  const silBbox = (() => {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const panel of pf.panels.values()) {
+      const bb = panel.bbox;
+      if (bb.minX < minX) minX = bb.minX;
+      if (bb.maxX > maxX) maxX = bb.maxX;
+      if (bb.minY < minY) minY = bb.minY;
+      if (bb.maxY > maxY) maxY = bb.maxY;
+    }
+    return { minX, maxX, minY, maxY, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
+  })();
+
+  // Active axle (rotation pivot)
+  let activeAxle3js = null;
+  if (p.axles.length > 0) {
+    const a = p.axles[0];
+    activeAxle3js = {
+      x:  (a.cx - silBbox.cx) * MM_PER_UNIT,
+      y: -(a.cy - silBbox.cy) * MM_PER_UNIT
+    };
+  }
+
+  const pivot = new THREE.Group();
+  if (activeAxle3js) pivot.position.set(activeAxle3js.x, activeAxle3js.y, 0);
+
+  pathHingeMap = new Map();
+
+  // Build slab per panel (front + back + side meshes from buildSlab — already
+  // centered at the polygon's bbox center in 3js space).
+  const slabMap = new Map();
+  for (const [id, panel] of pf.panels) {
+    slabMap.set(id, buildSlab(panel.polygon, T));
+  }
+
+  // Group descriptive curved folds by host panel = panel whose centroid is
+  // closest to the fold's circle center. Linear descriptive folds (uncommon)
+  // fall through with no rendering — they'd need their own host-resolution
+  // rule and aren't on the verification path.
+  const curvedFoldsByHost = new Map();
+  for (const fold of pf.hingeTree.descriptiveFolds) {
+    if (fold.geometry !== 'circle' && fold.geometry !== 'ellipse') continue;
+    let bestId = null, bestDist = Infinity;
+    for (const [id, panel] of pf.panels) {
+      const dx = panel.centroid.x - fold.cx;
+      const dy = panel.centroid.y - fold.cy;
+      const d = Math.hypot(dx, dy);
+      if (d < bestDist) { bestDist = d; bestId = id; }
+    }
+    if (bestId) {
+      if (!curvedFoldsByHost.has(bestId)) curvedFoldsByHost.set(bestId, []);
+      curvedFoldsByHost.get(bestId).push(fold);
+    }
+  }
+
+  // Wrap a slab with extra Object3D rotators — one per descriptive curved fold
+  // hosted on this panel. Each wrapper rotates its child around an axis derived
+  // from the tangent at the closest point on the fold's circle to the panel
+  // centroid. Slab geometry is centered at its own polygon bbox in 3js, so a
+  // quaternion applied to the wrapper rotates around that local origin (= the
+  // panel's centroid in world-space). This is the v0 sketch — geometrically
+  // correct rotation would need the slab split along the curve; deferred.
+  function wrapWithCurvedFolds(slab, panelId, panelBbox) {
+    const cfs = curvedFoldsByHost.get(panelId) || [];
+    let outer = slab;
+    for (const cf of cfs) {
+      const dx = panelBbox.cx - cf.cx;
+      const dy = panelBbox.cy - cf.cy;
+      const dist = Math.hypot(dx, dy);
+      let tx, ty;
+      if (dist < 1e-6) { tx = 1; ty = 0; }
+      else { tx = -dy / dist; ty = dx / dist; }
+      // Tangent direction in viewBox coords → 3js axis (Y-flipped).
+      const axis = new THREE.Vector3(tx, -ty, 0).normalize();
+
+      const wrapper = new THREE.Object3D();
+      wrapper.userData.axis = axis;
+      wrapper.add(outer);
+      outer = wrapper;
+      pathHingeMap.set(cf.id, [{ target: wrapper, axis, mode: 'curved' }]);
+    }
+    return outer;
+  }
+
+  // Helper: position a slab (or its outer wrapper, after curved-fold wrapping)
+  // at the given world-space coordinates inside its parent container. The
+  // wrapper, if present, replaces the slab's position with its own and the
+  // inner slab sits at local origin.
+  function placeAt(slab, panelId, panelBbox, x, y) {
+    const wrapped = wrapWithCurvedFolds(slab, panelId, panelBbox);
+    if (wrapped !== slab) {
+      wrapped.position.set(x, y, 0);
+      slab.position.set(0, 0, 0);
+    } else {
+      slab.position.set(x, y, 0);
+    }
+    return wrapped;
+  }
+
+  // Place each sub-root inside pivot, then BFS its sub-tree. Disconnected
+  // fold-components produce multiple sub-trees; each is anchored at silhouette-
+  // relative position and folds independently. (Most pieces have one sub-tree;
+  // 068 has two: the main pane7 component + the c1/c2/sidel/sider component.)
+  if (!pf.hingeTree.subRoots.length) {
+    addBanner('panels-first: hinge tree has no root — bug.', 'error');
+    return;
+  }
+
+  const visited = new Set();
+  for (const subRootId of pf.hingeTree.subRoots) {
+    if (visited.has(subRootId)) continue;
+    const subRootPanel = pf.panels.get(subRootId);
+    const subRootSlab  = slabMap.get(subRootId);
+    const sx = (subRootPanel.bbox.cx - silBbox.cx) * MM_PER_UNIT - (activeAxle3js ? activeAxle3js.x : 0);
+    const sy = -(subRootPanel.bbox.cy - silBbox.cy) * MM_PER_UNIT - (activeAxle3js ? activeAxle3js.y : 0);
+    pivot.add(placeAt(subRootSlab, subRootId, subRootPanel.bbox, sx, sy));
+    visited.add(subRootId);
+
+    const queue = [subRootId];
+    while (queue.length > 0) {
+      const parentId = queue.shift();
+      const parentNode  = pf.hingeTree.nodes.get(parentId);
+      const parentPanel = pf.panels.get(parentId);
+      const parentSlab  = slabMap.get(parentId);
+
+      for (const { childId, fold } of parentNode.children) {
+        if (visited.has(childId)) continue;
+        visited.add(childId);
+
+        const childPanel = pf.panels.get(childId);
+        const childSlab  = slabMap.get(childId);
+
+        if (fold.geometry !== 'line') {
+          // Curved two-panel fold not implemented as a real hinge in v0.
+          // Render child flat at silhouette-relative position; banner-warn.
+          const fx = (childPanel.bbox.cx - silBbox.cx) * MM_PER_UNIT - (activeAxle3js ? activeAxle3js.x : 0);
+          const fy = -(childPanel.bbox.cy - silBbox.cy) * MM_PER_UNIT - (activeAxle3js ? activeAxle3js.y : 0);
+          pivot.add(placeAt(childSlab, childId, childPanel.bbox, fx, fy));
+          addBanner('Fold ' + fold.id + ' is curved between panels — rendered flat; only descriptive curved folds animate in v0.', 'warn');
+          queue.push(childId);
+          continue;
+        }
+
+        const [ax, ay] = fold.start;
+        const [bx, by] = fold.end;
+        const midX = (ax + bx) / 2;
+        const midY = (ay + by) / 2;
+        const segLen = Math.hypot(bx - ax, by - ay) || 1;
+
+        const hinge = new THREE.Object3D();
+        hinge.position.set(
+          (midX - parentPanel.bbox.cx) * MM_PER_UNIT,
+          -(midY - parentPanel.bbox.cy) * MM_PER_UNIT,
+          0
+        );
+        const axis = new THREE.Vector3(
+          (bx - ax) / segLen,
+          -(by - ay) / segLen,
+          0
+        ).normalize();
+        hinge.userData.axis = axis;
+
+        // signFwd heuristic — mirrors the cut-line-first fold-tree code so
+        // polarity (valley toward viewer, mountain away) is consistent.
+        const childRelX = (childPanel.bbox.cx - midX) * MM_PER_UNIT;
+        const childRelY = (midY - childPanel.bbox.cy) * MM_PER_UNIT;
+        const foldDot = childRelX * (-axis.y) + childRelY * axis.x;
+        const signFwd = foldDot >= 0 ? 1 : -1;
+        hinge.userData.signFwd = signFwd;
+
+        const layerDefault = fold.polarity === 'valley' ? -90 : 90;
+        const defaultAngle = fold.defaultAngle != null ? fold.defaultAngle : layerDefault;
+        hinge.userData.defaultAngle = defaultAngle;
+
+        // Position child slab inside hinge so fold midpoint = hinge origin,
+        // making rotation around `axis` pivot the child around the fold line.
+        const cx = (childPanel.bbox.cx - midX) * MM_PER_UNIT;
+        const cy = (midY - childPanel.bbox.cy) * MM_PER_UNIT;
+        hinge.add(placeAt(childSlab, childId, childPanel.bbox, cx, cy));
+        parentSlab.add(hinge);
+
+        if (!pathHingeMap.has(fold.id)) pathHingeMap.set(fold.id, []);
+        pathHingeMap.get(fold.id).push({ target: hinge, axis, signFwd, mode: 'fold' });
+
+        queue.push(childId);
+      }
+    }
+  }
+
+  if (pf.hingeTree.subRoots.length > 1) {
+    addBanner('Disconnected fold components: ' + pf.hingeTree.subRoots.length +
+              ' sub-trees rooted at ' + pf.hingeTree.subRoots.join(', ') +
+              ' — each folds independently.', 'warn');
+  }
+  for (const f of pf.hingeTree.cycleFolds) {
+    addBanner('Fold ' + f.id + ' would create a cycle (' + f.a + ' ↔ ' + f.b + ') — slider disabled.', 'warn');
+  }
+
+  scene.add(pivot);
+  currentSlabPivot = pivot;
+
+  // ── Axle wires (world-anchored, outside pivot — same as cut-line-first) ────
+  for (const { cx, cy } of p.axles) {
+    const wire = buildAxleWire(
+      (cx - silBbox.cx) * MM_PER_UNIT,
+      -(cy - silBbox.cy) * MM_PER_UNIT,
+      T
+    );
+    scene.add(wire);
+    currentAxleWires.push(wire);
+  }
+
+  // ── Fold sliders UI ─────────────────────────────────────────────────────────
+  const globalFoldRow    = document.getElementById('global-fold-row');
+  const perFoldSliders   = document.getElementById('per-fold-sliders');
+  const globalFoldSlider = document.getElementById('globalFoldSlider');
+  const globalFoldVal    = document.getElementById('globalFoldVal');
+
+  perFoldSliders.innerHTML = '';
+  if (pathHingeMap.size > 0) {
+    globalFoldRow.style.display = '';
+    globalFoldSlider.value = 0;
+    globalFoldVal.textContent = '0%';
+
+    const seen = new Set();
+    for (const fold of pf.folds) {
+      const pid = fold.id;
+      if (seen.has(pid) || !pathHingeMap.has(pid)) continue;
+      seen.add(pid);
+
+      const items = pathHingeMap.get(pid) || [];
+      const isCurved = items.length > 0 && items[0].mode === 'curved';
+      const layerDefault = fold.polarity === 'valley' ? -90 : 90;
+      const defAngle = fold.defaultAngle != null ? fold.defaultAngle : layerDefault;
+      const isAuthored = fold.defaultAngle != null;
+
+      const row = document.createElement('div');
+      row.className = 'slider-row';
+      row.dataset.pathId = pid;
+      row.dataset.defaultAngle = defAngle;
+      const curvedBadge = isCurved
+        ? ' <span title="Descriptive curved fold — approximate visual sketch only" ' +
+          'style="color:#fc6;font-size:10px">≈</span>'
+        : '';
+      row.innerHTML =
+        '<label style="min-width:90px;font-size:11px;overflow:hidden;text-overflow:ellipsis" ' +
+          'title="' + pid + (isCurved ? ' (curved fold; v0 sketch)' : '') + '">' + pid + '</label>' +
+        '<input type="range" min="-180" max="180" step="1" value="0">' +
+        '<span class="val">0°</span>' +
+        '<span style="color:#666;font-size:10px;min-width:22px">×' + items.length + '</span>' +
+        '<span title="Assembled angle' + (isAuthored ? ' (authored in id)' : ' (layer default)') +
+          '" style="color:' + (isAuthored ? '#8cf' : '#666') +
+          ';font-size:10px;min-width:36px;text-align:right;flex-shrink:0">→' +
+          (defAngle > 0 ? '+' : '') + defAngle + '°</span>' +
+        curvedBadge;
+      perFoldSliders.appendChild(row);
+
+      const slider  = row.querySelector('input');
+      const valSpan = row.querySelector('.val');
+      slider.addEventListener('input', () => {
+        const deg = parseFloat(slider.value);
+        valSpan.textContent = deg.toFixed(0) + '°';
+        for (const item of items) {
+          if (item.mode === 'fold') {
+            item.target.quaternion.setFromAxisAngle(
+              item.axis,
+              -(item.signFwd || 1) * deg * Math.PI / 180
+            );
+          } else if (item.mode === 'curved') {
+            item.target.quaternion.setFromAxisAngle(item.axis, deg * Math.PI / 180);
+          }
+        }
+        requestRender();
+      });
+    }
+  } else {
+    globalFoldRow.style.display = 'none';
+  }
+
+  // Rotation slider visibility (axle pivot)
+  rotationSection.hidden = (p.axles.length === 0);
+  if (p.axles.length > 0) {
+    const deg = parseFloat(rotateSlider.value) || 0;
+    pivot.rotation.z = -deg * Math.PI / 180;
+  }
+
+  // ── Frame camera ────────────────────────────────────────────────────────────
+  const diagUnits = Math.hypot(
+    (silBbox.maxX - silBbox.minX) * MM_PER_UNIT,
+    (silBbox.maxY - silBbox.minY) * MM_PER_UNIT
+  );
+  const fovRad = camera.fov * Math.PI / 180;
+  const dist = (diagUnits / 2) / Math.tan(fovRad / 2) * 1.3;
+  camera.position.set(0, 0, dist);
+  camera.near = dist * 0.001;
+  camera.far  = dist * 100;
+  camera.updateProjectionMatrix();
+  controls.target.set(0, 0, 0);
+  controls.update();
+  requestRender();
+
+  // ── Console diagnostics ────────────────────────────────────────────────────
+  const vFolds = pf.folds.filter(f => f.polarity === 'valley').length;
+  const mFolds = pf.folds.filter(f => f.polarity === 'mountain').length;
+  const subRootsStr = pf.hingeTree.subRoots.join(', ') || '<none>';
+  console.log('[panels-first] Loaded', p.filename);
+  console.log('  panels:', pf.panels.size, '—', [...pf.panels.keys()].join(', '));
+  console.log('  folds:', pf.folds.length, '(' + vFolds, 'valley +', mFolds, 'mountain)');
+  console.log('  hinge forest sub-roots:', subRootsStr,
+              '| descriptive:', pf.hingeTree.descriptiveFolds.length,
+              '| cycle:', pf.hingeTree.cycleFolds.length);
+  console.log('  attach-points:', pf.attachPoints.length, '| marks:', pf.marks.length);
+
+  // ── Banners (green info, sort to bottom) ───────────────────────────────────
+  addBanner('panels-first ✓ — ' + pf.panels.size + ' panels, ' + pf.folds.length +
+            ' folds, root: ' + (pf.hingeTree.root || '<none>'), 'ok');
+  if (p.axles.length === 0)              addBanner('No axles — rotation slider hidden.', 'ok');
+  if (p.thicknessSource === 'default')   addBanner('Thickness: 0.4 mm default (no thickness layer in SVG).', 'ok');
+
+  // Diagnostics buttons stay disabled — they're cut-line-first instrumentation.
+  if (dumpFaceGraphBtn)          dumpFaceGraphBtn.disabled = true;
+  if (toggleFaceGraphOverlayBtn) toggleFaceGraphOverlayBtn.disabled = true;
+}
+
 // ─── Axle wire builder ────────────────────────────────────────────────────────
 // Renders the axle as a thin shiny silver cylinder, perpendicular to the slab,
 // passing through the axle point. The wire is world-anchored — the slab+pivot
@@ -2185,6 +2800,18 @@ async function renderScene(p) {
     if (m.material) m.material.dispose();
   }
   currentAxleWires = [];
+
+  // ── Panels-first vs cut-line-first dispatch ────────────────────────────────
+  // Settled 2026-05-05 (DECISIONS #6 + #7). Pieces with a non-empty <g id="panels">
+  // route through the panels-first parser; pieces without it stay on the legacy
+  // cut-line-first pathway (buildFaceGraph + extendFoldsToSilhouette + cut-trim)
+  // so pre-pivot pieces (058, 113, etc.) keep working. The dispatch banner makes
+  // the active path visible during development.
+  if (p.panelsFirst) {
+    await renderPanelsFirstScene(p);
+    return;
+  }
+  addBanner('cut-line-first (legacy) parser', 'ok');
 
   // Extract silhouette — cached on p._polygons so thickness rebuilds skip re-extraction
   if (!p._polygons) p._polygons = await extractSilhouette(p);
