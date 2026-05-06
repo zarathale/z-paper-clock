@@ -208,9 +208,14 @@ per_piece:
     remove: [folds-valley, folds-mountain]
     # Square ring; cut out center; flat ring glued between b/c of piece 70.
 
-  "093":
-    remove: [folds-valley, folds-mountain, axles]
-    # Pendulum-bob inner brace (flat; printed as 6 copies, glued in pairs).
+  "093a":
+    remove: [axles]
+    # Pendulum-bob inner brace template half a; pairs with 093b.
+    # Internal folds present (panes 4-5), so folds-valley/mountain stay in scope.
+  "093b":
+    remove: [axles]
+    # Pendulum-bob inner brace template half b; pairs with 093a.
+    # Internal folds present (panes 1-3), so folds-valley/mountain stay in scope.
 
   "096":
     remove: [folds-valley, folds-mountain, axles]

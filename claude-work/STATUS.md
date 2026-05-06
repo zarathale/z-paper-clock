@@ -69,7 +69,7 @@ next_action: None — source-side capture closed at 123/123. Track stays open as
 ```yaml
 status: active
 last_updated: 2026-05-05
-next_action: With the anchor-pendulum batch landed and conventions ratified (DECISIONS #7), the next authoring batch is the bob pieces (094 + 095 + 096 + 097 + 098 + 093) and the escape wheel (likely 087 in the reduction-gear cluster). No urgency; pull when bench time happens. The convention is stable; new pieces should drop into the established pattern.
+next_action: With the anchor-pendulum batch landed and conventions ratified (DECISIONS #7), the next authoring batch is the bob pieces (094 + 095 + 096 + 097 + 098 + 093a/093b) and the escape wheel (likely 087 in the reduction-gear cluster). 093 was split into 093a + 093b on 2026-05-05 — the (a+b) pair is the brace template, instantiated 6 times in piece 94. No urgency; pull when bench time happens. The convention is stable; new pieces should drop into the established pattern.
 ```
 
 **Hypothesis.** The actual current bottleneck. Conventions are still iterating as new piece-types reveal new authoring requirements (cut-layer + axles-with-north + marker-bound fold ids all shipped in the past week). Each new piece both applies the conventions and stress-tests them.

@@ -255,12 +255,17 @@ characters:
     status: pending
     note: "source/pieces/ pending capture per pieces.csv."
 
-  # --- Pendulum-bob inner brace --------------------------------------------
-  "093":
+  # --- Pendulum-bob inner brace (split into a/b template halves 2026-05-05) -
+  "093a":
     character: flat
     subtype: bob-brace
     v1_was: anchor-pendulum-mixed
-    note: "Printed as 6 copies, glued in pairs to make 3 braces (laminated)."
+    note: "Brace template half a; pairs with 093b. Six brace instances in piece 94, per-instance a/b orientation."
+  "093b":
+    character: flat
+    subtype: bob-brace
+    v1_was: anchor-pendulum-mixed
+    note: "Brace template half b; pairs with 093a. See 093a."
 
   # --- Cross-shaped face-frame braces (113-116) ----------------------------
   "113":
