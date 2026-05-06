@@ -69,6 +69,14 @@ id="fold-<a>-<b>-<deg>"         optional default angle in degrees
                                 e.g. fold-stem-tabA-90
                                 — positive = layer's natural direction (valley = dashed; mountain = plus-sign)
 
+id="<step>-fold-<a>-<b>"        optional fold-step ordinal (positive integer, prefix form)
+                                e.g. 1-fold-pane3-pane4, 2-fold-pane4-pane5, 3-fold-pane5-pane6
+                                — same step number across multiple folds = "fire simultaneously"
+                                — phased fold sequence: step 1 first, step 2 second, etc.
+                                — combinable with default-angle suffix: <step>-fold-<a>-<b>-<deg>
+                                — Affinity exports the id as "_<step>-fold-..." (SVG-spec underscore prefix
+                                  on digit-leading ids); parser strips the leading "_" to recover the form
+
 id="fold-<descriptive>"         single-panel folds, curved folds, or folds against unmodelled clusters
                                 e.g. fold-insidetabs, fold-outsidetabs (concentric circle folds on 099)
 
@@ -108,6 +116,15 @@ id="pivot-<name>"               shared rotation pivot with peer pieces
 
 id="hole"                       bare = same-piece generic hardware-pin hole, no cross-piece partner
 id="hole-<letter><piece>"       cross-piece pin hole receiving wire/pin from another piece
+
+id="attach-<panel-id>"          same-piece closure attach: this attach surface mates to <panel-id> of THIS piece
+                                e.g. back-attach-pane1, back-attach-pane2, back-attach-pane3 (095 closure attaches —
+                                bob-casing strip wraps around and glues back onto pane1/2/3)
+                                — distinguished from cross-piece `attach-<letter><piece>` by the suffix:
+                                  if it matches a panel of this piece, it's same-piece; otherwise cross-piece
+                                — typically pairs with `back-` side annotation (closures usually on the back)
+                                — parallel to `landing-<panel-id>` in marks (same suffix grammar, different layer
+                                  for "structural attach surface" vs. "registration mark")
 
 id="<letter>"                   bare letter = "letter <letter> is structurally referenced here on this piece"
                                 e.g. j on 068 — the partner-side reference target for 066's `landing-j68`
@@ -166,6 +183,10 @@ These are the rules the parser follows when consuming a panels-first SVG. They'r
 **Panel resolution.** Direct lookup via `getElementById(<id>)`. Bare aliases enable this.
 
 **Fold binding.** Parse `fold-<a>-<b>` ids by trying every possible split point; the first split where both sides are panel ids resolves the binding. Order of (a, b) is symmetric. Descriptive form `fold-<x>` (single token, no panel pair) uses single-panel-or-curved fallback.
+
+**Fold-step prefix.** Optional leading `<step>-` (positive integer + hyphen) before `fold-` is the fold-step ordinal — when this fold fires in a phased fold sequence. Same step across multiple folds = simultaneous. Stripped before panel-pair resolution. The trailing `-<deg>` default-angle suffix is independent and combinable.
+
+**Affinity underscore prefix.** Affinity Designer prefixes ids that start with a digit with `_` for SVG-spec compliance (`_3-fold-pane1-pane2`); the author's literal is preserved in the `serif:id` attribute. Parser strips a leading `_` from the id before applying fold-id parsing, recovering the authored form. (Parallel to convention #16 collision-suffix tolerance, but for digit-leading ids rather than duplicate ids.)
 
 **Cross-piece feature lookup (fuzzy substring + tiebreaker).** When piece A references letter `X` on piece B (e.g., `attach-X<B>` or `landing-X<B>`), find the matching feature on B by:
 

@@ -1,7 +1,12 @@
 .venv/
+.venv-headless/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Bench-side verification outputs + trigger dropbox (per-device, not synced)
+claude-work/state/preview-renders/
+claude-work/state/render-triggers/
 
 # Affinity Designer working files — lock files (open documents) and editor backups.
 # Affinity uses different lock-file naming on different platforms:

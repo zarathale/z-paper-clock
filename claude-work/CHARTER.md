@@ -121,7 +121,7 @@ Initial structure. Not all need to exist on day one; Claude builds them out as w
 - **to-alan/** — the rework dropbox. When Claude needs a piece revised, a small folder lands here per request: `to-alan/<piece-or-topic>/` with a short README (what to do, why) plus any artifacts (annotated SVG, screenshot, reference link). Alan picks it up, reworks in Affinity, drops the revised piece into `alan-work/pieces/NNN/`, and Claude clears the `to-alan/` entry.
 - **viewer/** — the build's actual code, when there's code to write. Architecture choice (graduate `preview.html`, build a fresh TS/Vite viewer per the existing SPEC, or some blend) is Claude's first non-charter call.
 - **pipeline/** — successor to `work/pipeline/` and `work/scripts/`. Pipeline scripts and tooling Claude will iterate move here when needed; the M1 archive in `work/_archive/` stays put as a decision record (and `work/` is frozen anyway).
-- **standards/** — successor home for new tooling-side standards docs as they emerge (sidecar schema versions, viewer manifest schema, audit-script rule reference). `LAYER-CONVENTIONS.md` is the explicit exception — it stays at repo root, co-authored.
+- **standards/** — successor home for new tooling-side standards docs as they emerge (sidecar schema versions, viewer manifest schema, audit-script rule reference, the build-environment doc). `LAYER-CONVENTIONS.md` is the explicit exception — it stays at repo root, co-authored. **First resident:** `standards/ENVIRONMENT.md` (2026-05-05) — canonical install + configuration reference for Alan's Mac + Windows benches and the Cowork sandbox's capabilities/constraints.
 
 **Sidecar JSON colocation.** Per-piece JSON lives at `alan-work/pieces/NNN/NNN.json`, alongside the SVG. Claude is the author; the file lives in Alan's tree because that's where the piece lives. Claude writes there as a one-line carve-out from "Claude doesn't write to alan-work/." (If this gets messy in practice, revisit.)
 
@@ -174,7 +174,7 @@ These are inherited from the existing project; not reopened in this charter:
 - **Pull-based, not push.** Alan pulls from the queue when he has bench time. Claude doesn't expect throughput; Claude designs around whatever throughput Alan has.
 - **Iteration discipline; human-manageable authoring.** This is an explicit constraint from Alan: not 99 edits per piece. The way the project moves forward is iterative — try something on a piece, learn from how it lands, adjust the convention or the tooling, try the next piece. The queue stays small (a handful of pieces / asks at a time, not the full backlog), each piece teaches something, lessons stack. Claude resists the temptation to fan out parallel asks even when the tooling could absorb them — Alan can't, and the bottleneck is Alan's bench, not Claude's throughput. When in doubt, fewer asks, more thinking per ask.
 - **Loud thinking.** Claude surfaces decisions and trade-offs. Alan can be quiet without that being read as agreement; Alan's pushback is welcome and expected on convention questions.
-- **Marketplace.** Alan invited Claude to browse for plugins/skills that would help. Claude will propose targeted additions (a clean validation skill, a deployment plugin, anything else that would unlock more leverage); Alan installs them.
+- **Tool acquisition is Claude's responsibility to surface — proactively, not on prompt.** When Claude is missing a tool, integration, MCP, plugin, skill, or sandbox capability that would meaningfully accelerate the work, Claude raises it. The ask includes: (a) what's needed, (b) what it would unlock concretely, (c) cost/benefit — setup time, per-use compute time, disk footprint, any ongoing cost, and Claude's best estimate of how often it'd come up. Claude is encouraged to browse the plugin marketplace and the MCP registry for candidates rather than only reaching for what's already installed; if nothing off-the-shelf fits, propose direct install in the workspace `.venv`. Alan grants or denies; defaults toward yes when the cost/benefit holds up. This is a standing directive — earlier-rather-than-later beats the trap of working around a missing tool because the ask felt like overhead.
 - **Models.** Per the existing model selection guide in `ROADMAP.md`. Most work is Sonnet's wheelhouse; bulk sidecar authoring is a clean Haiku downshift; gnarly viewer code (mesh extrusion, assembly engine) is where Opus earns its keep. Claude reaches accordingly without making it a discussion.
 
 ---
@@ -240,4 +240,17 @@ When in doubt, treat as substantive. The cost of one extra round-trip in chat is
 
 ---
 
-*Last updated: 2026-05-04 (signed v1.0; effective. Amendment policy added as §12. Both Alan and Claude signed at kick-off.)*
+## Amendment log
+
+Substantive amendments stack here per §12. The original §10 table stays as the kick-off record.
+
+### A1 — Tool acquisition directive strengthened (§9 "Marketplace" → "Tool acquisition")
+
+- **Date:** 2026-05-05
+- **What changed:** The §9 "Marketplace" bullet — previously a soft invitation ("Alan invited Claude to browse for plugins/skills that would help") — is replaced by a standing directive that Claude proactively raises tool/integration/MCP/plugin/skill/sandbox-capability gaps with explicit cost/benefit (setup time, per-use compute, disk, ongoing cost, expected use frequency). Encouraged to browse marketplace + MCP registry first; direct workspace install is fine when nothing off-the-shelf fits. Alan grants or denies; defaults toward yes when cost/benefit holds up.
+- **Why:** the gap surfaced concretely on 2026-05-05: PR #15 verification trusted the Code session's eyes because Claude couldn't open `preview.html` headlessly. The right response wasn't "qualify the verification" — it was to ask for the tool. Alan called this out as a charter clarification: "if you're missing a tool or integration that would help you do your work more efficiently, ask me for perms." Earlier-rather-than-later is the spirit.
+- **Initials:** Alan ☑ (proposed in chat 2026-05-05) / Claude ☑ (drafted same session)
+
+---
+
+*Last updated: 2026-05-05 (amendment A1: tool-acquisition directive strengthened in §9). Earlier 2026-05-04 (signed v1.0; effective. Amendment policy added as §12. Both Alan and Claude signed at kick-off.)*

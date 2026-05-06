@@ -362,6 +362,8 @@ If stale `claude/*` branches are spotted at the start of a Cowork session (i.e.,
 
 ## Dev environment (mac)
 
+> **As of 2026-05-05, the canonical doc for the build environment is `claude-work/standards/ENVIRONMENT.md`.** That doc covers Mac + Windows bench setup, the Cowork sandbox's pre-installed stack and network constraints, the bench-side Playwright install for headless preview.html verification, and the cross-device sync rules. The section below is preserved as inherited background but is no longer the primary reference — when in doubt, ENVIRONMENT.md is what's current.
+
 This is what Code can assume is installed and configured on Zarathale's mac without re-probing at session start. If any of these break, fix them once and update this section; do not turn each session into a probe-and-install scavenger hunt.
 
 **Toolchain.**

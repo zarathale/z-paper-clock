@@ -116,126 +116,147 @@
         {
           "id": "fold-taba-pane1",
           "polarity": "valley",
+          "step": null,
           "a": "taba",
           "b": "pane1"
         },
         {
           "id": "fold-tabb-pane2",
           "polarity": "valley",
+          "step": null,
           "a": "tabb",
           "b": "pane2"
         },
         {
           "id": "fold-tabc-pane3",
           "polarity": "valley",
+          "step": null,
           "a": "tabc",
           "b": "pane3"
         },
         {
           "id": "fold-tabd-pane4",
           "polarity": "valley",
+          "step": null,
           "a": "tabd",
           "b": "pane4"
         },
         {
           "id": "fold-e65-pane4",
           "polarity": "valley",
+          "step": null,
           "a": "e65",
           "b": "pane4"
         },
         {
           "id": "fold-pane7-pane6",
           "polarity": "valley",
+          "step": null,
           "a": "pane7",
           "b": "pane6"
         },
         {
           "id": "fold-h65-pane7",
           "polarity": "valley",
+          "step": null,
           "a": "h65",
           "b": "pane7"
         },
         {
           "id": "fold-tabg-pane7",
           "polarity": "valley",
+          "step": null,
           "a": "tabg",
           "b": "pane7"
         },
         {
           "id": "fold-g65-pane6",
           "polarity": "valley",
+          "step": null,
           "a": "g65",
           "b": "pane6"
         },
         {
           "id": "fold-tabf-pane6",
           "polarity": "valley",
+          "step": null,
           "a": "tabf",
           "b": "pane6"
         },
         {
           "id": "fold-pane6-pane5",
           "polarity": "valley",
+          "step": null,
           "a": "pane6",
           "b": "pane5"
         },
         {
           "id": "fold-f65-pane5",
           "polarity": "valley",
+          "step": null,
           "a": "f65",
           "b": "pane5"
         },
         {
           "id": "fold-tabe-pane5",
           "polarity": "valley",
+          "step": null,
           "a": "tabe",
           "b": "pane5"
         },
         {
           "id": "fold-d65-pane3",
           "polarity": "valley",
+          "step": null,
           "a": "d65",
           "b": "pane3"
         },
         {
           "id": "fold-c65-pane2",
           "polarity": "valley",
+          "step": null,
           "a": "c65",
           "b": "pane2"
         },
         {
           "id": "fold-b65-pane1",
           "polarity": "valley",
+          "step": null,
           "a": "b65",
           "b": "pane1"
         },
         {
           "id": "fold-tabaa-pane7",
           "polarity": "valley",
+          "step": null,
           "a": "tabaa",
           "b": "pane7"
         },
         {
           "id": "fold-pane3-pane2",
           "polarity": "valley",
+          "step": null,
           "a": "pane3",
           "b": "pane2"
         },
         {
           "id": "fold-pane1-pane2",
           "polarity": "valley",
+          "step": null,
           "a": "pane1",
           "b": "pane2"
         },
         {
           "id": "fold-pane5-pane4",
           "polarity": "mountain",
+          "step": null,
           "a": "pane5",
           "b": "pane4"
         },
         {
           "id": "fold-pane4-pane3",
           "polarity": "mountain",
+          "step": null,
           "a": "pane4",
           "b": "pane3"
         }
@@ -502,102 +523,119 @@
         {
           "id": "fold-pane1-pane2",
           "polarity": "valley",
+          "step": null,
           "a": "pane1",
           "b": "pane2"
         },
         {
           "id": "fold-pane2-pane3",
           "polarity": "valley",
+          "step": null,
           "a": "pane2",
           "b": "pane3"
         },
         {
           "id": "fold-pane3-pane4",
           "polarity": "valley",
+          "step": null,
           "a": "pane3",
           "b": "pane4"
         },
         {
           "id": "fold-pane4-tabff",
           "polarity": "valley",
+          "step": null,
           "a": "pane4",
           "b": "tabff"
         },
         {
           "id": "fold-pane8-flap2",
           "polarity": "valley",
+          "step": null,
           "a": "pane8",
           "b": "flap2"
         },
         {
           "id": "fold-pane1-pane5",
           "polarity": "valley",
+          "step": null,
           "a": "pane1",
           "b": "pane5"
         },
         {
           "id": "fold-c1-c2",
           "polarity": "valley",
+          "step": null,
           "a": "c1",
           "b": "c2"
         },
         {
           "id": "fold-sidel-c2",
           "polarity": "valley",
+          "step": null,
           "a": "sidel",
           "b": "c2"
         },
         {
           "id": "fold-c2-sider",
           "polarity": "valley",
+          "step": null,
           "a": "c2",
           "b": "sider"
         },
         {
           "id": "fold-pane8-taba",
           "polarity": "valley",
+          "step": null,
           "a": "pane8",
           "b": "taba"
         },
         {
           "id": "fold-pane7-tabb",
           "polarity": "valley",
+          "step": null,
           "a": "pane7",
           "b": "tabb"
         },
         {
           "id": "fold-pane7-pane8",
           "polarity": "valley",
+          "step": null,
           "a": "pane7",
           "b": "pane8"
         },
         {
           "id": "fold-pane6-flap1",
           "polarity": "valley",
+          "step": null,
           "a": "pane6",
           "b": "flap1"
         },
         {
           "id": "fold-pane6-pane7",
           "polarity": "valley",
+          "step": null,
           "a": "pane6",
           "b": "pane7"
         },
         {
           "id": "fold-pane5-pane6",
           "polarity": "valley",
+          "step": null,
           "a": "pane5",
           "b": "pane6"
         },
         {
           "id": "fold-pane5-b",
           "polarity": "valley",
+          "step": null,
           "a": "pane5",
           "b": "b"
         },
         {
           "id": "fold-pane7-g",
           "polarity": "mountain",
+          "step": null,
           "a": "pane7",
           "b": "g"
         }
@@ -761,60 +799,70 @@
         {
           "id": "fold-taba-abc",
           "polarity": "valley",
+          "step": null,
           "a": "taba",
           "b": "abc"
         },
         {
           "id": "fold-main-ai",
           "polarity": "valley",
+          "step": null,
           "a": "main",
           "b": "ai"
         },
         {
           "id": "fold-abc-tabb",
           "polarity": "valley",
+          "step": null,
           "a": "abc",
           "b": "tabb"
         },
         {
           "id": "fold-main-bh",
           "polarity": "valley",
+          "step": null,
           "a": "main",
           "b": "bh"
         },
         {
           "id": "fold-bh-tabe",
           "polarity": "valley",
+          "step": null,
           "a": "bh",
           "b": "tabe"
         },
         {
           "id": "fold-abc-tabc",
           "polarity": "valley",
+          "step": null,
           "a": "abc",
           "b": "tabc"
         },
         {
           "id": "fold-main-abc",
           "polarity": "valley",
+          "step": null,
           "a": "main",
           "b": "abc"
         },
         {
           "id": "fold-main-g",
           "polarity": "valley",
+          "step": null,
           "a": "main",
           "b": "g"
         },
         {
           "id": "fold-tabf-g",
           "polarity": "valley",
+          "step": null,
           "a": "tabf",
           "b": "g"
         },
         {
           "id": "fold-tabd-ai",
           "polarity": "valley",
+          "step": null,
           "a": "tabd",
           "b": "ai"
         }
@@ -899,6 +947,7 @@
         {
           "id": "fold-panelsideb-tabb",
           "polarity": "mountain",
+          "step": null,
           "a": null,
           "b": null,
           "descriptive": "panelsideb-tabb"
@@ -906,6 +955,7 @@
         {
           "id": "fold-panelsidec-tabc",
           "polarity": "mountain",
+          "step": null,
           "a": null,
           "b": null,
           "descriptive": "panelsidec-tabc"
@@ -960,18 +1010,21 @@
         {
           "id": "fold-c-d",
           "polarity": "valley",
+          "step": null,
           "a": "c",
           "b": "d"
         },
         {
           "id": "fold-c-b",
           "polarity": "valley",
+          "step": null,
           "a": "c",
           "b": "b"
         },
         {
           "id": "fold-b-a",
           "polarity": "valley",
+          "step": null,
           "a": "b",
           "b": "a"
         }
@@ -1042,6 +1095,348 @@
       ],
       "cutouts": []
     },
+    "094": {
+      "id": "094",
+      "layers": [
+        "silhouette",
+        "panels",
+        "folds-valley",
+        "attach-points"
+      ],
+      "panels": [
+        "pane1",
+        "pane2",
+        "pane3",
+        "pane4",
+        "pane5",
+        "pane6",
+        "pane7"
+      ],
+      "panel_count": 7,
+      "folds": [
+        {
+          "id": "fold-pane1-pane2",
+          "polarity": "valley",
+          "step": null,
+          "a": "pane1",
+          "b": "pane2"
+        },
+        {
+          "id": "fold-pane2-pane3",
+          "polarity": "valley",
+          "step": null,
+          "a": "pane2",
+          "b": "pane3"
+        },
+        {
+          "id": "fold-pane3-pane4",
+          "polarity": "valley",
+          "step": null,
+          "a": "pane3",
+          "b": "pane4"
+        },
+        {
+          "id": "fold-pane4-pane5",
+          "polarity": "valley",
+          "step": null,
+          "a": "pane4",
+          "b": "pane5"
+        },
+        {
+          "id": "fold-pane5-pane6",
+          "polarity": "valley",
+          "step": null,
+          "a": "pane5",
+          "b": "pane6"
+        },
+        {
+          "id": "fold-pane6-pane7",
+          "polarity": "valley",
+          "step": null,
+          "a": "pane6",
+          "b": "pane7"
+        }
+      ],
+      "fold_count": 6,
+      "fold_unresolved": [],
+      "attach_points": [
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "a",
+          "partner": "95",
+          "raw_id": "attach-a95",
+          "element": "rect"
+        }
+      ],
+      "marks": [],
+      "cutouts": []
+    },
+    "095": {
+      "id": "095",
+      "layers": [
+        "silhouette",
+        "panels",
+        "folds-valley",
+        "folds-mountain",
+        "attach-points",
+        "marks"
+      ],
+      "panels": [
+        "pane1",
+        "pane2",
+        "pane3",
+        "pane4",
+        "pane5",
+        "pane6"
+      ],
+      "panel_count": 6,
+      "folds": [
+        {
+          "id": "_3-fold-pane5-pane6",
+          "polarity": "valley",
+          "step": 3,
+          "a": "pane5",
+          "b": "pane6"
+        },
+        {
+          "id": "_2-fold-pane4-pane5",
+          "polarity": "valley",
+          "step": 2,
+          "a": "pane4",
+          "b": "pane5"
+        },
+        {
+          "id": "_1-fold-pane3-pane4",
+          "polarity": "valley",
+          "step": 1,
+          "a": "pane3",
+          "b": "pane4"
+        },
+        {
+          "id": "_3-fold-pane1-pane2",
+          "polarity": "mountain",
+          "step": 3,
+          "a": "pane1",
+          "b": "pane2"
+        },
+        {
+          "id": "_2-fold-pane2-pane3",
+          "polarity": "mountain",
+          "step": 2,
+          "a": "pane2",
+          "b": "pane3"
+        }
+      ],
+      "fold_count": 5,
+      "fold_unresolved": [],
+      "attach_points": [
+        {
+          "kind": "attach-same-piece",
+          "side": "back",
+          "panel": "pane3",
+          "letter": null,
+          "partner": null,
+          "raw_id": "back-attach-pane3",
+          "element": "path"
+        },
+        {
+          "kind": "attach-same-piece",
+          "side": "back",
+          "panel": "pane2",
+          "letter": null,
+          "partner": null,
+          "raw_id": "back-attach-pane2",
+          "element": "path"
+        },
+        {
+          "kind": "attach-same-piece",
+          "side": "back",
+          "panel": "pane1",
+          "letter": null,
+          "partner": null,
+          "raw_id": "back-attach-pane1",
+          "element": "rect"
+        }
+      ],
+      "marks": [
+        {
+          "id": "mark-a",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        }
+      ],
+      "cutouts": []
+    },
+    "096": {
+      "id": "096",
+      "layers": [
+        "silhouette",
+        "panels"
+      ],
+      "panels": [
+        "main"
+      ],
+      "panel_count": 1,
+      "folds": [],
+      "fold_count": 0,
+      "fold_unresolved": [],
+      "attach_points": [],
+      "marks": [],
+      "cutouts": []
+    },
+    "097": {
+      "id": "097",
+      "layers": [
+        "silhouette",
+        "panels",
+        "attach-points",
+        "marks"
+      ],
+      "panels": [
+        "main"
+      ],
+      "panel_count": 1,
+      "folds": [],
+      "fold_count": 0,
+      "fold_unresolved": [],
+      "attach_points": [
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "a",
+          "partner": "99",
+          "raw_id": "attach-a99",
+          "element": "ellipse"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "a",
+          "partner": "991",
+          "raw_id": "attach-a991",
+          "element": "ellipse"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "a",
+          "partner": "992",
+          "raw_id": "attach-a992",
+          "element": "ellipse"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "a",
+          "partner": "993",
+          "raw_id": "attach-a993",
+          "element": "ellipse"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "a",
+          "partner": "994",
+          "raw_id": "attach-a994",
+          "element": "ellipse"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "a",
+          "partner": "98",
+          "raw_id": "attach-a98",
+          "element": "path"
+        },
+        {
+          "kind": "attach",
+          "side": "front",
+          "letter": "b",
+          "partner": "98",
+          "raw_id": "attach-b98",
+          "element": "path"
+        }
+      ],
+      "marks": [
+        {
+          "id": "no-glue-here",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "path",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "alignment-guide-a99",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "ellipse",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "alignment-guide-nos",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "path",
+          "tab": null,
+          "partner": null
+        },
+        {
+          "id": "alignment-guide-nos1",
+          "side": "front",
+          "kind": "decorative",
+          "count": 1,
+          "element": "path",
+          "tab": null,
+          "partner": null
+        }
+      ],
+      "cutouts": []
+    },
+    "098": {
+      "id": "098",
+      "layers": [
+        "silhouette",
+        "panels",
+        "folds-mountain"
+      ],
+      "panels": [
+        "main",
+        "panea",
+        "paneb"
+      ],
+      "panel_count": 3,
+      "folds": [
+        {
+          "id": "fold-paneb-main",
+          "polarity": "mountain",
+          "step": null,
+          "a": "paneb",
+          "b": "main"
+        },
+        {
+          "id": "fold-panea-main",
+          "polarity": "mountain",
+          "step": null,
+          "a": "panea",
+          "b": "main"
+        }
+      ],
+      "fold_count": 2,
+      "fold_unresolved": [],
+      "attach_points": [],
+      "marks": [],
+      "cutouts": []
+    },
     "099": {
       "id": "099",
       "layers": [
@@ -1059,6 +1454,7 @@
         {
           "id": "fold-insidetabs",
           "polarity": "valley",
+          "step": null,
           "a": null,
           "b": null,
           "descriptive": "insidetabs"
@@ -1066,6 +1462,7 @@
         {
           "id": "fold-outsidetabs",
           "polarity": "valley",
+          "step": null,
           "a": null,
           "b": null,
           "descriptive": "outsidetabs"
@@ -1073,6 +1470,7 @@
         {
           "id": "fold-main-tabb",
           "polarity": "valley",
+          "step": null,
           "a": "main",
           "b": "tabb"
         }
@@ -1575,6 +1973,106 @@
         "valid": true,
         "matched_panel": "tabb",
         "matched_via": "panel-tab"
+      },
+      {
+        "from": "094",
+        "to": "095",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "a",
+        "raw_id": "attach-a95",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "pane1",
+        "matched_via": "panel-substring"
+      },
+      {
+        "from": "097",
+        "to": "099",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "a",
+        "raw_id": "attach-a99",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "main",
+        "matched_via": "panel-substring"
+      },
+      {
+        "from": "097",
+        "to": "991",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "a",
+        "raw_id": "attach-a991",
+        "source_layer": "attach-points",
+        "valid": false,
+        "reason": "partner piece 991 not authored yet"
+      },
+      {
+        "from": "097",
+        "to": "992",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "a",
+        "raw_id": "attach-a992",
+        "source_layer": "attach-points",
+        "valid": false,
+        "reason": "partner piece 992 not authored yet"
+      },
+      {
+        "from": "097",
+        "to": "993",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "a",
+        "raw_id": "attach-a993",
+        "source_layer": "attach-points",
+        "valid": false,
+        "reason": "partner piece 993 not authored yet"
+      },
+      {
+        "from": "097",
+        "to": "994",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "a",
+        "raw_id": "attach-a994",
+        "source_layer": "attach-points",
+        "valid": false,
+        "reason": "partner piece 994 not authored yet"
+      },
+      {
+        "from": "097",
+        "to": "098",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "a",
+        "raw_id": "attach-a98",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "main",
+        "matched_via": "panel-substring"
+      },
+      {
+        "from": "097",
+        "to": "098",
+        "kind": "attach",
+        "side": "front",
+        "tab": null,
+        "letter": "b",
+        "raw_id": "attach-b98",
+        "source_layer": "attach-points",
+        "valid": true,
+        "matched_panel": "paneb",
+        "matched_via": "panel-substring"
       }
     ],
     "pivot_clusters": {
@@ -1633,6 +2131,29 @@
         "piece": "099",
         "id": "landing-tabb",
         "side": "front"
+      }
+    ],
+    "closure_attaches": [
+      {
+        "piece": "095",
+        "kind": "attach-same-piece",
+        "side": "back",
+        "panel": "pane3",
+        "raw_id": "back-attach-pane3"
+      },
+      {
+        "piece": "095",
+        "kind": "attach-same-piece",
+        "side": "back",
+        "panel": "pane2",
+        "raw_id": "back-attach-pane2"
+      },
+      {
+        "piece": "095",
+        "kind": "attach-same-piece",
+        "side": "back",
+        "panel": "pane1",
+        "raw_id": "back-attach-pane1"
       }
     ]
   }

@@ -107,15 +107,26 @@ def parse_panel_ids(svg_text: str) -> set[str]:
 def parse_fold_bindings(svg_text: str, panels: set[str]) -> list[dict]:
     """Each fold path's id is parsed as fold-<a>-<b> against the panel set.
 
+    Recognized id forms (any of):
+      - fold-<a>-<b>                     two-panel binding, no fold-step
+      - fold-<a>-<b>-<deg>               two-panel binding + default angle
+      - <step>-fold-<a>-<b>              two-panel binding + fold-step ordinal
+      - <step>-fold-<a>-<b>-<deg>        + both
+      - fold-<descriptive>               single-token descriptive fold
+      - <step>-fold-<descriptive>        descriptive + fold-step
+
+    The leading <step>-<digits>- is optional. Same step number across multiple
+    folds means "fire simultaneously" during a phased fold sequence (introduced
+    with piece 095 — accordion strip wrapping a 3D form).
+
     Returns:
       [
-        {"id": "fold-pane1-pane2", "polarity": "valley", "a": "pane1", "b": "pane2"},
+        {"id": "fold-pane1-pane2", "polarity": "valley", "a": "pane1", "b": "pane2", "step": null},
+        {"id": "1-fold-pane3-pane4", "polarity": "valley", "a": "pane3", "b": "pane4", "step": 1},
         {"id": "fold-insidetabs", "polarity": "valley", "a": None, "b": None,
-         "descriptive": "insidetabs"},
+         "descriptive": "insidetabs", "step": null},
         ...
       ]
-    Unresolved fold ids (no matching panel pair) get a:b=None and a "descriptive"
-    field set.
     """
     out = []
     for layer, polarity in [("folds-valley", "valley"), ("folds-mountain", "mountain")]:
@@ -123,9 +134,27 @@ def parse_fold_bindings(svg_text: str, panels: set[str]) -> list[dict]:
         if not block:
             continue
         for tag, eid in all_ids_in_block(block):
-            if eid == layer or not eid.startswith("fold-"):
+            if eid == layer:
                 continue
-            rest = eid[5:]
+            # Affinity Designer prefixes ids that start with a digit with `_`
+            # (SVG-spec compliance: ids must begin with a letter or underscore).
+            # The author's literal is preserved in `serif:id` on the same element,
+            # but for parsing purposes stripping the leading `_` recovers the
+            # authored form. Also handles Affinity's collision-rename `_` prefix.
+            normalized = eid[1:] if eid.startswith("_") else eid
+            # Strip optional leading <step>-fold- prefix.
+            step: int | None = None
+            m_step = re.match(r'^(\d+)-fold-(.*)$', normalized)
+            if m_step:
+                step = int(m_step.group(1))
+                rest = m_step.group(2)
+            elif normalized.startswith("fold-"):
+                rest = normalized[5:]
+            else:
+                continue
+            # Strip Affinity collision-prefix '_' that occasionally lands on duplicates.
+            # (The duplicate keeps the original id; this branch handles the renamed sibling.)
+            # Note: rest never starts with '_' here because the prefix sits before <step>.
             # Try every possible split point in `rest` and look for a:b in panels.
             matched = None
             for i in range(1, len(rest)):
@@ -134,20 +163,21 @@ def parse_fold_bindings(svg_text: str, panels: set[str]) -> list[dict]:
                     if a in panels and b in panels:
                         matched = (a, b)
                         break
+            entry: dict = {
+                "id": eid, "polarity": polarity, "step": step,
+            }
             if matched:
-                out.append({
-                    "id": eid, "polarity": polarity,
-                    "a": matched[0], "b": matched[1],
-                })
+                entry["a"] = matched[0]
+                entry["b"] = matched[1]
             else:
-                out.append({
-                    "id": eid, "polarity": polarity,
-                    "a": None, "b": None, "descriptive": rest,
-                })
+                entry["a"] = None
+                entry["b"] = None
+                entry["descriptive"] = rest
+            out.append(entry)
     return out
 
 
-def parse_attach_points(svg_text: str) -> list[dict]:
+def parse_attach_points(svg_text: str, panels: set[str] | None = None) -> list[dict]:
     """Each id-bearing element in <g id="attach-points">.
 
     Cross-piece connection forms:
@@ -157,6 +187,13 @@ def parse_attach_points(svg_text: str) -> list[dict]:
       - pivot-<name>              : "I share rotation pivot <name> with peers"
       - back-<form>               : back-side annotation; rest follows above forms
 
+    Same-piece (closure) connection forms (introduced 2026-05-05 with 095):
+      - attach-<panel-id>         : "I (this attach point) mate to <panel-id> of
+                                     the same piece" — closure attach
+      - back-attach-<panel-id>    : same, but the attach surface is on the back
+      The `<panel-id>` must be a known panel of THIS piece; otherwise the form
+      is interpreted as the cross-piece `<letter><piece>` shape.
+
     Forms without a numeric piece suffix (e.g., bare `landing-h`) are still
     in attach-points only by drift — the strict rule (per 068 cleanup) is
     that untyped forms live in marks. We log such cases as anomalies.
@@ -165,32 +202,40 @@ def parse_attach_points(svg_text: str) -> list[dict]:
     block = extract_layer_block(svg_text, "attach-points")
     if not block:
         return out
+    panels = panels or set()
     for tag, eid in all_ids_in_block(block):
         if eid == "attach-points":
             continue
-        entry = parse_connection_id(eid)
+        entry = parse_connection_id(eid, panels)
         entry["raw_id"] = eid
         entry["element"] = tag
         out.append(entry)
     return out
 
 
-def parse_connection_id(eid: str) -> dict:
+def parse_connection_id(eid: str, panels: set[str] | None = None) -> dict:
     """Decompose a connection-graph id into its semantic parts.
 
-    Returns dict with at least: kind, side. Optional: tab, letter, name, partner.
+    Returns dict with at least: kind, side. Optional: tab, letter, name, partner,
+    panel (for same-piece closure forms).
 
     Side annotation: if id starts with `back-` followed by a recognized
     prefix (landing-, tab-, attach-, hole-, pivot-), strip and mark side="back".
     Otherwise side="front" (default).
 
     Kind detection on the (possibly side-stripped) id:
-      - "landing-" : tab landing
-      - "attach-"  : direct attachment
-      - "hole-"    : pin hole
-      - "pivot-"   : rotation pivot
-      - other      : unknown / anomaly
+      - "landing-"  : tab landing (cross-piece) OR same-piece if matches panels
+      - "attach-"   : direct attachment (cross-piece) OR same-piece if matches panels
+      - "hole-"     : pin hole
+      - "pivot-"    : rotation pivot
+      - other       : unknown / anomaly
+
+    Same-piece resolution: when `panels` is provided and the suffix after the
+    structural prefix matches a panel id of this piece, the form is interpreted
+    as same-piece (closure attach / closure landing). Otherwise we fall through
+    to the cross-piece <letter><piece> shape.
     """
+    panels = panels or set()
     side = "front"
     s = eid
     # Side-annotation: back- followed by a recognized prefix.
@@ -204,8 +249,11 @@ def parse_connection_id(eid: str) -> dict:
 
     if s.startswith("landing-"):
         rest = s[8:]
-        # Try to split into <tab><piece> where <piece> is a numeric suffix.
-        # Pattern: letters+ followed by digits+ (with optional letter variant `a`).
+        # Same-piece closure landing: matches a panel id of this piece.
+        if rest in panels:
+            return {"kind": "landing-same-piece", "side": side,
+                    "panel": rest, "tab": None, "partner": None}
+        # Cross-piece: <tab><piece> where <piece> is a numeric suffix.
         m = re.match(r'^([a-zA-Z][a-zA-Z\-]*?)(\d+[a-z]?)$', rest)
         if m:
             return {"kind": "landing", "side": side,
@@ -214,6 +262,11 @@ def parse_connection_id(eid: str) -> dict:
         return {"kind": "landing", "side": side, "tab": rest, "partner": None}
     if s.startswith("attach-"):
         rest = s[7:]
+        # Same-piece closure attach: matches a panel id of this piece.
+        if rest in panels:
+            return {"kind": "attach-same-piece", "side": side,
+                    "panel": rest, "letter": None, "partner": None}
+        # Cross-piece: <letter><piece> where <piece> is a numeric suffix.
         m = re.match(r'^([a-zA-Z][a-zA-Z\-]*?)(\d+[a-z]?)$', rest)
         if m:
             return {"kind": "attach", "side": side,
@@ -332,8 +385,9 @@ def parse_piece(svg_path: Path) -> dict:
             layers_present.append(layer)
 
     panels = sorted(parse_panel_ids(text))
-    folds = parse_fold_bindings(text, set(panels))
-    attach = parse_attach_points(text)
+    panels_set = set(panels)
+    folds = parse_fold_bindings(text, panels_set)
+    attach = parse_attach_points(text, panels_set)
     marks = parse_marks(text)
 
     # cutouts
@@ -432,6 +486,7 @@ def build_connection_graph(pieces: dict[str, dict]) -> dict:
     """
     edges: list[dict] = []
     pivot_groups: dict[str, list[str]] = defaultdict(list)
+    closure_attaches: list[dict] = []  # same-piece structural attaches (closures)
 
     for piece_id, rec in pieces.items():
         # Structural mechanical bindings from attach-points
@@ -440,6 +495,12 @@ def build_connection_graph(pieces: dict[str, dict]) -> dict:
             partner = ap.get("partner")
             if kind == "pivot":
                 pivot_groups[ap["name"]].append(piece_id)
+            elif kind in ("attach-same-piece", "landing-same-piece"):
+                closure_attaches.append({
+                    "piece": piece_id, "kind": kind,
+                    "side": ap.get("side"), "panel": ap.get("panel"),
+                    "raw_id": ap.get("raw_id"),
+                })
             elif kind in ("landing", "attach", "hole") and partner:
                 edges.append({
                     "from": piece_id, "to": partner,
@@ -519,6 +580,7 @@ def build_connection_graph(pieces: dict[str, dict]) -> dict:
         "edges": edge_validation,
         "pivot_clusters": pivot_clusters,
         "untyped_landings": untyped,
+        "closure_attaches": closure_attaches,
     }
 
 
@@ -545,7 +607,8 @@ def render_markdown(pieces: dict[str, dict], graph: dict) -> str:
         n_unres = len(rec["fold_unresolved"])
         n_resolved = n_folds - n_unres
         n_attach = sum(1 for ap in rec["attach_points"]
-                       if ap.get("partner") or ap.get("kind") == "pivot")
+                       if ap.get("partner")
+                       or ap.get("kind") in ("pivot", "attach-same-piece", "landing-same-piece"))
         n_marks = len(rec["marks"])
         layers = ", ".join(rec["layers"])
         lines.append(f"| {piece_id} | {pf} | {layers} | {rec['panel_count']} | {n_resolved}/{n_folds} | {n_attach} | {n_marks} |")
@@ -568,6 +631,23 @@ def render_markdown(pieces: dict[str, dict], graph: dict) -> str:
             lines.append(f"| {edge['from']} | → | {edge['to']} | {edge['kind']} | {edge.get('side','front')} | {tab_or_letter} | {partner_panel} | {via} | {valid} | {note} |")
     lines.append("")
 
+    # Closure attaches (same-piece structural attaches via panel-id; introduced 2026-05-05 with 095)
+    lines.append("## Closure attaches (same-piece structural)")
+    lines.append("")
+    lines.append("_Same-piece attach points authored as `attach-<panel-id>` or `back-attach-<panel-id>` "
+                 "where the suffix matches a panel of the piece itself. These are closure attachments — "
+                 "tabs that wrap around and glue back onto the same piece (e.g. accordion strip closing on itself)._")
+    lines.append("")
+    closure = graph.get("closure_attaches", [])
+    if not closure:
+        lines.append("_(none authored)_")
+    else:
+        lines.append("| piece | id | side | mates to panel |")
+        lines.append("|---|---|---|---|")
+        for c in sorted(closure, key=lambda x: (x["piece"], x["raw_id"])):
+            lines.append(f"| {c['piece']} | `{c['raw_id']}` | {c['side']} | `{c['panel']}` |")
+    lines.append("")
+
     # Pivot clusters
     lines.append("## Shared pivots")
     lines.append("")
@@ -580,7 +660,6 @@ def render_markdown(pieces: dict[str, dict], graph: dict) -> str:
 
     # Untyped landings (in marks but partner piece not yet specified)
     lines.append("## Untyped landings (in `marks`, no partner piece)")
-    lines.append("")
     lines.append("_Landing markers without a partner-piece suffix. These are placeholders the parser can't yet resolve to cross-piece edges. Closure landings (where same-piece tab wraps around) and informative untyped markers both land here. Untyped doesn't mean wrong — many of these are intentional._")
     lines.append("")
     if not graph["untyped_landings"]:
@@ -605,9 +684,11 @@ def render_markdown(pieces: dict[str, dict], graph: dict) -> str:
         if rec["fold_count"]:
             valley = [f for f in rec["folds"] if f["polarity"] == "valley"]
             mountain = [f for f in rec["folds"] if f["polarity"] == "mountain"]
+            steps = sorted({f["step"] for f in rec["folds"] if f.get("step") is not None})
+            step_str = f"; fold-steps: {steps}" if steps else ""
             lines.append(f"- **Folds:** {len(valley)} valley + {len(mountain)} mountain "
                          f"({rec['fold_count'] - len(rec['fold_unresolved'])} resolved, "
-                         f"{len(rec['fold_unresolved'])} unresolved)")
+                         f"{len(rec['fold_unresolved'])} unresolved){step_str}")
             if rec["fold_unresolved"]:
                 lines.append(f"  - Unresolved: {', '.join(rec['fold_unresolved'])}")
         ap = rec["attach_points"]
@@ -619,8 +700,14 @@ def render_markdown(pieces: dict[str, dict], graph: dict) -> str:
                 side = entry.get("side", "front")
                 side_str = f" [back-side]" if side == "back" else ""
                 partner = entry.get("partner")
-                partner_str = f" → piece {partner}" if partner else " (no partner)"
-                lines.append(f"  - `{entry['raw_id']}` ({desc}{side_str}{partner_str})")
+                panel = entry.get("panel")
+                if panel:
+                    target_str = f" → same-piece panel `{panel}`"
+                elif partner:
+                    target_str = f" → piece {partner}"
+                else:
+                    target_str = " (no partner)"
+                lines.append(f"  - `{entry['raw_id']}` ({desc}{side_str}{target_str})")
         marks = rec["marks"]
         if marks:
             lines.append(f"- **Marks ({len(marks)}):**")
@@ -664,9 +751,9 @@ def main() -> int:
     print(f"[build_assembly_graph]   pieces: {', '.join(sorted(pieces.keys()))}")
     print(f"[build_assembly_graph] cross-piece edges: {len(graph['edges'])}")
     valid = sum(1 for e in graph['edges'] if e.get('valid'))
-    print(f"[build_assembly_graph]   valid: {valid} / {len(graph['edges'])}")
     print(f"[build_assembly_graph] pivot clusters: {len(graph['pivot_clusters'])}")
     print(f"[build_assembly_graph] untyped landings: {len(graph['untyped_landings'])}")
+    print(f"[build_assembly_graph] closure attaches: {len(graph.get('closure_attaches', []))}")
     print(f"[build_assembly_graph] wrote: {OUT_JSON.relative_to(REPO_ROOT)}")
     print(f"[build_assembly_graph] wrote: {OUT_MD.relative_to(REPO_ROOT)}")
     return 0
