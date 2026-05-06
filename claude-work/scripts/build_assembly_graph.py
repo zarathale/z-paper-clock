@@ -94,6 +94,73 @@ def all_ids_in_block(block: str) -> list[tuple[str, str]]:
     return out
 
 
+# -- sidecar parsing (per-piece JSON; learned overlay) ---------------------
+
+def parse_sidecar(piece_dir: Path) -> dict | None:
+    """Read NNN.json sidecar if it exists. Returns parsed dict or None.
+
+    Failures (file missing, malformed JSON) return None silently — sidecars
+    are optional and the script must run cleanly with none present.
+    """
+    sidecar_path = piece_dir / f"{piece_dir.name}.json"
+    if not sidecar_path.exists():
+        return None
+    try:
+        return json.loads(sidecar_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[build_assembly_graph] WARNING: sidecar {sidecar_path} unreadable: {e}",
+              file=sys.stderr)
+        return None
+
+
+def extract_inferred_connections(piece_id: str, sidecar: dict | None) -> list[dict]:
+    """Extract connections.inferred[] entries from a sidecar.
+
+    Returns a list of normalized inferred-edge records ready to merge with
+    SVG-derived edges. Entries without a `kind` or `source` field are
+    dropped with a warning. Partner ids are passed through as-authored
+    (zero-padded or bare); the merger normalizes when matching.
+    """
+    if not sidecar:
+        return []
+    block = sidecar.get("connections", {}).get("inferred", [])
+    if not isinstance(block, list):
+        print(f"[build_assembly_graph] WARNING: piece {piece_id} sidecar "
+              f"connections.inferred is not a list", file=sys.stderr)
+        return []
+    out = []
+    for i, entry in enumerate(block):
+        if not isinstance(entry, dict):
+            print(f"[build_assembly_graph] WARNING: piece {piece_id} "
+                  f"inferred[{i}] not a dict; skipped", file=sys.stderr)
+            continue
+        kind = entry.get("kind")
+        source = entry.get("source")
+        if not kind:
+            print(f"[build_assembly_graph] WARNING: piece {piece_id} "
+                  f"inferred[{i}] missing kind; skipped", file=sys.stderr)
+            continue
+        if not source:
+            print(f"[build_assembly_graph] WARNING: piece {piece_id} "
+                  f"inferred[{i}] missing source; skipped", file=sys.stderr)
+            continue
+        normalized = {
+            "from": piece_id,
+            "to": entry.get("partner"),
+            "kind": kind,
+            "side": entry.get("side", "front"),
+            "tab": entry.get("tab"),
+            "letter": entry.get("letter"),
+            "name": entry.get("name"),
+            "panel": entry.get("panel"),
+            "source": source,
+            "note": entry.get("note"),
+            "provenance": "inferred",
+        }
+        out.append(normalized)
+    return out
+
+
 # -- connection-graph extraction -------------------------------------------
 
 def parse_panel_ids(svg_text: str) -> set[str]:
@@ -396,6 +463,9 @@ def parse_piece(svg_path: Path) -> dict:
     if block:
         cutouts = [eid for tag, eid in all_ids_in_block(block) if eid != "cutouts"]
 
+    sidecar = parse_sidecar(svg_path.parent)
+    inferred = extract_inferred_connections(piece_id, sidecar)
+
     return {
         "id": piece_id,
         "layers": layers_present,
@@ -407,6 +477,7 @@ def parse_piece(svg_path: Path) -> dict:
         "attach_points": attach,
         "marks": marks,
         "cutouts": cutouts,
+        "inferred_connections": inferred,
     }
 
 
@@ -473,8 +544,29 @@ def _find_letter_match(letter: str, partner: dict) -> dict | None:
     return None
 
 
+def _edge_signature(edge: dict) -> tuple:
+    """Conflict-detection signature for cross-piece edges."""
+    return (
+        edge.get("from"),
+        edge.get("to"),
+        edge.get("kind"),
+        edge.get("letter") or edge.get("tab") or edge.get("name") or edge.get("panel"),
+    )
+
+
+def _closure_signature(entry: dict) -> tuple:
+    """Conflict-detection signature for same-piece closure attaches."""
+    return (entry.get("piece"), entry.get("kind"), entry.get("panel"))
+
+
+def _pivot_signature(piece_id: str, name: str) -> tuple:
+    """Conflict-detection signature for pivot membership."""
+    return (piece_id, "pivot", name)
+
+
 def build_connection_graph(pieces: dict[str, dict]) -> dict:
-    """Walk every piece's attach_points, build typed cross-piece edges.
+    """Walk every piece's attach_points, build typed cross-piece edges, then
+    merge in each piece's sidecar `connections.inferred[]`.
 
     Edges:
       - landing edges: piece A receives tab <tab> from piece B
@@ -483,11 +575,22 @@ def build_connection_graph(pieces: dict[str, dict]) -> dict:
         → expects panel <letter> on piece B
       - hole edges: piece A receives pin from piece B
       - pivot edges (shared name across multiple pieces): pivot ring
+
+    Every edge / closure / pivot member carries a `provenance` field of
+    `"authored"` (SVG-derived) or `"inferred"` (sidecar-derived). Conflict
+    warnings are computed after the merge: an inferred entry that duplicates
+    an authored entry on its conflict signature lands in `inferred_warnings`.
+    The script never fails on conflicts.
     """
     edges: list[dict] = []
+    # pivot_groups: legacy flat-list shape, preserved for backward-compat
+    # consumers (preview.html scene loader). pivot_groups_provenance carries
+    # the richer per-member provenance / source / note shape.
     pivot_groups: dict[str, list[str]] = defaultdict(list)
+    pivot_groups_provenance: dict[str, list[dict]] = defaultdict(list)
     closure_attaches: list[dict] = []  # same-piece structural attaches (closures)
 
+    # -- pass 1: authored edges from SVG -----------------------------------
     for piece_id, rec in pieces.items():
         # Structural mechanical bindings from attach-points
         for ap in rec["attach_points"]:
@@ -495,11 +598,15 @@ def build_connection_graph(pieces: dict[str, dict]) -> dict:
             partner = ap.get("partner")
             if kind == "pivot":
                 pivot_groups[ap["name"]].append(piece_id)
+                pivot_groups_provenance[ap["name"]].append({
+                    "piece": piece_id, "provenance": "authored",
+                })
             elif kind in ("attach-same-piece", "landing-same-piece"):
                 closure_attaches.append({
                     "piece": piece_id, "kind": kind,
                     "side": ap.get("side"), "panel": ap.get("panel"),
                     "raw_id": ap.get("raw_id"),
+                    "provenance": "authored",
                 })
             elif kind in ("landing", "attach", "hole") and partner:
                 edges.append({
@@ -508,6 +615,7 @@ def build_connection_graph(pieces: dict[str, dict]) -> dict:
                     "tab": ap.get("tab"), "letter": ap.get("letter"),
                     "raw_id": ap.get("raw_id"),
                     "source_layer": "attach-points",
+                    "provenance": "authored",
                 })
         # Typed landings from marks layer (the reference-marker side of the graph)
         for mark in rec["marks"]:
@@ -518,16 +626,67 @@ def build_connection_graph(pieces: dict[str, dict]) -> dict:
                     "tab": mark.get("tab"), "letter": None,
                     "raw_id": mark["id"],
                     "source_layer": "marks",
+                    "provenance": "authored",
                 })
 
-    # Validate edges: does the partner piece have the expected counterpart?
+    # -- pass 2: inferred entries from sidecar -----------------------------
+    for piece_id, rec in pieces.items():
+        for entry in rec.get("inferred_connections", []):
+            kind = entry["kind"]
+            if kind in ("landing", "attach", "hole"):
+                partner = entry.get("to")
+                if not partner:
+                    print(f"[build_assembly_graph] WARNING: piece {piece_id} "
+                          f"inferred {kind} missing partner; skipped",
+                          file=sys.stderr)
+                    continue
+                edges.append({
+                    "from": piece_id, "to": partner,
+                    "kind": kind, "side": entry.get("side") or "front",
+                    "tab": entry.get("tab"), "letter": entry.get("letter"),
+                    "raw_id": None,
+                    "source_layer": "sidecar.connections.inferred",
+                    "provenance": "inferred",
+                    "source": entry.get("source"),
+                    "note": entry.get("note"),
+                })
+            elif kind in ("attach-same-piece", "landing-same-piece"):
+                closure_attaches.append({
+                    "piece": piece_id, "kind": kind,
+                    "side": entry.get("side") or "front",
+                    "panel": entry.get("panel"),
+                    "raw_id": None,
+                    "provenance": "inferred",
+                    "source": entry.get("source"),
+                    "note": entry.get("note"),
+                })
+            elif kind == "pivot":
+                name = entry.get("name")
+                if not name:
+                    print(f"[build_assembly_graph] WARNING: piece {piece_id} "
+                          f"inferred pivot missing name; skipped",
+                          file=sys.stderr)
+                    continue
+                pivot_groups[name].append(piece_id)
+                pivot_groups_provenance[name].append({
+                    "piece": piece_id, "provenance": "inferred",
+                    "source": entry.get("source"),
+                    "note": entry.get("note"),
+                })
+            else:
+                print(f"[build_assembly_graph] WARNING: piece {piece_id} "
+                      f"inferred unknown kind {kind!r}; skipped",
+                      file=sys.stderr)
+
+    # -- pass 3: validation against partner geometry -----------------------
     # Note: partner ids in attach/marks are typically bare numeric ("69") while
-    # pieces are keyed zero-padded ("069"). Try both.
+    # pieces are keyed zero-padded ("069"). Try both. Inferred and authored
+    # edges go through the same validation.
     edge_validation = []
     for edge in edges:
         partner_id = edge["to"]
         partner = pieces.get(partner_id)
-        if partner is None and partner_id.isdigit():
+        if partner is None and partner_id and partner_id.isdigit():
             padded = partner_id.zfill(3)
             partner = pieces.get(padded)
             if partner is not None:
@@ -537,9 +696,6 @@ def build_connection_graph(pieces: dict[str, dict]) -> dict:
                                     "reason": f"partner piece {partner_id} not authored yet"})
             continue
         if edge["kind"] == "landing":
-            # Search partner for any feature matching the tab letter.
-            # Order: exact panel `tab<X>`, exact panel `<X>`, fuzzy panel substring,
-            # exact id in partner attach-points / marks (the letter-target form).
             target = edge["tab"]
             match = _find_letter_match(target, partner)
             if match:
@@ -565,6 +721,10 @@ def build_connection_graph(pieces: dict[str, dict]) -> dict:
 
     pivot_clusters = {name: pieces_list for name, pieces_list in pivot_groups.items()
                       if len(pieces_list) >= 1}
+    pivot_clusters_provenance = {
+        name: members for name, members in pivot_groups_provenance.items()
+        if len(members) >= 1
+    }
 
     # Untyped landings: in marks but no partner piece resolved yet
     untyped = []
@@ -576,11 +736,79 @@ def build_connection_graph(pieces: dict[str, dict]) -> dict:
                     "side": mark["side"],
                 })
 
+    # -- pass 4: conflict detection ---------------------------------------
+    inferred_warnings: list[dict] = []
+
+    # Cross-piece edge conflicts
+    authored_edge_sigs = {
+        _edge_signature(e) for e in edge_validation
+        if e.get("provenance") == "authored"
+    }
+    for e in edge_validation:
+        if e.get("provenance") == "inferred" and _edge_signature(e) in authored_edge_sigs:
+            inferred_warnings.append({
+                "kind_of_conflict": "edge",
+                "from": e.get("from"),
+                "to": e.get("to"),
+                "kind": e.get("kind"),
+                "letter": e.get("letter"),
+                "tab": e.get("tab"),
+                "panel": e.get("panel"),
+                "name": e.get("name"),
+                "inferred_source": e.get("source"),
+                "message": "inferred entry duplicates an authored edge; "
+                           "remove the inferred entry to clean up.",
+            })
+
+    # Closure conflicts
+    authored_closure_sigs = {
+        _closure_signature(c) for c in closure_attaches
+        if c.get("provenance") == "authored"
+    }
+    for c in closure_attaches:
+        if c.get("provenance") == "inferred" and _closure_signature(c) in authored_closure_sigs:
+            inferred_warnings.append({
+                "kind_of_conflict": "closure",
+                "piece": c.get("piece"),
+                "kind": c.get("kind"),
+                "panel": c.get("panel"),
+                "inferred_source": c.get("source"),
+                "message": "inferred closure entry duplicates an authored "
+                           "same-piece attach; remove the inferred entry.",
+            })
+
+    # Pivot membership conflicts
+    authored_pivot_sigs = set()
+    for name, members in pivot_groups_provenance.items():
+        for m in members:
+            if m.get("provenance") == "authored":
+                authored_pivot_sigs.add(_pivot_signature(m["piece"], name))
+    for name, members in pivot_groups_provenance.items():
+        for m in members:
+            if m.get("provenance") == "inferred":
+                if _pivot_signature(m["piece"], name) in authored_pivot_sigs:
+                    inferred_warnings.append({
+                        "kind_of_conflict": "pivot",
+                        "piece": m["piece"],
+                        "kind": "pivot",
+                        "name": name,
+                        "inferred_source": m.get("source"),
+                        "message": "inferred pivot membership duplicates an "
+                                   "authored pivot; remove the inferred entry.",
+                    })
+
+    if inferred_warnings:
+        print(f"[build_assembly_graph] WARNING: {len(inferred_warnings)} "
+              f"inferred-vs-authored conflict(s) detected (see report)",
+              file=sys.stderr)
+
     return {
         "edges": edge_validation,
         "pivot_clusters": pivot_clusters,
+        "pivot_clusters_provenance": pivot_clusters_provenance,
         "untyped_landings": untyped,
         "closure_attaches": closure_attaches,
+        "inferred_warnings": inferred_warnings,
     }
 
 
@@ -620,15 +848,67 @@ def render_markdown(pieces: dict[str, dict], graph: dict) -> str:
     if not graph["edges"]:
         lines.append("_(none yet)_")
     else:
-        lines.append("| from | → | to | kind | side | tab/letter | partner match | matched via | valid? | note |")
-        lines.append("|---|---|---|---|---|---|---|---|---|---|")
+        lines.append("| from | → | to | kind | side | tab/letter | partner match | matched via | valid? | prov | note |")
+        lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
         for edge in graph["edges"]:
             tab_or_letter = edge.get("tab") or edge.get("letter") or "—"
             partner_panel = edge.get("matched_panel", "—")
             via = edge.get("matched_via", "")
             valid = "✓" if edge.get("valid") else "✗"
+            prov = edge.get("provenance", "authored")
             note = edge.get("reason") or edge.get("note") or ""
-            lines.append(f"| {edge['from']} | → | {edge['to']} | {edge['kind']} | {edge.get('side','front')} | {tab_or_letter} | {partner_panel} | {via} | {valid} | {note} |")
+            lines.append(f"| {edge['from']} | → | {edge['to']} | {edge['kind']} | {edge.get('side','front')} | {tab_or_letter} | {partner_panel} | {via} | {valid} | {prov} | {note} |")
+    lines.append("")
+
+    # Inferred connections (sidecar-derived; learned overlay)
+    lines.append("## Inferred connections (from sidecar)")
+    lines.append("")
+    lines.append("_Cross-piece edges merged from per-piece JSON sidecars' `connections.inferred[]` "
+                 "blocks. These are connections learned from the book's instructions text or from "
+                 "physically assembling pieces — not printed on the SVG. Each entry carries a "
+                 "mandatory `source` field. See DECISIONS #10._")
+    lines.append("")
+    inferred_edges = [e for e in graph["edges"] if e.get("provenance") == "inferred"]
+    if not inferred_edges:
+        lines.append("_(none authored)_")
+    else:
+        lines.append("| from | → | to | kind | side | tab/letter | partner match | valid? | source | note |")
+        lines.append("|---|---|---|---|---|---|---|---|---|---|")
+        for edge in inferred_edges:
+            tab_or_letter = edge.get("tab") or edge.get("letter") or "—"
+            partner_panel = edge.get("matched_panel", "—")
+            valid = "✓" if edge.get("valid") else "✗"
+            note = edge.get("note") or edge.get("reason") or ""
+            source = edge.get("source") or ""
+            lines.append(f"| {edge['from']} | → | {edge['to']} | {edge['kind']} | {edge.get('side','front')} | {tab_or_letter} | {partner_panel} | {valid} | {source} | {note} |")
+    lines.append("")
+
+    # Inferred conflicts (warnings only; the script does not fail on these)
+    lines.append("## Inferred conflicts")
+    lines.append("")
+    lines.append("_Inferred entries that duplicate an authored edge / closure / pivot membership "
+                 "on their conflict signature (`{from, to, kind, letter|tab|name|panel}`). The "
+                 "authored entry wins; the inferred entry should typically be removed manually._")
+    lines.append("")
+    warnings = graph.get("inferred_warnings", [])
+    if not warnings:
+        lines.append("_(no conflicts detected)_")
+    else:
+        for w in warnings:
+            kc = w.get("kind_of_conflict", "edge")
+            if kc == "edge":
+                ident = w.get("letter") or w.get("tab") or w.get("panel") or w.get("name") or "—"
+                lines.append(f"- **edge** {w.get('from')} → {w.get('to')} "
+                             f"({w.get('kind')}, {ident}) — _source: {w.get('inferred_source')}_ — "
+                             f"{w.get('message')}")
+            elif kc == "closure":
+                lines.append(f"- **closure** {w.get('piece')} "
+                             f"({w.get('kind')}, panel `{w.get('panel')}`) — "
+                             f"_source: {w.get('inferred_source')}_ — {w.get('message')}")
+            elif kc == "pivot":
+                lines.append(f"- **pivot** {w.get('piece')} ↔ "
+                             f"`pivot-{w.get('name')}` — _source: {w.get('inferred_source')}_ — "
+                             f"{w.get('message')}")
     lines.append("")
 
     # Closure attaches (same-piece structural attaches via panel-id; introduced 2026-05-05 with 095)
@@ -636,24 +916,46 @@ def render_markdown(pieces: dict[str, dict], graph: dict) -> str:
     lines.append("")
     lines.append("_Same-piece attach points authored as `attach-<panel-id>` or `back-attach-<panel-id>` "
                  "where the suffix matches a panel of the piece itself. These are closure attachments — "
-                 "tabs that wrap around and glue back onto the same piece (e.g. accordion strip closing on itself)._")
+                 "tabs that wrap around and glue back onto the same piece (e.g. accordion strip closing on itself). "
+                 "Inferred entries (sidecar `kind: \"attach-same-piece\" | \"landing-same-piece\"`) appear "
+                 "alongside authored ones with their `source`._")
     lines.append("")
     closure = graph.get("closure_attaches", [])
     if not closure:
         lines.append("_(none authored)_")
     else:
-        lines.append("| piece | id | side | mates to panel |")
-        lines.append("|---|---|---|---|")
-        for c in sorted(closure, key=lambda x: (x["piece"], x["raw_id"])):
-            lines.append(f"| {c['piece']} | `{c['raw_id']}` | {c['side']} | `{c['panel']}` |")
+        lines.append("| piece | id | side | mates to panel | prov | source |")
+        lines.append("|---|---|---|---|---|---|")
+        def _closure_sort_key(x):
+            return (x.get("piece") or "", x.get("raw_id") or "", x.get("panel") or "")
+        for c in sorted(closure, key=_closure_sort_key):
+            raw = c.get("raw_id") or "_(inferred)_"
+            id_cell = f"`{raw}`" if c.get("raw_id") else raw
+            prov = c.get("provenance", "authored")
+            source = c.get("source") or ""
+            lines.append(f"| {c['piece']} | {id_cell} | {c.get('side','front')} | `{c.get('panel')}` | {prov} | {source} |")
     lines.append("")
 
     # Pivot clusters
     lines.append("## Shared pivots")
     lines.append("")
-    if not graph["pivot_clusters"]:
+    pivot_prov = graph.get("pivot_clusters_provenance", {})
+    if not pivot_prov and not graph.get("pivot_clusters"):
         lines.append("_(none authored)_")
+    elif pivot_prov:
+        for name, members in sorted(pivot_prov.items()):
+            # Stable de-duped per piece (one entry per piece per cluster, prefer authored on tie).
+            seen: dict[str, str] = {}
+            for m in members:
+                p = m.get("piece")
+                prov = m.get("provenance", "authored")
+                if p not in seen or (seen[p] == "inferred" and prov == "authored"):
+                    seen[p] = prov
+            ordered = sorted(seen.items())
+            members_str = ", ".join(f"{p} ({prov})" for p, prov in ordered)
+            lines.append(f"- **`pivot-{name}`** — pieces: {members_str}")
     else:
+        # legacy fallback (no provenance map for some reason)
         for name, members in sorted(graph["pivot_clusters"].items()):
             lines.append(f"- **`pivot-{name}`** — pieces: {', '.join(sorted(set(members)))}")
     lines.append("")
@@ -692,10 +994,11 @@ def render_markdown(pieces: dict[str, dict], graph: dict) -> str:
             if rec["fold_unresolved"]:
                 lines.append(f"  - Unresolved: {', '.join(rec['fold_unresolved'])}")
         ap = rec["attach_points"]
-        if ap:
-            lines.append(f"- **Attach-points ({len(ap)}):**")
+        ic = rec.get("inferred_connections", [])
+        if ap or ic:
+            total = len(ap) + len(ic)
+            lines.append(f"- **Attach-points ({total}):**")
             for entry in ap:
-                tag = entry.get("element", "?")
                 desc = entry.get("kind", "?")
                 side = entry.get("side", "front")
                 side_str = f" [back-side]" if side == "back" else ""
@@ -708,6 +1011,22 @@ def render_markdown(pieces: dict[str, dict], graph: dict) -> str:
                 else:
                     target_str = " (no partner)"
                 lines.append(f"  - `{entry['raw_id']}` ({desc}{side_str}{target_str})")
+            for entry in ic:
+                kind = entry.get("kind", "?")
+                side = entry.get("side", "front")
+                side_str = f" [back-side]" if side == "back" else ""
+                if kind in ("attach-same-piece", "landing-same-piece"):
+                    target_str = f" → same-piece panel `{entry.get('panel')}`"
+                elif kind == "pivot":
+                    target_str = f" (pivot `{entry.get('name')}`)"
+                else:
+                    ident = entry.get("letter") or entry.get("tab") or "?"
+                    target_str = f" → piece {entry.get('to')} (letter/tab `{ident}`)"
+                lines.append(f"  - _(inferred)_ ({kind}{side_str}{target_str}) [inferred]")
+                if entry.get("source"):
+                    lines.append(f"    - _source: {entry['source']}_")
+                if entry.get("note"):
+                    lines.append(f"    - _note: {entry['note']}_")
         marks = rec["marks"]
         if marks:
             lines.append(f"- **Marks ({len(marks)}):**")
@@ -750,10 +1069,13 @@ def main() -> int:
     print(f"[build_assembly_graph] panels-first pieces processed: {len(pieces)}")
     print(f"[build_assembly_graph]   pieces: {', '.join(sorted(pieces.keys()))}")
     print(f"[build_assembly_graph] cross-piece edges: {len(graph['edges'])}")
-    valid = sum(1 for e in graph['edges'] if e.get('valid'))
+    authored_edges = sum(1 for e in graph["edges"] if e.get("provenance") == "authored")
+    inferred_edges = sum(1 for e in graph["edges"] if e.get("provenance") == "inferred")
+    print(f"[build_assembly_graph]   authored edges: {authored_edges}, inferred edges: {inferred_edges}")
     print(f"[build_assembly_graph] pivot clusters: {len(graph['pivot_clusters'])}")
     print(f"[build_assembly_graph] untyped landings: {len(graph['untyped_landings'])}")
     print(f"[build_assembly_graph] closure attaches: {len(graph.get('closure_attaches', []))}")
+    print(f"[build_assembly_graph] inferred conflicts: {len(graph.get('inferred_warnings', []))}")
     print(f"[build_assembly_graph] wrote: {OUT_JSON.relative_to(REPO_ROOT)}")
     print(f"[build_assembly_graph] wrote: {OUT_MD.relative_to(REPO_ROOT)}")
     return 0
