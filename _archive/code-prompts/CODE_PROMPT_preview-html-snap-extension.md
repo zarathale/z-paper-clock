@@ -1,6 +1,8 @@
 ---
-status: ready-for-code
+status: archived
 started: 2026-05-04
+archived: 2026-05-06
+archived_reason: Killed by DECISIONS #6 (panels-first orientation model, 2026-05-05). No further investment in cut-line-first algorithm improvements. Cut-line-first stays alive as legacy parser for pre-pivot pieces but gets no new code. The snap-only approach this prompt described would have partially improved 066's orphan count; that problem is rendered moot by panels-first authoring.
 owner: Zarathale (Alan)
 target: preview-html-snap-extension
 ---

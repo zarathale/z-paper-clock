@@ -25,21 +25,19 @@ For per-piece lifecycle state (which pieces are scanned vs. authored vs. sidecar
 
 ```yaml
 status: active
-last_updated: 2026-05-05
-next_action: Watch how 069 authoring lands as the first real test of panels-first + the to-alan/ dropbox protocol in actual use. After 069 cycles back, the next charter rollout move is either (a) "first piece end-to-end" lands as 069 itself if panels-first wins (close to commitment #2 in CHARTER §6), or (b) reset back to picking a different first-end-to-end piece. Architecture decision (DECISIONS #4) still deferred, now informed by what panels-aware parsing surfaces.
+last_updated: 2026-05-06
+next_action: Multi-piece scene assembly CODE_PROMPT drafted this session (ready-for-code). When that Code session lands, it closes CHARTER §6 commitment #2 (first piece end-to-end). Architecture decision (DECISIONS #4: preview.html ↔ work/viewer/) still deferred — informed by what the panels-aware + multi-piece work surfaces.
 ```
 
-**Hypothesis.** Day-one for Claude-as-lead. The skeleton (CHARTER + STATUS + QUEUE + DECISIONS + to-alan/) needs to land before any new building work, so Alan has a coherent surface to read and pull from. After that, the four "first moves" from CHARTER §10 row 8 sequence: (a) skeleton ✅, (b) LAYER-CONVENTIONS co-maintenance routine ✅ (DECISIONS #3), (c) preview.html ↔ work/viewer/ architecture pick ⏸ (deferred per DECISIONS #4), (d) first piece end-to-end ⏸ (queued, but 069 is now a strong candidate via panels-first).
-
-**Open questions.**
-
-- Pendulum POC (piece 094) vs. piece 069 (now the panels-first test piece) for "first end-to-end." 069 is in motion via QUEUE.md #1 anyway; folding it through to preview.html would double as the panels-aware parser proof. Earmark for after 069 authoring lands.
+**Hypothesis.** Day-one for Claude-as-lead. The skeleton (CHARTER + STATUS + QUEUE + DECISIONS + to-alan/) needs to land before any new building work, so Alan has a coherent surface to read and pull from. After that, the four "first moves" from CHARTER §10 row 8 sequence: (a) skeleton ✅, (b) LAYER-CONVENTIONS co-maintenance routine ✅ (DECISIONS #3), (c) preview.html ↔ work/viewer/ architecture pick ⏸ (deferred per DECISIONS #4), (d) first piece end-to-end 🟡 — in motion via multi-piece scene assembly.
 
 **Recent log.**
 
-- 2026-05-05 (~01:15): orientation/awareness reset conversation landed (DECISIONS #6 closed: panels-first + authored-vs-derived). LAYER-CONVENTIONS.md updated co-authored; first to-alan/ dropbox entry created (`069-panels-first/`). See `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`. Charter §6 commitment #2 (first piece end-to-end) gains 069 as a strong candidate.
-- 2026-05-05 (~00:30): reconciliation pass against on-disk state of `claude-work/`. Skeleton confirmed present (Code session that "saw only CHARTER.md" was running in a worktree). STATUS / QUEUE / DECISIONS updated for cut-trim + orientation-reset outflows. See `sessions/2026-05-05-0030_cowork_claude-work-reconcile.md`.
-- 2026-05-04 (afternoon): charter signed; day-one skeleton landed. STATUS / QUEUE / DECISIONS / `to-alan/README.md` written. WORKPLAN.md flagged as legacy (kept in place). See `sessions/2026-05-04-1500_cowork_charter-signed-day-one.md`. Skeleton files are untracked at time of writing — they ride on the next cowork commit (this reconciliation pass).
+- 2026-05-06 (morning): doc-cleanup pass + multi-piece scene assembly CODE_PROMPT drafted (this session). STATUS/QUEUE/DECISIONS updated; snap-extension CODE_PROMPT archived. CHARTER §6 commitment #2 in reach.
+- 2026-05-05 (afternoon-evening): panels-aware parser shipped via PR #15. 069 experiment proved out + scaled to a 9-piece anchor-pendulum batch (DECISIONS #7). First piece end-to-end candidate is now the full anchor cluster, not just a single piece.
+- 2026-05-05 (~01:15): orientation/awareness reset conversation landed (DECISIONS #6 closed). LAYER-CONVENTIONS.md updated co-authored; first to-alan/ dropbox entry created. See `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`.
+- 2026-05-05 (~00:30): day-one skeleton reconciliation pass. See `sessions/2026-05-05-0030_cowork_claude-work-reconcile.md`.
+- 2026-05-04 (afternoon): charter signed; day-one skeleton landed. See `sessions/2026-05-04-1500_cowork_charter-signed-day-one.md`.
 
 ---
 
@@ -68,40 +66,28 @@ next_action: None — source-side capture closed at 123/123. Track stays open as
 
 ```yaml
 status: active
-last_updated: 2026-05-05
-next_action: With the anchor-pendulum batch landed and conventions ratified (DECISIONS #7), the next authoring batch is the bob pieces (094 + 095 + 096 + 097 + 098 + 093a/093b) and the escape wheel (likely 087 in the reduction-gear cluster). 093 was split into 093a + 093b on 2026-05-05 — the (a+b) pair is the brace template, instantiated 6 times in piece 94. No urgency; pull when bench time happens. The convention is stable; new pieces should drop into the established pattern.
+last_updated: 2026-05-06
+next_action: Bob batch continuation — 093a/093b (add fold paths, fix cutaway hyphenation, retire combined 093.svg); 097 Affinity collision-suffix decision (convention #16 tolerance vs. per-instance ids); escape wheel 087. Pull when bench time happens. Convention stable.
 ```
 
-**Hypothesis.** The actual current bottleneck. Conventions are still iterating as new piece-types reveal new authoring requirements (cut-layer + axles-with-north + marker-bound fold ids all shipped in the past week). Each new piece both applies the conventions and stress-tests them.
+**Hypothesis.** The actual current bottleneck. Conventions now stable post-DECISIONS #7. Each new piece applies the convention and stress-tests it; LAYER-CONVENTIONS.md is the live reference.
 
-**Status detail.** A small handful of pieces authored end-to-end (001 / 002 / 058 / 065 / 066 / 067 / 069 / 070 / 071 / 072 / 113). 066's failure mode (co-linear marker-bound folds + Affinity cross-layer id collision) drove the morning convention revision; cut-trim ship that evening (preview.html track) improved 066 from 19 → 13 orphans + 17/17 markers resolving but didn't fully resolve it. 22:00 SVG inventory pulled across 001/002/066/067/069/070/113 and surfaced specific drift items — see Recent log.
-
-**Authoring drift surfaced 22:00 (needs naming).**
-
-- `axles` layer carrying `hole-f<piece>` / `hole-g<piece>` ids on 001/002 — pin-holes, not rotation centers; closer to landings than axles.
-- `landing-tab-aa` on 002 — mixes the documented `landing-<tab-letter><piece-number>` format. Plausibly closure-constraint, plausibly something else.
-- `anchor-pivot` ids on 067 + 069 — outside the canonical layer set.
-- `mark-h` / `mark-i` on 069 — construction or registration marks, not connection points.
-- `id="tab"` (no letter) on 070 in `folds-mountain`.
-- 113/114/115/116 carry `mountain-folds` / `valley-folds` (reversed from canonical), `cutout` singular without `-N` suffix, and bare `hole-f` / `hole-g` (no piece suffix — shape is shared across four pieces).
-- Affinity auto-rename clusters: `fold-tab-a` × 4 on 001, `tab-e1` etc.
+**Status detail.** Panels-first SVGs authored: 065 / 066 / 067 / 068 / 069 / 070 / 071 / 072 / 094 / 095 / 096 / 097 / 098 / 099 / 100 / 110. Connection graph at `claude-work/state/connection-graph.{md,json}` resolves 24/24 cross-piece edges across the anchor-pendulum-bob cluster. Pre-pivot cut-line-first pieces (001 / 002 / 058 / 113–116) stay as legacy; no bulk re-authoring planned.
 
 **Open questions.**
 
-- Whether 069's panels-first authoring is workable in Affinity at acceptable effort. The experiment that answers this is QUEUE.md #1.
-- The fold-binding shape sub-decision: the brief proposes `id="fold-<panel-a>-<panel-b>"` on the fold path; if Affinity collision-renames any (rare; only when two folds bind the same pair), or the form feels awkward in Affinity, we adapt to a sidecar JSON edge list or a hybrid.
-- Whether existing pieces ever get re-authored panels-first (vs. staying on cut-line-first as legacy) — answered piece-by-piece on touch, not as a bulk decision.
-- Which pieces are simple enough to delegate to a Haiku-class model with a tight prompt, vs. needing Sonnet-or-better hand-attention.
+- **097 Affinity collision-suffix** — 5 visually-distinct landings on 099 came out as duplicate `attach-a99` ids + Affinity auto-suffixed `attach-a991`/`a992`/`a993`/`a994`. Parser reads those as cross-piece partners 991-994 (non-existent). Fix: either convention #16 tolerance (strip the digit suffix when the base id already resolves) or author per-instance ids from the start. Alan deferred; still open.
+- **093a/093b fold paths** — both halves have `panels` scaffolding but no fold paths yet. Need valley/mountain fold lines authored before the braces can fold in preview.html.
+- **`attach-x<piece-id>` convention** — the 093 session surfaced a glue-only inter-piece attach form (no printed tab letter) not yet in LAYER-CONVENTIONS.md. Worth a small conventions pass before more pieces follow the pattern.
+- Whether existing pre-pivot pieces ever get re-authored panels-first (vs. staying cut-line-first as legacy) — answered piece-by-piece on touch, not as a bulk decision.
 
-**Blockers.** None for the next move (069 authoring brief is in `claude-work/to-alan/`). The panels-aware parser pathway in preview.html is downstream and waits for 069 authoring to land.
+**Blockers.** None.
 
 **Recent log.**
 
-- 2026-05-05 (afternoon-evening): anchor-pendulum batch panels-first authoring landed across 9 pieces (065/066/067/068/069/070/071/072 + 099). Conventions ratified end-to-end via DECISIONS #7 (21 specific convention elements). LAYER-CONVENTIONS.md rewritten as the single canonical reference; LAYERS.md (the v0 cheat sheet) deleted. Cross-piece audit script `claude-work/scripts/build_assembly_graph.py` produces `claude-work/state/connection-graph.{md,json}` with 24/24 cross-piece edges valid. See `sessions/2026-05-05-2330_cowork_panels-first-batch-and-graph.md`.
-- 2026-05-05 (~01:15): orientation/awareness model decision landed (DECISIONS #6: panels-first + authored-vs-derived). LAYER-CONVENTIONS.md updated; 069 brief drafted; cut-line-first becomes legacy parser. See `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`.
-- 2026-05-04 (morning): marker-bound fold ids convention settled — and revised within the same session for the `fold-` prefix (Affinity collision). Parser landed in preview.html. 066 improved 19 → 5 orphan regions; cylinder still folds into shards. Closure constraint still parked. See `sessions/2026-05-04-0815_cowork_marker-bound-fold-ids.md`.
-- 2026-05-04 (late morning): diagnose-first pivot — see preview.html iteration track.
-- 2026-05-04 (~22:00): orientation/awareness reset research session. SVG inventory across 7 priority pieces surfaced authoring drift; four candidate framings + five design questions on the whiteboard. See `sessions/2026-05-04-2200_cowork_orientation-reset-research.md`. Alan flagged a course change incoming after the session — that course change WAS this conversation; the framings did get walked through and panels-first won.
+- 2026-05-05 (late night): 093 split into 093a + 093b. `pieces.csv` replaced single 093 row with two rows (status: traced). `build_master_list.py` + `piece_characters_v2.yaml` + `expected_layers.yaml` updated. Combined `093.svg` retired to `_attic/` pending Alan's Affinity pass. See `sessions/2026-05-05-2355_cowork_piece-093-split-and-pieces-csv-cleanup.md`.
+- 2026-05-05 (afternoon-evening): anchor-pendulum batch panels-first authoring landed across 9 pieces (065/066/067/068/069/070/071/072 + 099). Bob batch authored same session: 094 ✓, 095 ✓, 096 ✓, 097 ⚠ (collision question open), 098 ✓, 100 (silhouette + marks only; no panels yet). Conventions ratified via DECISIONS #7 (21 specific elements). LAYER-CONVENTIONS.md rewritten as the single canonical reference. See `sessions/2026-05-05-2330_cowork_panels-first-batch-and-graph.md` and `sessions/2026-05-05-1630_cowork_env-buildup-and-fold-step-convention.md`.
+- 2026-05-05 (~01:15): orientation/awareness model decision landed (DECISIONS #6: panels-first + authored-vs-derived). Cut-line-first becomes legacy parser. See `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`.
 
 ---
 
@@ -109,34 +95,31 @@ next_action: With the anchor-pendulum batch landed and conventions ratified (DEC
 
 ```yaml
 status: active
-last_updated: 2026-05-05
-next_action: Code session against `CODE_PROMPT_preview-html-panels-aware.md` (drafted, ready-for-code at repo root). Adds the panels-aware parser pathway alongside the legacy cut-line-first path. Single-piece scope; multi-piece scene assembly comes in a follow-up prompt. Verification across 069/068/071/099.
+last_updated: 2026-05-06
+next_action: Code session against `CODE_PROMPT_preview-html-multi-piece-scene.md` (drafted this session, ready-for-code at repo root). Walks connection-graph.json, places panels-first pieces relative to each other in 3D using cross-piece attach/landing/pivot edges. Multi-piece scene assembly is the first visual milestone where the clock looks like a clock.
 ```
 
-**Hypothesis.** Carried forward from WORKPLAN. A single-file HTML preview tool at repo root is the right substrate for testing SVG authoring conventions piece-by-piece, while the eventual viewer is still upstream. Each new convention or fix gets its own CODE_PROMPT and ships independently. The architecture decision (graduate / stay separate / replace) is intentionally deferred until the reset conversation settles.
+**Hypothesis.** A single-file HTML preview tool is the right substrate for testing SVG authoring conventions while the eventual viewer is still upstream. Each new capability gets its own CODE_PROMPT and ships independently. Architecture call (DECISIONS #4) deferred until multi-piece scene surfaces what preview.html is actually becoming.
 
-**Charter note.** The architecture call (preview.html ↔ work/viewer/) is one of the four first-moves I committed to in §10 row 8. It's open question 0.6.13 in the inherited SPEC and DECISIONS #4 in this folder. I'm not making it today — the orientation/awareness reset will reshape what preview.html needs to do before the architecture answer becomes obvious.
+**What's shipped (relevant to current state).**
 
-**What shipped today (Code, 2026-05-04).**
-
-- **Face-graph diagnostic harness** (PR #13, commit `6ecdb45`) — `_diag` payload, JSON dump button, 2D viewBox-space overlay, console summary. Permanent fixture in preview.html. See `sessions/2026-05-04-1145_code_preview-html-face-graph-diagnostics.md`.
-- **Cut-trim algorithm refactor** (PR #14, commit `e0cb5cb`) — replaced half-plane infinite-line cuts with authored-segment cuts using `fold.start`/`fold.end` (extend-to-nearest-silhouette, NOT to bigBox). Dropped the `passive` field; collapsed two-pass BFS to a single pass. Added `markerToRegionId` map as forward-look infrastructure for the M4 assembly engine. Deviation from the prompt's `authoredStart`/`authoredEnd` documented inline — keeping `fold.start`/`fold.end` is strictly better for normal pieces and partially-better for 066. See `sessions/2026-05-04-2103_code_preview-html-cut-trim.md`.
-
-**Cut-trim residual on 066.** 27 regions, 20 fold-edges (of 21 expected), 17/17 markers resolve, 13 orphan regions still. The phantom-strip dynamic re-emerges in milder form when "extend to nearest silhouette boundary" still reaches across the strip on near-vertical fold lines. A "snap-only" extension tolerance (`0.005 * diagLen`) is the queued small follow-up; not implemented because the reset conversation may obsolete it. Dead code (`bigBox`, `halfPlanePoly`, `toRing`/`toPCPoly`/`fromRing`, `edgeMidpoint`, `ADJ_EPS`, the `extendedStart`/`extendedEnd` paths) intentionally left in per the cut-trim prompt's minimal-surface-area principle.
+- **Panels-aware parser + hinge forest** (PR #15) — `parsePanelsLayer`, `parsePanelsFirstFolds`, `buildHingeTree`, `renderPanelsFirstScene`. Dispatch banner ("panels-first ✓" / "cut-line-first (legacy)"). `parsed.panelsFirst.{panels, folds, hingeTree, attachPoints, closureAttaches, marks}` fully populated but attachPoints/marks are inert — consumed by the multi-piece scene prompt.
+- **Fold-step + closure-attach** (PR #16) — `<step>-fold-<a>-<b>` ordinal prefix in slider labels; same-piece `attach-<panel-id>` classified as `attach-same-piece`; `closureAttaches` bundle. Console diagnostics for both.
+- **Face-graph diagnostic harness** (PR #13), **cut-trim** (PR #14), **source-of-truth piece loader** (PR M0.6.14) — all legacy-path or additive, still present.
+- **snap-only-extension** — killed (DECISIONS #6).
 
 **Open questions.**
 
-- Whether the architecture decision (DECISIONS #4) can still wait. Reset conversation landed on panels-first; preview.html now grows a panels-aware path alongside cut-trim. That additional surface area informs but doesn't force the architecture call.
-- Snap-only extension question is closed — killed by DECISIONS #6.
+- Architecture call (DECISIONS #4: graduate into `work/viewer/`, stay separate, or replace) — deferred until after multi-piece scene shapes what preview.html is becoming.
+- 070 has 2 unresolved folds (`fold-panelsideb-tabb`, `fold-panelsidec-tabc`) — panel ids reference stale names from before the convention settled. Alan needs to rename `panelsideb`/`panelsidec` → `sideb`/`sidec` in 070.af.
+- 099's curved-fold sliders (`fold-insidetabs`, `fold-outsidetabs`) produce approximate movement — the sketch noted as M6-territory in the session note.
 
 **Recent log.**
 
-- 2026-05-05 (late evening): `CODE_PROMPT_preview-html-panels-aware.md` drafted ready-for-code. Conventions stable (DECISIONS #7); `claude-work/scripts/build_assembly_graph.py` provides reference parser implementation in Python. Ships when Alan opens a Code session against the prompt. See `sessions/2026-05-05-2330_cowork_panels-first-batch-and-graph.md`.
-- 2026-05-05 (~01:15): orientation/awareness reset landed; snap-only-extension follow-up killed; panels-aware parser pathway queued, blocked on 069 authoring. See `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`.
-- 2026-05-04 (~21:00): cut-trim shipped via PR #14. See above.
-- 2026-05-04 (~11:45): face-graph diagnostic harness shipped via PR #13. See above.
-- 2026-05-04 (late morning): diagnose-first pivot. `CODE_PROMPT_preview-html-face-graph-diagnostics.md` drafted ready-for-code. Stray `work/pieces/066/001.svg` cleaned up. See `sessions/2026-05-04-1100_cowork_face-graph-diagnostics.md`.
-- 2026-05-04 (morning) and earlier: marker-bound fold ids implementation, M0.6.14 source-of-truth ship, v1b clean-start prompt, etc. See WORKPLAN preview.html iteration track for full pre-charter log.
+- 2026-05-06 (morning): `CODE_PROMPT_preview-html-multi-piece-scene.md` drafted ready-for-code. Connection-graph.json is the data source; `parsed.panelsFirst.attachPoints` is the per-piece consumer. See this session note.
+- 2026-05-05 (late night): panels-aware parser + fold-step/closure-attach shipped. PR #15 (23:45) + PR #16 (18:20). See `sessions/2026-05-05-2345_code_preview-html-panels-aware.md` and `sessions/2026-05-05-1820_code_preview-html-fold-step-and-closure-attach.md`.
+- 2026-05-05 (~01:15): snap-only-extension killed; panels-aware parser pathway queued. See `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`.
+- 2026-05-04: face-graph diagnostics (PR #13) + cut-trim (PR #14) shipped. Pre-charter log in WORKPLAN for earlier.
 
 ---
 
@@ -184,53 +167,27 @@ next_action: No active work until panels-first surfaces specific design needs. S
 
 ```yaml
 status: active (executing)
-last_updated: 2026-05-05
-next_action: Alan pulls the 069 panels-first authoring brief at `claude-work/to-alan/069-panels-first/README.md` (also QUEUE.md #1). When `069-panels.svg` lands, I review + draft the CODE_PROMPT for the panels-aware parser pathway in preview.html. Until then, the track is waiting on Alan's bench time, not on Claude's thinking.
+last_updated: 2026-05-06
+next_action: No Claude-side blockers. Convention is stable and proven across 16 panels-first pieces. Continue into each new authoring batch as it lands. Reopen for design if a new piece-type surfaces something the 21-point lock-in doesn't cover.
 ```
 
-**Decision landed: panels-first (B) + authored-vs-derived (D).** See DECISIONS #6 for the full shape — concrete-decision body has 8 numbered points (new `panels` layer, fold-binding shape, `axles` split into rotation-only + new `attach-points`, `marks` narrows to construction/registration only, closure as edge attribute, 113–116 stays clone-per-piece for now, cut-line-first stays as legacy, snap-only-extension killed). The course change Alan flagged at the close of the 22:00 session was this conversation; the four framings + five questions did survive and got walked through.
-
-**What this means downstream.**
-
-- **SVG layer authoring track:** unblocks — concrete next move is Alan authors 069 panels-first.
-- **preview.html iteration track:** snap-only-extension killed; panels-aware parser pathway queued (Code session, blocked on 069 authoring).
-- **Regions / face-graph design track:** cut-line-first becomes legacy. The SPEC-REGIONS.md doc (in frozen `work/`) captures cut-line-first as it existed; whatever evolves next gets a fresh home in `claude-work/standards/`. Probably doesn't get drafted until panels-first proves out on multiple pieces.
-- **DECISIONS #4 (preview.html ↔ work/viewer/):** still deferred, but the parser surface preview.html now grows a panels-aware path, which informs the eventual architecture call.
-- **DECISIONS #5 (cut-trim implementation deviation):** closes as historical record once panels-first dominates. Cut-trim stays alive for legacy pieces.
-- **LAYER-CONVENTIONS.md:** gains `panels` and `attach-points` layers; `axles` and `marks` narrow. Co-authored update follows in this same commit.
-
-**Open dependencies.**
-
-- 069 authoring needs to actually happen — Alan's bench, pull-based.
-- The fold-binding shape (`fold-<panel-a>-<panel-b>` id form vs. JSON sidecar edge list vs. hybrid) is sub-decided once 069 authoring teaches us which is least painful. The brief proposes the id-form as the v0 starting point.
+**Decision landed: panels-first (B) + authored-vs-derived (D).** See DECISIONS #6 + #7 for full shape. Proved out across a 9-piece anchor-pendulum batch; 24/24 cross-piece edges valid. Multi-piece scene assembly (next Code session) is the execution milestone that shows the model working end-to-end.
 
 **Recent log.**
 
-- 2026-05-05 (~01:15): orientation-reset conversation landed. Decision locked: panels-first (B) + authored-vs-derived (D). DECISIONS row #6 closed. LAYER-CONVENTIONS.md updated; 069 authoring brief at `claude-work/to-alan/069-panels-first/`; QUEUE.md #1 replaced. See `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`.
-- 2026-05-04 (~22:00): track opened by the orientation-reset research session. SVG inventory across 7 priority pieces (001/002/066/067/069/070/113); four framings on the whiteboard; five questions waiting. `.gitignore` Affinity-lock pattern tacked on (Windows `*.af~lock~`) — see Repo hygiene track. See `sessions/2026-05-04-2200_cowork_orientation-reset-research.md`.
+- 2026-05-05 (afternoon-evening): decision proved out across 9-piece anchor-pendulum batch + bob batch. DECISIONS #7 ratifies 21 convention elements. Connection graph resolves 24/24 edges. See `sessions/2026-05-05-2330_cowork_panels-first-batch-and-graph.md`.
+- 2026-05-05 (~01:15): orientation-reset conversation landed. DECISIONS #6 closed. LAYER-CONVENTIONS.md updated. See `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`.
+- 2026-05-04 (~22:00): track opened. See `sessions/2026-05-04-2200_cowork_orientation-reset-research.md`.
 
 ---
 
 ## Track: Pendulum folding & grouping POC
 
 ```yaml
-status: queued
-last_updated: 2026-05-04
-next_action: In the next cowork session, confirm exact piece IDs for the pendulum bob + arm against source/transcriptions/embedded-labels.md §II.C. Decide whether this is "the first end-to-end piece" per CHARTER §6 #2, or whether a simpler piece earns that slot first.
+status: killed
+closed: 2026-05-06
+closed_reason: Absorbed into main authoring + multi-piece scene tracks. 069 (pendulum arm) and 094-098 (pendulum bob) are authored panels-first and in the connection graph. The "first end-to-end" milestone is now the anchor cluster in multi-piece scene assembly — a richer proof than the original pendulum-only POC. G1/G2 grouping + F1 folding still come through the same pathway; they just don't need their own track.
 ```
-
-**Hypothesis.** Carried forward from WORKPLAN. A small, mechanically-real two-piece subsystem (pendulum bob + arm) is the right first proof for folding + grouping primitives. Arm folds onto itself (tests F1 + the regions concept directly). Arm glues to bob (tests G1 + G2 via embedded-labels glue references). Both sit in §II.C — also where the function-block sidecar work surfaces, so they double as future mechanism-animation candidates.
-
-**Charter note.** This is the obvious candidate for "first piece end-to-end" (CHARTER §6 #2), but the candidacy isn't locked. Worth a deliberate cowork pass to pick the right first piece.
-
-**Blockers.**
-
-- The face-graph diagnostic ship (preview.html iteration track) — surfaces information that affects whether the pendulum's self-fold is the right first stress test or too much for v0.
-- Authored SVGs for the pendulum pieces — they don't exist yet.
-
-**Recent log.**
-
-- 2026-05-03: track opened in WORKPLAN. No work since.
 
 ---
 
@@ -264,12 +221,10 @@ closed_reason: Superseded by claude-work/. The operations-layer goal — give th
 
 ---
 
-*Last updated: 2026-05-05 (late evening) — anchor-pendulum batch panels-first authoring landed across 9 pieces; conventions ratified via DECISIONS #7 (21 specific elements); LAYER-CONVENTIONS.md rewritten as the single canonical reference (LAYERS.md deleted); cross-piece audit script `claude-work/scripts/build_assembly_graph.py` shipped resolving 24/24 cross-piece edges; CODE_PROMPT_preview-html-panels-aware.md drafted ready-for-code. SVG layer authoring track unblocks for the bob pieces + escape wheel batch. preview.html iteration track unblocks for the panels-aware Code session. Source-side capture closed at 123/123 earlier the same day.*
+*Last updated: 2026-05-06 (morning) — doc-cleanup pass post-2026-05-05 sprint. Charter rollout, SVG layer authoring, preview.html iteration, and orientation/awareness model tracks updated to reflect: panels-aware parser shipped (PR #15), fold-step/closure-attach shipped (PR #16), anchor-pendulum batch done, bob batch partial, 093 split, source capture closed 123/123. Pendulum POC track killed (absorbed into authoring + multi-piece scene tracks). CODE_PROMPT_preview-html-multi-piece-scene.md drafted ready-for-code. snap-extension CODE_PROMPT archived. QUEUE.md updated with new Now #1 (multi-piece scene Code session) and Now #2 (bob batch continuation).*
 
-*Earlier 2026-05-05 (morning) — piece capture track: plate B brackets 013-017 resolved as clones of 012 (Alan's clarification: six bracket pieces are all the same drawing). Replicated 012.png → 013/014/015/016/017 (MD5-verified); pieces.csv updated; QUEUE.md #2 narrowed to piece 090 only; lock-file verification (#4) closed (`git ls-files | grep -F "af~lock~"` returned empty). Repo hygiene track: lock-file ask resolved. Source-side capture is now 122/123, pending only 090 (and possibly 110 TBD).*
+*Earlier 2026-05-05 (evening–midnight) — anchor-pendulum batch, panels-aware + fold-step ships, 093 split. See session notes `2026-05-05-2330`, `2026-05-05-2345`, `2026-05-05-2355`, `2026-05-05-1820`, `2026-05-05-1630`.*
 
-*Earlier 2026-05-05 (~01:15) — orientation/awareness reset landed (DECISIONS #6 closed: panels-first + authored-vs-derived). Six tracks updated: orientation/awareness model (now executing, waiting on Alan), SVG layer authoring (unblocks for 069), preview.html iteration (snap-only killed; panels-aware parser pathway queued), regions/face-graph design (paused; cut-line-first becomes legacy), charter rollout (the conversation landed; 069 becomes a strong "first end-to-end" candidate), repo hygiene (unchanged). LAYER-CONVENTIONS.md updated co-authored in the same pass; first to-alan/ dropbox entry created at `to-alan/069-panels-first/`.*
+*Earlier 2026-05-05 (morning) — plate B brackets resolved; source capture closed 123/123; lock-file verification clean; DECISIONS #6 panels-first orientation model landed.*
 
-*Earlier 2026-05-05 (~00:30) — reconciliation pass against on-disk state. Day-one skeleton confirmed present (Code session that "saw only CHARTER.md" was running in a worktree). Tracks updated for the two sessions that ran after the kickoff drafted its plan: cut-trim ship (PR #14) and orientation-reset research. New "Orientation / awareness model" track opened to hold the four framings + five questions surfaced at 22:00 — that's the live conversation. Charter rollout, SVG layer authoring, preview.html iteration, regions/face-graph design, and repo hygiene all updated. Pre-charter history still lives in WORKPLAN.md.*
-
-*Earlier 2026-05-04 (afternoon) — initial authoring at charter sign-off. Eight tracks carried forward from WORKPLAN.md; one (Operations layer) closed; one (Charter rollout) opened.*
+*Earlier 2026-05-04 — charter signed; day-one skeleton; cut-trim + face-graph-diagnostics shipped.*
