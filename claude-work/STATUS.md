@@ -26,14 +26,16 @@ For per-piece lifecycle state (which pieces are scanned vs. authored vs. sidecar
 ```yaml
 status: active
 last_updated: 2026-05-06
-next_action: Multi-piece scene assembly CODE_PROMPT drafted this session (ready-for-code). When that Code session lands, it closes CHARTER §6 commitment #2 (first piece end-to-end). Architecture decision (DECISIONS #4: preview.html ↔ work/viewer/) still deferred — informed by what the panels-aware + multi-piece work surfaces.
+next_action: Multi-piece scene assembly shipped (PR #17). CHARTER §6 commitment #2 (first piece end-to-end) effectively closed for the anchor cluster — though it'll keep getting richer as assembled-fold poses + inferred connections + general per-edge transforms come online. Architecture decision (DECISIONS #4: preview.html ↔ work/viewer/) still deferred — has more data now from the multi-piece ship.
 ```
 
-**Hypothesis.** Day-one for Claude-as-lead. The skeleton (CHARTER + STATUS + QUEUE + DECISIONS + to-alan/) needs to land before any new building work, so Alan has a coherent surface to read and pull from. After that, the four "first moves" from CHARTER §10 row 8 sequence: (a) skeleton ✅, (b) LAYER-CONVENTIONS co-maintenance routine ✅ (DECISIONS #3), (c) preview.html ↔ work/viewer/ architecture pick ⏸ (deferred per DECISIONS #4), (d) first piece end-to-end 🟡 — in motion via multi-piece scene assembly.
+**Hypothesis.** Day-one for Claude-as-lead. The skeleton (CHARTER + STATUS + QUEUE + DECISIONS + to-alan/) needs to land before any new building work, so Alan has a coherent surface to read and pull from. After that, the four "first moves" from CHARTER §10 row 8 sequence: (a) skeleton ✅, (b) LAYER-CONVENTIONS co-maintenance routine ✅ (DECISIONS #3), (c) preview.html ↔ work/viewer/ architecture pick ⏸ (deferred per DECISIONS #4), (d) first piece end-to-end ✅ — multi-piece scene assembly shipped (PR #17), anchor cluster places 5 pieces with 067+069 pivot-aligned.
 
 **Recent log.**
 
-- 2026-05-06 (morning): doc-cleanup pass + multi-piece scene assembly CODE_PROMPT drafted (this session). STATUS/QUEUE/DECISIONS updated; snap-extension CODE_PROMPT archived. CHARTER §6 commitment #2 in reach.
+- 2026-05-06 (evening): assembled-pose + inferred-connections design conversation. Two new sidecar blocks settled (DECISIONS #10 connections.inferred[]; #11 assembled.folds), LAYER-CONVENTIONS extended with "Per-piece JSON sidecar" + "Lane discipline" sections, two CODE_PROMPTs handed off (`CODE_PROMPT_build-assembly-graph-inferred.md`, `CODE_PROMPT_preview-html-assembled-pose.md`). Procedural cleanup of PR #17 (retroactive session note + flipped multi-piece-scene CODE_PROMPT to shipped). See `sessions/2026-05-06-XXXX_cowork_assembled-pose-and-inferred.md`.
+- 2026-05-06 (morning): multi-piece scene assembly shipped via PR #17. Anchor cluster (065/066/067/068/069) places in one scene with 067+069 pivot-aligned on `pivot-anchor`. See `sessions/2026-05-06-0847_code_preview-html-multi-piece-scene.md` (retroactive).
+- 2026-05-06 (morning): doc-cleanup pass + multi-piece scene assembly CODE_PROMPT drafted. STATUS/QUEUE/DECISIONS updated; snap-extension CODE_PROMPT archived. CHARTER §6 commitment #2 in reach.
 - 2026-05-05 (afternoon-evening): panels-aware parser shipped via PR #15. 069 experiment proved out + scaled to a 9-piece anchor-pendulum batch (DECISIONS #7). First piece end-to-end candidate is now the full anchor cluster, not just a single piece.
 - 2026-05-05 (~01:15): orientation/awareness reset conversation landed (DECISIONS #6 closed). LAYER-CONVENTIONS.md updated co-authored; first to-alan/ dropbox entry created. See `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`.
 - 2026-05-05 (~00:30): day-one skeleton reconciliation pass. See `sessions/2026-05-05-0030_cowork_claude-work-reconcile.md`.
@@ -96,27 +98,31 @@ next_action: Bob batch continuation — 093a/093b (add fold paths, fix cutaway h
 ```yaml
 status: active
 last_updated: 2026-05-06
-next_action: Code session against `CODE_PROMPT_preview-html-multi-piece-scene.md` (drafted this session, ready-for-code at repo root). Walks connection-graph.json, places panels-first pieces relative to each other in 3D using cross-piece attach/landing/pivot edges. Multi-piece scene assembly is the first visual milestone where the clock looks like a clock.
+next_action: Two CODE_PROMPTs queued ready-for-code at repo root: `CODE_PROMPT_preview-html-assembled-pose.md` (per-fold assembled-state load + save; preview-side, DECISIONS #11) and `CODE_PROMPT_build-assembly-graph-inferred.md` (sidecar-driven inferred cross-piece connections; audit-side, DECISIONS #10). Either can land first; they don't conflict. Architecture call (DECISIONS #4) still deferred — multi-piece-scene ship gave it more data, but the assembled-pose ship will likely tip it.
 ```
 
-**Hypothesis.** A single-file HTML preview tool is the right substrate for testing SVG authoring conventions while the eventual viewer is still upstream. Each new capability gets its own CODE_PROMPT and ships independently. Architecture call (DECISIONS #4) deferred until multi-piece scene surfaces what preview.html is actually becoming.
+**Hypothesis.** A single-file HTML preview tool is the right substrate for testing SVG authoring conventions while the eventual viewer is still upstream. Each new capability gets its own CODE_PROMPT and ships independently. Architecture call (DECISIONS #4) deferred until enough capabilities pile up to force the question.
 
 **What's shipped (relevant to current state).**
 
-- **Panels-aware parser + hinge forest** (PR #15) — `parsePanelsLayer`, `parsePanelsFirstFolds`, `buildHingeTree`, `renderPanelsFirstScene`. Dispatch banner ("panels-first ✓" / "cut-line-first (legacy)"). `parsed.panelsFirst.{panels, folds, hingeTree, attachPoints, closureAttaches, marks}` fully populated but attachPoints/marks are inert — consumed by the multi-piece scene prompt.
+- **Multi-piece scene mode** (PR #17) — `loadScene(rawIds)`, `renderSceneMulti(parsedArray)`, side-by-side baseline + pivot-cluster co-location from `connection-graph.json`. Anchor cluster (065/066/067/068/069) renders in one scene with 067+069 pivot-aligned on `pivot-anchor`. Single-piece mode unchanged.
+- **Panels-aware parser + hinge forest** (PR #15) — `parsePanelsLayer`, `parsePanelsFirstFolds`, `buildHingeTree`, `renderPanelsFirstScene`. Dispatch banner ("panels-first ✓" / "cut-line-first (legacy)"). `parsed.panelsFirst.{panels, folds, hingeTree, attachPoints, closureAttaches, marks}` fully populated; attachPoints consumed by scene mode.
 - **Fold-step + closure-attach** (PR #16) — `<step>-fold-<a>-<b>` ordinal prefix in slider labels; same-piece `attach-<panel-id>` classified as `attach-same-piece`; `closureAttaches` bundle. Console diagnostics for both.
 - **Face-graph diagnostic harness** (PR #13), **cut-trim** (PR #14), **source-of-truth piece loader** (PR M0.6.14) — all legacy-path or additive, still present.
 - **snap-only-extension** — killed (DECISIONS #6).
 
 **Open questions.**
 
-- Architecture call (DECISIONS #4: graduate into `work/viewer/`, stay separate, or replace) — deferred until after multi-piece scene shapes what preview.html is becoming.
+- Architecture call (DECISIONS #4: graduate into `work/viewer/`, stay separate, or replace) — deferred. Multi-piece scene + assembled-pose will likely settle it.
+- **Inter-piece assembled pose** — today scene mode places pieces relative to each other only via shared pivots (one cluster: `anchor`, joining 067+069). General per-edge transforms (tab/landing pose registration) is the M4 work and lives separately. Worth surfacing as a fresh track once assembled-pose ships per-piece.
 - 070 has 2 unresolved folds (`fold-panelsideb-tabb`, `fold-panelsidec-tabc`) — panel ids reference stale names from before the convention settled. Alan needs to rename `panelsideb`/`panelsidec` → `sideb`/`sidec` in 070.af.
 - 099's curved-fold sliders (`fold-insidetabs`, `fold-outsidetabs`) produce approximate movement — the sketch noted as M6-territory in the session note.
 
 **Recent log.**
 
-- 2026-05-06 (morning): `CODE_PROMPT_preview-html-multi-piece-scene.md` drafted ready-for-code. Connection-graph.json is the data source; `parsed.panelsFirst.attachPoints` is the per-piece consumer. See this session note.
+- 2026-05-06 (evening): two new CODE_PROMPTs drafted ready-for-code — `CODE_PROMPT_preview-html-assembled-pose.md` and `CODE_PROMPT_build-assembly-graph-inferred.md`. Settle the per-piece sidecar's role for assembled-state poses (preview load + save) and learned-but-not-printed cross-piece connections (audit merger with provenance). See `sessions/2026-05-06-XXXX_cowork_assembled-pose-and-inferred.md`.
+- 2026-05-06 (morning): multi-piece scene assembly shipped via PR #17. See `sessions/2026-05-06-0847_code_preview-html-multi-piece-scene.md`.
+- 2026-05-06 (morning): `CODE_PROMPT_preview-html-multi-piece-scene.md` drafted ready-for-code. Connection-graph.json is the data source; `parsed.panelsFirst.attachPoints` is the per-piece consumer.
 - 2026-05-05 (late night): panels-aware parser + fold-step/closure-attach shipped. PR #15 (23:45) + PR #16 (18:20). See `sessions/2026-05-05-2345_code_preview-html-panels-aware.md` and `sessions/2026-05-05-1820_code_preview-html-fold-step-and-closure-attach.md`.
 - 2026-05-05 (~01:15): snap-only-extension killed; panels-aware parser pathway queued. See `sessions/2026-05-05-0115_cowork_orientation-awareness-model.md`.
 - 2026-05-04: face-graph diagnostics (PR #13) + cut-trim (PR #14) shipped. Pre-charter log in WORKPLAN for earlier.
@@ -221,7 +227,9 @@ closed_reason: Superseded by claude-work/. The operations-layer goal — give th
 
 ---
 
-*Last updated: 2026-05-06 (morning) — doc-cleanup pass post-2026-05-05 sprint. Charter rollout, SVG layer authoring, preview.html iteration, and orientation/awareness model tracks updated to reflect: panels-aware parser shipped (PR #15), fold-step/closure-attach shipped (PR #16), anchor-pendulum batch done, bob batch partial, 093 split, source capture closed 123/123. Pendulum POC track killed (absorbed into authoring + multi-piece scene tracks). CODE_PROMPT_preview-html-multi-piece-scene.md drafted ready-for-code. snap-extension CODE_PROMPT archived. QUEUE.md updated with new Now #1 (multi-piece scene Code session) and Now #2 (bob batch continuation).*
+*Last updated: 2026-05-06 (evening) — assembled-pose + inferred-connections design conversation. Two new CODE_PROMPTs queued (assembled-pose preview-side, inferred-connections audit-side; DECISIONS #10 + #11 closed). LAYER-CONVENTIONS extended with "Per-piece JSON sidecar" + "Lane discipline" sections. Procedural cleanup of PR #17 (retroactive session note + flipped multi-piece-scene CODE_PROMPT to shipped). Charter rollout track flipped: CHARTER §6 commitment #2 effectively closed (anchor cluster places end-to-end).*
+
+*Earlier 2026-05-06 (morning) — doc-cleanup pass post-2026-05-05 sprint. Charter rollout, SVG layer authoring, preview.html iteration, and orientation/awareness model tracks updated to reflect: panels-aware parser shipped (PR #15), fold-step/closure-attach shipped (PR #16), anchor-pendulum batch done, bob batch partial, 093 split, source capture closed 123/123. Pendulum POC track killed (absorbed into authoring + multi-piece scene tracks). CODE_PROMPT_preview-html-multi-piece-scene.md drafted ready-for-code; shipped same morning as PR #17.*
 
 *Earlier 2026-05-05 (evening–midnight) — anchor-pendulum batch, panels-aware + fold-step ships, 093 split. See session notes `2026-05-05-2330`, `2026-05-05-2345`, `2026-05-05-2355`, `2026-05-05-1820`, `2026-05-05-1630`.*
 

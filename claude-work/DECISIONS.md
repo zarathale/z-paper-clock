@@ -129,9 +129,87 @@ A row per decision. Each row captures:
 - **Downstream:** `build_assembly_graph.py` patched (recognizes both forms; new `closure_attaches` section in connection-graph); `preview.html` parser changes queued via `CODE_PROMPT_preview-html-fold-step-and-closure-attach.md`; LAYER-CONVENTIONS.md extended (folds-section + attach-points-section + Parser-rules-section).
 - **Reopen?** closed. Stress-tested on 095; audit picks up 5 folds + 3 closure attaches cleanly.
 
+### #10 — Sidecar `connections.inferred[]` for learned-but-not-printed cross-piece connections
+
+- **Date:** 2026-05-06
+- **Decision:** Per-piece JSON sidecars (`work/pieces/NNN/NNN.json` — same file the existing `function` block lives in) gain an optional `connections.inferred[]` array. Each entry captures a cross-piece (or same-piece) relationship that the printed piece doesn't explicitly mark — knowledge from the book's instructions text, from physical assembly, or from any source other than the SVG itself. Entry shape mirrors the existing connection-graph edge shape with one new mandatory field:
+
+  ```json
+  {
+    "connections": {
+      "inferred": [
+        {
+          "kind": "attach",                                      // attach | landing | hole | pivot | attach-same-piece | landing-same-piece
+          "side": "front",                                       // optional; "front" | "back"; default "front"
+          "letter": "x",                                         // for attach/hole; null otherwise
+          "tab": null,                                           // for landing; null otherwise
+          "name": null,                                          // for pivot; null otherwise
+          "panel": null,                                         // for *-same-piece; null otherwise
+          "partner": "099",                                      // partner piece id; null for pivot/same-piece
+          "source": "instructions §II.B p. 14",                  // MANDATORY — where the knowledge came from
+          "note": "Pin from 097 actually slots through 099's main panel near landing-c."  // optional free-form
+        }
+      ]
+    }
+  }
+  ```
+
+  `build_assembly_graph.py` reads the sidecar's inferred list during piece extraction and merges it into the cross-piece graph alongside SVG-derived edges. Every edge in the output graph gains a `provenance` field — `"authored"` (from SVG) or `"inferred"` (from sidecar). Inferred edges carry `source` + (optional) `note` through to the rendered report. The Markdown report grows a "Inferred connections" section listing each piece's inferred edges with their source.
+
+  Conflict policy: if an inferred entry duplicates an authored edge (same `{from, to, kind, letter|tab|name|panel}`), the authored entry wins and the report flags the duplicate with a warning. The script does not block on conflicts — duplicates can mean Alan authored the connection on the SVG after the inferred entry was captured, in which case the inferred entry should be removed manually.
+
+  Schema is documented in `LAYER-CONVENTIONS.md` "Per-piece JSON sidecar" section.
+
+- **Why:** The connection graph only sees what's authored as SVG markup. Knowledge from the instructions text and from physically assembling pieces has no structured home — it lands in chat, cheat sheets (`claude-work/to-alan/cheats/066-068.md`), or Alan's head. With 16 panels-first pieces in the graph and the gear-train assembly ahead, that gap will widen. Inferred connections in the sidecar gives the connection graph one substrate for both printed and learned truth, preserves the faithful-trace direction (SVG = artifact-truth), and lets the audit flag "needs human re-confirmation if the SVG ever changes" via provenance.
+- **Type:** Co-authored (sidecar shape sits at the seam Alan and Claude both touch — Alan reads, Claude writes).
+- **Downstream:** `CODE_PROMPT_build-assembly-graph-inferred.md` (audit script extension); `LAYER-CONVENTIONS.md` updated with new "Per-piece JSON sidecar" section.
+- **Reopen?** closed in v1. Reopens if a real piece surfaces a connection shape the schema doesn't cover.
+
+### #11 — Sidecar `assembled.folds` for per-fold assembled-state angles
+
+- **Date:** 2026-05-06
+- **Decision:** Per-piece JSON sidecars gain an optional `assembled.folds` block: a map of fold-id → angle in degrees, capturing the assembled-state pose for each fold. The preview reads this block on piece load and uses it as the per-fold slider's default. The preview gains a "Save assembled pose" affordance that emits the current fold-slider state as a JSON snippet (copy-to-clipboard + download) for Alan to merge into the sidecar by hand — browsers can't write to disk from `preview.html`.
+
+  ```json
+  {
+    "assembled": {
+      "folds": {
+        "fold-pane1-pane2": 90,
+        "fold-pane2-pane3": 90,
+        "fold-tabaa-pane7": 180,
+        "_3-fold-pane1-pane2": 180,
+        "fold-insidetabs": 0
+      },
+      "captured": "2026-05-06T15:30:00",
+      "note": "Final assembled state per book figure 14."
+    }
+  }
+  ```
+
+  Rules:
+
+  1. **Keys are the literal SVG fold ids** — including any Affinity `_<digit>` underscore prefix (`_3-fold-pane1-pane2`). The SVG is the unambiguous reference; the parser's `_`-strip normalization is not applied here. Why: the literal id is what `parsePanelsFirstFolds` exposes on each fold object's `id` field, and what the slider's `dataset` attribute carries. Matching against literal ids avoids round-tripping through normalized form.
+  2. **Values are signed integers or floats** in degrees. Sign convention matches the existing default-angle suffix on fold-ids: **positive = layer's natural direction** (valley = dashed-in-print direction; mountain = plus-sign-in-print direction). To flip polarity for a specific fold, move the path to the other layer in the SVG — the sidecar value stays positive.
+  3. **Precedence** (preview slider default, highest first): `assembled.folds[id]` > fold-id `-<deg>` suffix > 0. The default-angle suffix on the fold id stays valid as a fallback; the sidecar overrides it.
+  4. **Optional siblings.** `captured` (ISO 8601 timestamp; informational) and `note` (free-form prose).
+
+  "Save assembled pose" UX: button in the side panel, visible only when at least one panels-first fold slider is present. Clicking shows a modal/textarea with the current `assembled.folds` block (only folds whose slider value has moved off the precedence-determined default since load are emitted; unchanged folds are omitted to keep the diff small). Two buttons: "Copy to clipboard" and "Download `<piece>.assembled.json`." Alan merges into `work/pieces/NNN/NNN.json` by hand — same workflow as merging anything Claude generates into the sidecar.
+
+  Schema is documented in `LAYER-CONVENTIONS.md` "Per-piece JSON sidecar" section.
+
+- **Why:** Per-fold validation today happens by scrubbing sliders in the preview, but the result evaporates on reload. Sidecar `assembled.folds` makes it durable and reproducible across machines, sessions, and commits. The preview becomes a tool Alan uses to *discover* the angle and *capture* it; the sidecar carries it forward.
+- **Type:** Co-authored.
+- **Downstream:** `CODE_PROMPT_preview-html-assembled-pose.md` (preview.html load + save affordance); `LAYER-CONVENTIONS.md` updated with new "Per-piece JSON sidecar" section.
+- **Out of scope (deliberately):** Inter-piece assembled transforms — where each piece sits in 3D space relative to its partners once folded — are M4 assembly-transform work and live separately. Likely shape: SE(3) transforms attached to connection-graph edges, or a top-level `assembled.json`. Per-fold pose (one piece's internal fold geometry) is the v1 deliverable here. The two compose later: each piece's `assembled.folds` settles its internal geometry; a per-edge transform settles its placement in the world.
+- **Reopen?** closed in v1.
+
 ---
 
-*Last updated: 2026-05-05 (bob-batch evening) — Decision #9 closed: fold-step prefix + same-piece closure attach via panel-id. Both extensions surfaced through 095 authoring; build_assembly_graph patched + LAYER-CONVENTIONS extended; preview.html parser changes queued.*
+*Last updated: 2026-05-06 — Decisions #10 and #11 closed: per-piece JSON sidecar gains `connections.inferred[]` (learned cross-piece connections with provenance) and `assembled.folds` (per-fold assembled-state angles, with preview load + save affordances). Two CODE_PROMPTs queued for execution. LAYER-CONVENTIONS extended.*
+
+*Earlier 2026-05-05 (bob-batch evening) — Decision #9 closed: fold-step prefix + same-piece closure attach via panel-id. Both extensions surfaced through 095 authoring; build_assembly_graph patched + LAYER-CONVENTIONS extended; preview.html parser changes queued.*
+
+*Earlier 2026-05-05 (bob-batch evening) — Decision #9 closed: fold-step prefix + same-piece closure attach via panel-id.*
 
 *Earlier 2026-05-05 — Decision #8 closed (CHARTER amendment A1 tool-acquisition directive); #7 closed (21 panels-first convention elements ratified); #6 closed (panels-first + authored-vs-derived); #5 closed (cut-trim deviation captured).*
 

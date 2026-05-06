@@ -210,6 +210,114 @@ When multiple panels match by substring, **prefer the shortest panel id** (`ai` 
 
 ---
 
+## Per-piece JSON sidecar (`NNN.json`)
+
+Per-piece JSON lives at `work/pieces/NNN/NNN.json` alongside the SVG (location tracks the SVG; would migrate with any future authoring-tree migration). The sidecar is **optional** — pieces without a sidecar render fine. Claude is the author for everything except `assembled.folds`, which the preview generates from slider state and Alan merges in by hand.
+
+Top-level keys: `function`, `assembled`, `connections`. All optional; pieces without any of them simply omit the file.
+
+### `function` block (mechanism geometry; pre-charter convention)
+
+Optional. Captures mechanism geometry — gear tooth counts, axle positions, drive relationships — for §II.B (gear train) and §II.C (anchor / pendulum / escapement) pieces only. Settled 2026-04-30 ("faithful trace + functional sidecar" — see `CLAUDE.md` Architectural Decisions). Pieces in other sections (framework, hands, weight, face, case) stay artifact-faithful with no `function` block.
+
+```json
+{
+  "function": {
+    "teeth": 60,
+    "drives": "069",
+    "anchor_unit": "escape-wheel-advance",
+    "...": "..."
+  }
+}
+```
+
+The preview surfaces this as a read-only summary in the side panel (existing behavior in `maybeLoadSidecar` / `renderFunctionBlock`). The validation script that operates on `function` blocks is queued under M2.
+
+### `assembled.folds` block (per-fold assembled-state angles)
+
+Optional. A map of fold-id → angle in degrees, capturing the assembled-state pose for each fold of this piece. The preview reads this on load and uses it as the per-fold slider's default; the preview's "Save assembled pose" affordance emits a JSON snippet that Alan merges back into the sidecar.
+
+```json
+{
+  "assembled": {
+    "folds": {
+      "fold-pane1-pane2": 90,
+      "fold-tabaa-pane7": 180,
+      "_3-fold-pane1-pane2": 180
+    },
+    "captured": "2026-05-06T15:30:00",
+    "note": "Final assembled state per book figure 14."
+  }
+}
+```
+
+Rules:
+
+- **Keys are the literal SVG fold ids.** Includes any Affinity `_<digit>` underscore prefix (`_3-fold-pane1-pane2`). Don't strip; the parser's `_`-strip normalization is for fold-id parsing, not for sidecar keying.
+- **Values are signed integers or floats** in degrees. Sign convention matches the existing default-angle suffix: positive = layer's natural direction (valley = dashed-in-print direction; mountain = plus-sign direction). To flip polarity for a fold, move the path to the other layer in the SVG; the sidecar value stays positive.
+- **Precedence for the slider default** (highest first): `assembled.folds[id]` > fold-id `-<deg>` suffix > 0.
+- **Sibling fields** `captured` (ISO 8601 timestamp; informational) and `note` (free-form) are optional.
+
+Inter-piece assembled transforms (where each piece sits in 3D space relative to its neighbors) are NOT in scope here — that's M4 assembly-transform work and lives separately. `assembled.folds` is one piece's internal geometry only.
+
+See DECISIONS #11 for the full rationale.
+
+### `connections.inferred[]` block (learned-but-not-printed connections)
+
+Optional. An array of cross-piece (or same-piece) relationships that the printed piece doesn't explicitly mark — connections learned from the book's instructions text, from physically assembling pieces, or from any source other than the SVG itself. `build_assembly_graph.py` reads this list during piece extraction and merges it into the cross-piece graph alongside SVG-derived edges, tagging each merged edge with `provenance: "authored" | "inferred"`.
+
+```json
+{
+  "connections": {
+    "inferred": [
+      {
+        "kind": "attach",
+        "side": "front",
+        "letter": "x",
+        "partner": "099",
+        "source": "instructions §II.B p. 14",
+        "note": "Pin from 097 actually slots through 099's main panel near landing-c, not through the printed letter location."
+      },
+      {
+        "kind": "attach-same-piece",
+        "side": "back",
+        "panel": "pane2",
+        "source": "bench: figured out during cylinder roll",
+        "note": "..."
+      },
+      {
+        "kind": "pivot",
+        "name": "anchor",
+        "source": "instructions §II.B",
+        "note": "068 also rotates around the anchor pivot; not printed on 068."
+      }
+    ]
+  }
+}
+```
+
+Per-entry shape:
+
+- **`kind`** (mandatory) — one of: `attach`, `landing`, `hole`, `pivot`, `attach-same-piece`, `landing-same-piece`. Same kinds the existing connection-graph uses.
+- **`side`** — `"front"` or `"back"`; default `"front"`.
+- **`letter`** — for `attach` / `hole` / `landing` (when partner has a letter form); else null.
+- **`tab`** — for `landing`; else null.
+- **`name`** — for `pivot`; else null.
+- **`panel`** — for `*-same-piece`; the panel id of THIS piece the inferred attach mates to; else null.
+- **`partner`** — partner piece id (numeric, zero-padded or bare; merger normalizes). Null for `pivot` and same-piece kinds.
+- **`source`** (MANDATORY) — free-form string identifying where the knowledge came from (`"instructions §II.B p. 14"`, `"bench: cylinder closure"`, `"derived from gear-train ratios"`).
+- **`note`** — optional free-form context.
+
+Conflict policy: if an inferred entry duplicates an authored edge (same `{from, to, kind, letter|tab|name|panel}`), the authored entry wins and the merger flags the duplicate with a warning. The script does not fail — duplicates can mean Alan authored the connection on the SVG after the inferred entry was captured, in which case the inferred entry should be removed manually.
+
+See DECISIONS #10 for the full rationale.
+
+### Where this fits in the parser pipeline
+
+The audit script reads SVG → produces authored edges → reads sidecar → produces inferred edges → merges → emits a single connection graph keyed by provenance. The preview reads SVG for geometry and sidecar for assembled-pose defaults + function-block surface. Neither Cowork nor Code modifies authored SVG-derived data based on sidecar contents — the SVG is always artifact-truth and inferred is always overlay.
+
+---
+
 ## Patterns and design rules
 
 ### Dual-presence pattern (typed landing as both panel and mark)
@@ -257,14 +365,26 @@ Example: 066 has tab `tabaa` (the closure tab that wraps the cylinder) which lan
 
 ---
 
+## Lane discipline (sidecar vs. SVG)
+
+**The SVG carries originally-authored content from the printed piece** — silhouette, cuts, panels, folds, printed labels, printed connection markers (tabs, landings, attaches, pivots). That's Alan's authoring lane and it stays artifact-faithful.
+
+**The sidecar carries everything else** — assembled-state poses, learned cross-piece connections, mechanism geometry, anything we figure out from the instructions text or by physically assembling. Schema is Claude's call (with co-authoring on shape changes per DECISIONS #3); Alan reads. New blocks land here, never in the SVG.
+
+The rule keeps the two halves cleanly separable: regenerate the SVG (Affinity export) without losing any learned context; regenerate the sidecar (audit script, preview save) without retouching authored geometry.
+
+---
+
 ## Cross-references
 
-- `claude-work/DECISIONS.md` — decision records (row #6 panels-first pivot; row #7 comprehensive convention lock-in 2026-05-05).
-- `claude-work/scripts/build_assembly_graph.py` — connection-graph extraction script; the formal parser of these conventions.
+- `claude-work/DECISIONS.md` — decision records (row #6 panels-first pivot; row #7 comprehensive convention lock-in 2026-05-05; rows #10–#11 sidecar `connections.inferred[]` + `assembled.folds`).
+- `claude-work/scripts/build_assembly_graph.py` — connection-graph extraction script; the formal parser of these conventions, also the merger for `connections.inferred[]`.
 - `claude-work/state/connection-graph.{md,json}` — current cross-piece graph + per-piece state (regenerate via the script).
 - `claude-work/CHARTER.md` — collaboration charter.
 - `CLAUDE.md` — repo working conventions (some entries are pre-pivot; defer to this doc when in conflict).
 
 ---
 
-*Last updated: 2026-05-05 — comprehensive panels-first lock-in pass after the anchor-pendulum batch (065/066/067/068/069 + 070/071/072 + 099/100). Replaces the prior cut-line-first-era version of this doc; LAYERS.md (the v0 cheat sheet from earlier the same day) consolidated and removed in the same pass. Conventions ratified by 24/24 cross-piece edges resolving cleanly across the batch.*
+*Last updated: 2026-05-06 — added "Per-piece JSON sidecar" section documenting the existing `function` block plus two new blocks (`assembled.folds` per DECISIONS #11; `connections.inferred[]` per DECISIONS #10). Added "Lane discipline" section codifying SVG-vs-sidecar split: SVG = originally-authored printed content (Alan's lane); sidecar = everything learned afterward (Claude's lane on schema). Re-authoring the SVG to capture inferred or assembled-state knowledge is explicitly out — that goes in the sidecar.*
+
+*Earlier 2026-05-05 — comprehensive panels-first lock-in pass after the anchor-pendulum batch (065/066/067/068/069 + 070/071/072 + 099/100). Replaces the prior cut-line-first-era version of this doc; LAYERS.md (the v0 cheat sheet from earlier the same day) consolidated and removed in the same pass. Conventions ratified by 24/24 cross-piece edges resolving cleanly across the batch.*

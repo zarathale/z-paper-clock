@@ -1,9 +1,12 @@
 ---
-status: ready-for-code
+status: shipped
 started: 2026-05-06
+shipped: 2026-05-06
 owner: Zarathale (Alan)
 target: preview-html-multi-piece-scene
 ---
+
+_Shipped 2026-05-06 (PR #17, commit `101f233`); paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / claude-work/STATUS.md / claude-work/QUEUE.md for current state._
 
 # CODE_PROMPT — multi-piece scene assembly in `preview.html`
 
