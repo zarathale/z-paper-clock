@@ -125,6 +125,11 @@ button:hover { background:#383838; }
       <button id="reloadPieceBtn" disabled title="Re-fetch from disk (R)">Reload</button>
     </div>
     <div id="piece-dropdown" hidden></div>
+    <div id="sceneRow" style="margin-top:4px; display:flex; align-items:center; gap:6px;">
+      <label for="sceneInput" style="white-space:nowrap; font-size:12px;">Scene:</label>
+      <input id="sceneInput" type="text" placeholder="065,066,067,068,069" style="flex:1; font-size:13px; padding:2px 4px;" />
+      <button id="loadSceneBtn" style="font-size:12px; padding:2px 6px;">Load</button>
+    </div>
     <div id="sidecar-block"></div>
   </div>
 
@@ -233,6 +238,8 @@ const canvasHost = document.getElementById('canvas-host');
 const pieceInput      = document.getElementById('pieceInput');
 const loadBtn         = document.getElementById('loadBtn');
 const reloadPieceBtn  = document.getElementById('reloadPieceBtn');
+const sceneInput      = document.getElementById('sceneInput');
+const loadSceneBtn    = document.getElementById('loadSceneBtn');
 const sidecarBlock    = document.getElementById('sidecar-block');
 const pieceDropdown   = document.getElementById('piece-dropdown');
 const dumpFaceGraphBtn          = document.getElementById('dumpFaceGraphBtn');
@@ -243,6 +250,13 @@ let   allPieceEntries = []; // [{id, notes}] sorted by piece number; populated a
 // loadPieceById, cleared back to null by drag-drop / file-picker paths so
 // `R` keypress doesn't accidentally re-fetch a stale piece).
 let currentPieceId = null;
+
+// ─── Scene mode state ─────────────────────────────────────────────────────────
+// Scene mode loads N panels-first pieces into the same scene and positions
+// them via the cross-piece connection graph (claude-work/state/connection-graph.json).
+// Consumed by loadScene + renderSceneMulti.
+let connectionGraph = null;   // populated once at startup; null = unavailable
+let sceneGroups = [];         // THREE.Groups added by the most recent loadScene call
 
 // ─── Init three.js scene ──────────────────────────────────────────────────────
 function initScene() {
@@ -437,6 +451,271 @@ function reloadCurrentPiece() {
   loadPieceById(currentPieceId, 'piece-id-reload');
 }
 
+// ─── Scene mode: multi-piece load + render ────────────────────────────────────
+// Parse `rawIds` (comma-separated list, e.g. "065,066,067,068,069"; whitespace
+// allowed; ids zero-padded to 3 digits, optional letter suffix), fetch each
+// piece's SVG from work/pieces/NNN/NNN.svg, parse them, and dispatch to
+// renderSceneMulti for placement. Single-piece state is cleared (currentPieceId
+// → null, Reload disabled) so the rotation slider and `R` keypress don't try
+// to operate on stale data.
+async function loadScene(rawIds) {
+  clearBanners();
+  const ids = String(rawIds || '')
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(s => s.length > 0)
+    .map(s => {
+      const m = s.match(/^(\d{1,3})([a-z]?)$/);
+      return m ? String(parseInt(m[1], 10)).padStart(3, '0') + m[2] : null;
+    })
+    .filter(s => s !== null);
+
+  if (ids.length === 0) {
+    addBanner('Scene: enter a comma-separated list of piece ids (e.g. 065,066,067,068,069).', 'warn');
+    return;
+  }
+
+  // Tear down single-piece state. The renderSceneMulti call below also clears
+  // any prior scene groups; this just resets the single-piece tracking so the
+  // Rotation slider, Reload button, and `R` keypress don't operate on stale
+  // data.
+  currentPieceId = null;
+  reloadPieceBtn.disabled = true;
+  parsed = null;
+  rotationSection.hidden = true;
+  hideSidecarBlock();
+
+  // Fetch + parse each piece in parallel — the fetches are independent and
+  // parseSVG is synchronous (image decode happens later, lazily).
+  const fetches = ids.map(async id => {
+    const path = `work/pieces/${id}/${id}.svg`;
+    try {
+      const resp = await fetch(path + '?t=' + Date.now());
+      if (!resp.ok) {
+        addBanner(`Scene: skipping ${id} — no SVG at ${path} (HTTP ${resp.status}).`, 'warn');
+        return null;
+      }
+      const text = await resp.text();
+      const p = parseSVG(text, `${id}.svg`);
+      if (!p) return null;
+      p._sceneId = id;
+      return p;
+    } catch (e) {
+      addBanner(`Scene: skipping ${id} — fetch failed: ${e.message}.`, 'warn');
+      return null;
+    }
+  });
+  const parsedArray = (await Promise.all(fetches)).filter(p => p !== null);
+
+  if (parsedArray.length === 0) {
+    addBanner('Scene: no pieces could be loaded.', 'error');
+    return;
+  }
+
+  await renderSceneMulti(parsedArray);
+}
+
+// Multi-piece scene assembler. Builds one panels-first sub-scene per piece,
+// places each piece's group along the X axis (5 mm gaps), then applies pivot
+// alignment from connectionGraph.graph.pivot_clusters so pieces sharing a
+// pivot marker (e.g. pivot-anchor on 067/069) co-locate at that point in
+// world space. Cut-line-first pieces are skipped with a console warning —
+// only panels-first pieces participate in scene mode in v0.
+async function renderSceneMulti(parsedArray) {
+  // ── 1. Tear down whatever's currently in the scene ────────────────────────
+  if (currentSlabPivot) {
+    scene.remove(currentSlabPivot);
+    currentSlabPivot.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) obj.material.dispose();
+    });
+    currentSlabPivot = null;
+  }
+  for (const m of currentAxleWires) {
+    scene.remove(m);
+    if (m.geometry) m.geometry.dispose();
+    if (m.material) m.material.dispose();
+  }
+  currentAxleWires = [];
+  for (const g of sceneGroups) {
+    scene.remove(g);
+    g.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) obj.material.dispose();
+    });
+  }
+  sceneGroups = [];
+
+  pathHingeMap = new Map();
+  document.getElementById('per-fold-sliders').innerHTML = '';
+  const globalFoldRow    = document.getElementById('global-fold-row');
+  const globalFoldSlider = document.getElementById('globalFoldSlider');
+  const globalFoldVal    = document.getElementById('globalFoldVal');
+  globalFoldRow.style.display = 'none';
+  globalFoldSlider.value = 0;
+  globalFoldVal.textContent = '0%';
+  if (dumpFaceGraphBtn)          dumpFaceGraphBtn.disabled = true;
+  if (toggleFaceGraphOverlayBtn) toggleFaceGraphOverlayBtn.disabled = true;
+
+  // ── 2. Use the first piece's PPM for all (avoids N image-load awaits;
+  //      derivePPM is synchronous and just sets the global MM_PER_UNIT). ────
+  const firstPanelsFirst = parsedArray.find(p => p && p.panelsFirst);
+  if (!firstPanelsFirst) {
+    addBanner('Scene: no panels-first pieces in the list — scene mode requires panels-first authoring.', 'error');
+    return;
+  }
+  await new Promise(resolve => derivePPM(firstPanelsFirst, resolve));
+
+  // ── 3. Build one group per piece (panels-first only). The function returns
+  //      a THREE.Group containing pivot + axle wires; we'll position it later. ─
+  const placedPieces = [];   // { id, parsed, group, attachPoints[], silBbox }
+  const skipped      = [];   // ids that fell through to cut-line-first
+  for (const p of parsedArray) {
+    const id = p._sceneId;
+    if (!p.panelsFirst) {
+      console.warn('[scene] skipping', id, '— cut-line-first piece (scene mode v0 is panels-first only)');
+      skipped.push(id);
+      continue;
+    }
+    parsed = p;  // buildSlab reads parsed.scanPng for the front-face texture
+    VB = p.viewBox;
+    const group = await renderPanelsFirstScene(p, { sceneMode: true, pieceIdPrefix: id });
+    if (!group) continue;
+    placedPieces.push({
+      id, parsed: p, group,
+      attachPoints: p.panelsFirst.attachPoints || [],
+      silBbox: group.userData.silBbox
+    });
+  }
+
+  if (placedPieces.length === 0) {
+    addBanner('Scene: no pieces could be rendered (all panels-first parsers returned null).', 'error');
+    return;
+  }
+
+  // ── 4. Initial placement: side-by-side along X with 5 mm gaps. Each
+  //      piece's content is centered at its silBbox center; we place the
+  //      group's origin so the piece's bbox sits at the running offset. ──
+  const GAP_MM = 5;
+  let offsetX = 0;
+  const groupExtents = new Map();   // id → { width, height }
+  for (const pp of placedPieces) {
+    const widthMm  = (pp.silBbox.maxX - pp.silBbox.minX) * MM_PER_UNIT;
+    const heightMm = (pp.silBbox.maxY - pp.silBbox.minY) * MM_PER_UNIT;
+    groupExtents.set(pp.id, { width: widthMm, height: heightMm });
+    pp.group.position.set(offsetX + widthMm / 2, 0, 0);
+    offsetX += widthMm + GAP_MM;
+  }
+
+  // ── 5. Pivot alignment. For each pivot cluster in the connection graph,
+  //      find the pieces in placedPieces that appear in the cluster and
+  //      align them so their `pivot-<name>` centroids coincide. The first
+  //      piece in the cluster is the anchor (don't move); each subsequent
+  //      piece shifts so its pivot-marker world position matches the
+  //      anchor's. ──────────────────────────────────────────────────────────
+  const placedById = new Map(placedPieces.map(pp => [pp.id, pp]));
+  const pivotAlignments = [];
+  const pivotClusters = (connectionGraph && connectionGraph.graph &&
+                         connectionGraph.graph.pivot_clusters) || null;
+  if (pivotClusters) {
+    for (const [pivotName, pieceIds] of Object.entries(pivotClusters)) {
+      const present = pieceIds.filter(id => placedById.has(id));
+      if (present.length < 2) continue;
+      const anchorId = present[0];
+      const anchorPP = placedById.get(anchorId);
+      const anchorAP = anchorPP.attachPoints.find(
+        ap => ap.id === 'pivot-' + pivotName || ap.id === 'back-pivot-' + pivotName
+      );
+      if (!anchorAP || !anchorAP.centroid) {
+        console.warn('[scene] pivot-' + pivotName + ': anchor', anchorId,
+                     'has no parsable pivot marker centroid; skipping cluster');
+        continue;
+      }
+      const aWX = (anchorAP.centroid.x - anchorPP.silBbox.cx) * MM_PER_UNIT + anchorPP.group.position.x;
+      const aWY = -(anchorAP.centroid.y - anchorPP.silBbox.cy) * MM_PER_UNIT + anchorPP.group.position.y;
+
+      for (let i = 1; i < present.length; i++) {
+        const otherId = present[i];
+        const otherPP = placedById.get(otherId);
+        const otherAP = otherPP.attachPoints.find(
+          ap => ap.id === 'pivot-' + pivotName || ap.id === 'back-pivot-' + pivotName
+        );
+        if (!otherAP || !otherAP.centroid) {
+          console.warn('[scene] pivot-' + pivotName + ': piece', otherId,
+                       'has no parsable pivot marker centroid; skipping');
+          continue;
+        }
+        const oWX = (otherAP.centroid.x - otherPP.silBbox.cx) * MM_PER_UNIT + otherPP.group.position.x;
+        const oWY = -(otherAP.centroid.y - otherPP.silBbox.cy) * MM_PER_UNIT + otherPP.group.position.y;
+        const dx = aWX - oWX;
+        const dy = aWY - oWY;
+        otherPP.group.position.x += dx;
+        otherPP.group.position.y += dy;
+        pivotAlignments.push({ pivot: pivotName, anchor: anchorId, moved: otherId, dx, dy });
+      }
+    }
+  }
+
+  // ── 6. Add all groups to the scene + track for cleanup. ──────────────────
+  for (const pp of placedPieces) {
+    scene.add(pp.group);
+    sceneGroups.push(pp.group);
+  }
+
+  // ── 7. Frame camera over the union bbox. ─────────────────────────────────
+  const unionBox = new THREE.Box3();
+  for (const pp of placedPieces) {
+    pp.group.updateMatrixWorld(true);
+    const b = new THREE.Box3().setFromObject(pp.group);
+    unionBox.union(b);
+  }
+  if (!unionBox.isEmpty()) {
+    const center = unionBox.getCenter(new THREE.Vector3());
+    const size   = unionBox.getSize(new THREE.Vector3());
+    const diag   = Math.hypot(size.x, size.y) || 1;
+    const fovRad = camera.fov * Math.PI / 180;
+    const dist   = (diag / 2) / Math.tan(fovRad / 2) * 1.4;
+    camera.position.set(center.x, center.y, dist);
+    camera.near = dist * 0.001;
+    camera.far  = dist * 100;
+    camera.updateProjectionMatrix();
+    controls.target.set(center.x, center.y, 0);
+    controls.update();
+  }
+
+  // Show the global fold slider if any piece contributed folds.
+  if (pathHingeMap.size > 0) globalFoldRow.style.display = '';
+
+  requestRender();
+
+  // ── 8. Banners + console summary. ────────────────────────────────────────
+  const graphLabel = pivotClusters ? '' : ' (no graph)';
+  addBanner('Scene: ' + placedPieces.length + ' piece' +
+            (placedPieces.length === 1 ? '' : 's') + graphLabel, 'ok');
+  if (skipped.length > 0) {
+    addBanner('Scene: skipped (cut-line-first) — ' + skipped.join(', '), 'warn');
+  }
+
+  console.log('[scene] loaded', placedPieces.length, 'pieces:',
+              placedPieces.map(pp => pp.id).join(' '));
+  for (const a of pivotAlignments) {
+    console.log('[scene] pivot-' + a.pivot + ': pieces ' + a.anchor + ',' + a.moved +
+                ' — aligned (delta: {x: ' + a.dx.toFixed(3) + ', y: ' + a.dy.toFixed(3) + '})');
+  }
+  if (pivotClusters && pivotAlignments.length === 0) {
+    console.log('[scene] no pivot clusters matched the loaded set — using side-by-side placement');
+  }
+  if (connectionGraph && connectionGraph.graph && Array.isArray(connectionGraph.graph.edges)) {
+    const placedSet = new Set(placedPieces.map(pp => pp.id));
+    const totalEdges = connectionGraph.graph.edges.length;
+    const inSceneEdges = connectionGraph.graph.edges.filter(
+      e => placedSet.has(e.from) && placedSet.has(e.to) && e.valid
+    ).length;
+    console.log('[scene] cross-piece edges in scene: ' + inSceneEdges +
+                ' valid (out of ' + totalEdges + ' total in graph)');
+  }
+}
+
 // Optional sidecar surfacing: if work/pieces/NNN/NNN.json exists with a
 // `function` block (gear / pinion metadata, settled 2026-04-30), render a
 // terse read-only summary in the side panel. Silent on any failure.
@@ -568,6 +847,8 @@ function moveAcHighlight(dir) {
 // ─── Piece-section event wiring ───────────────────────────────────────────────
 loadBtn.addEventListener('click', () => { loadPieceById(pieceInput.value); closeDropdown(); });
 reloadPieceBtn.addEventListener('click', () => reloadCurrentPiece());
+loadSceneBtn.addEventListener('click', () => loadScene(sceneInput.value));
+sceneInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadScene(sceneInput.value); });
 
 pieceInput.addEventListener('input', () => renderDropdown(pieceInput.value));
 pieceInput.addEventListener('focus', () => renderDropdown(pieceInput.value));
@@ -2430,6 +2711,9 @@ function parsePanelsFirstAttachPoints(layerEl, panels) {
       }
     }
     const entry = { id, element: el.tagName.toLowerCase(), side };
+    // Centroid in viewBox coords; consumed by multi-piece scene assembly to
+    // align pieces sharing the same pivot marker (e.g. pivot-anchor on 067/069).
+    entry.centroid = elementCentroid(el);
     // Same-piece closure detection: structural-prefix suffix matches a panel id.
     if (s.startsWith('attach-')) {
       const suffix = s.slice('attach-'.length);
@@ -2468,11 +2752,25 @@ function parsePanelsFirstMarks(layerEl) {
 // bundle instead of deriving them from cut-trim. Curved folds wrap their host
 // panel's slab with an extra rotator group so the slider produces approximate
 // movement (CODE_PROMPT task 7 — "non-broken is the bar").
-async function renderPanelsFirstScene(p) {
+//
+// `options.sceneMode` (default false): when true, the function builds a slab
+// pivot + axle wires inside a returnable parent THREE.Group instead of adding
+// directly to `scene` / `currentSlabPivot`. The caller (renderSceneMulti)
+// positions the group in world space using cross-piece pivot data. In sceneMode
+// the function also (a) skips clearing pathHingeMap so multiple pieces' folds
+// merge into one map, (b) prefixes each fold's pathHingeMap key with
+// `options.pieceIdPrefix + ':'` so pieces' fold ids don't collide, (c) appends
+// slider rows to #per-fold-sliders without clearing, and (d) skips camera
+// framing + rotation slider visibility (the caller manages both).
+async function renderPanelsFirstScene(p, options = {}) {
+  const sceneMode = options.sceneMode === true;
+  const pieceIdPrefix = sceneMode ? (options.pieceIdPrefix || '') : '';
+  const prefixKey = (id) => sceneMode && pieceIdPrefix ? pieceIdPrefix + ':' + id : id;
+
   const pf = p.panelsFirst;
   if (!pf || pf.panels.size === 0) {
     addBanner('panels-first dispatched but no panels found — bug.', 'error');
-    return;
+    return null;
   }
 
   VB = p.viewBox;
@@ -2504,7 +2802,9 @@ async function renderPanelsFirstScene(p) {
   const pivot = new THREE.Group();
   if (activeAxle3js) pivot.position.set(activeAxle3js.x, activeAxle3js.y, 0);
 
-  pathHingeMap = new Map();
+  // In sceneMode the caller resets pathHingeMap once before invoking us per
+  // piece; resetting it here would clobber earlier pieces' entries.
+  if (!sceneMode) pathHingeMap = new Map();
 
   // Build slab per panel (front + back + side meshes from buildSlab — already
   // centered at the polygon's bbox center in 3js space).
@@ -2557,7 +2857,7 @@ async function renderPanelsFirstScene(p) {
       wrapper.userData.axis = axis;
       wrapper.add(outer);
       outer = wrapper;
-      pathHingeMap.set(cf.id, [{ target: wrapper, axis, mode: 'curved' }]);
+      pathHingeMap.set(prefixKey(cf.id), [{ target: wrapper, axis, mode: 'curved' }]);
     }
     return outer;
   }
@@ -2659,8 +2959,9 @@ async function renderPanelsFirstScene(p) {
         hinge.add(placeAt(childSlab, childId, childPanel.bbox, cx, cy));
         parentSlab.add(hinge);
 
-        if (!pathHingeMap.has(fold.id)) pathHingeMap.set(fold.id, []);
-        pathHingeMap.get(fold.id).push({ target: hinge, axis, signFwd, mode: 'fold' });
+        const pkey = prefixKey(fold.id);
+        if (!pathHingeMap.has(pkey)) pathHingeMap.set(pkey, []);
+        pathHingeMap.get(pkey).push({ target: hinge, axis, signFwd, mode: 'fold' });
 
         queue.push(childId);
       }
@@ -2676,8 +2977,20 @@ async function renderPanelsFirstScene(p) {
     addBanner('Fold ' + f.id + ' would create a cycle (' + f.a + ' ↔ ' + f.b + ') — slider disabled.', 'warn');
   }
 
-  scene.add(pivot);
-  currentSlabPivot = pivot;
+  // Scene-mode wrapper: a parent group containing pivot + axle wires together,
+  // returned to the caller who positions it in world space and tracks it for
+  // cleanup. In single-piece mode the pivot/wires go straight into `scene`.
+  let sceneGroup = null;
+  if (sceneMode) {
+    sceneGroup = new THREE.Group();
+    sceneGroup.add(pivot);
+    sceneGroup.userData.silBbox = silBbox;
+    sceneGroup.userData.pieceId = pieceIdPrefix;
+    sceneGroup.userData.attachPoints = pf.attachPoints || [];
+  } else {
+    scene.add(pivot);
+    currentSlabPivot = pivot;
+  }
 
   // ── Axle wires (world-anchored, outside pivot — same as cut-line-first) ────
   for (const { cx, cy } of p.axles) {
@@ -2686,25 +2999,33 @@ async function renderPanelsFirstScene(p) {
       -(cy - silBbox.cy) * MM_PER_UNIT,
       T
     );
-    scene.add(wire);
-    currentAxleWires.push(wire);
+    if (sceneMode) {
+      sceneGroup.add(wire);
+    } else {
+      scene.add(wire);
+      currentAxleWires.push(wire);
+    }
   }
 
   // ── Fold sliders UI ─────────────────────────────────────────────────────────
+  // In sceneMode the caller clears #per-fold-sliders once before invoking us
+  // per piece, so each piece's rows append in order.
   const globalFoldRow    = document.getElementById('global-fold-row');
   const perFoldSliders   = document.getElementById('per-fold-sliders');
   const globalFoldSlider = document.getElementById('globalFoldSlider');
   const globalFoldVal    = document.getElementById('globalFoldVal');
 
-  perFoldSliders.innerHTML = '';
+  if (!sceneMode) perFoldSliders.innerHTML = '';
   if (pathHingeMap.size > 0) {
     globalFoldRow.style.display = '';
-    globalFoldSlider.value = 0;
-    globalFoldVal.textContent = '0%';
+    if (!sceneMode) {
+      globalFoldSlider.value = 0;
+      globalFoldVal.textContent = '0%';
+    }
 
     const seen = new Set();
     for (const fold of pf.folds) {
-      const pid = fold.id;
+      const pid = prefixKey(fold.id);
       if (seen.has(pid) || !pathHingeMap.has(pid)) continue;
       seen.add(pid);
 
@@ -2722,8 +3043,10 @@ async function renderPanelsFirstScene(p) {
         displayLabel = (fold.step != null ? fold.step + '-' : '') +
           'fold-' + fold.a + '-' + fold.b;
       } else {
-        displayLabel = pid.startsWith('_') ? pid.slice(1) : pid;
+        const baseId = fold.id;
+        displayLabel = baseId.startsWith('_') ? baseId.slice(1) : baseId;
       }
+      if (sceneMode && pieceIdPrefix) displayLabel = pieceIdPrefix + ':' + displayLabel;
 
       const row = document.createElement('div');
       row.className = 'slider-row';
@@ -2768,33 +3091,41 @@ async function renderPanelsFirstScene(p) {
     globalFoldRow.style.display = 'none';
   }
 
-  // Rotation slider visibility (axle pivot)
-  rotationSection.hidden = (p.axles.length === 0);
-  if (p.axles.length > 0) {
-    const deg = parseFloat(rotateSlider.value) || 0;
-    pivot.rotation.z = -deg * Math.PI / 180;
+  // Rotation slider only meaningful in single-piece mode (one axle drives one
+  // pivot). Scene mode has multiple pieces with potentially multiple axles —
+  // the caller hides the rotation section.
+  if (!sceneMode) {
+    rotationSection.hidden = (p.axles.length === 0);
+    if (p.axles.length > 0) {
+      const deg = parseFloat(rotateSlider.value) || 0;
+      pivot.rotation.z = -deg * Math.PI / 180;
+    }
   }
 
-  // ── Frame camera ────────────────────────────────────────────────────────────
-  const diagUnits = Math.hypot(
-    (silBbox.maxX - silBbox.minX) * MM_PER_UNIT,
-    (silBbox.maxY - silBbox.minY) * MM_PER_UNIT
-  );
-  const fovRad = camera.fov * Math.PI / 180;
-  const dist = (diagUnits / 2) / Math.tan(fovRad / 2) * 1.3;
-  camera.position.set(0, 0, dist);
-  camera.near = dist * 0.001;
-  camera.far  = dist * 100;
-  camera.updateProjectionMatrix();
-  controls.target.set(0, 0, 0);
-  controls.update();
+  // ── Frame camera (single-piece mode only; renderSceneMulti frames the
+  // union of all groups after positioning is complete). ─────────────────────
+  if (!sceneMode) {
+    const diagUnits = Math.hypot(
+      (silBbox.maxX - silBbox.minX) * MM_PER_UNIT,
+      (silBbox.maxY - silBbox.minY) * MM_PER_UNIT
+    );
+    const fovRad = camera.fov * Math.PI / 180;
+    const dist = (diagUnits / 2) / Math.tan(fovRad / 2) * 1.3;
+    camera.position.set(0, 0, dist);
+    camera.near = dist * 0.001;
+    camera.far  = dist * 100;
+    camera.updateProjectionMatrix();
+    controls.target.set(0, 0, 0);
+    controls.update();
+  }
   requestRender();
 
   // ── Console diagnostics ────────────────────────────────────────────────────
   const vFolds = pf.folds.filter(f => f.polarity === 'valley').length;
   const mFolds = pf.folds.filter(f => f.polarity === 'mountain').length;
   const subRootsStr = pf.hingeTree.subRoots.join(', ') || '<none>';
-  console.log('[panels-first] Loaded', p.filename);
+  const logTag = sceneMode ? '[panels-first][scene:' + pieceIdPrefix + ']' : '[panels-first]';
+  console.log(logTag, 'Loaded', p.filename);
   console.log('  panels:', pf.panels.size, '—', [...pf.panels.keys()].join(', '));
   console.log('  folds:', pf.folds.length, '(' + vFolds, 'valley +', mFolds, 'mountain)');
   const stepSet = [...new Set(pf.folds.map(f => f.step).filter(s => s != null))].sort((a, b) => a - b);
@@ -2812,14 +3143,20 @@ async function renderPanelsFirstScene(p) {
   }
 
   // ── Banners (green info, sort to bottom) ───────────────────────────────────
-  addBanner('panels-first ✓ — ' + pf.panels.size + ' panels, ' + pf.folds.length +
-            ' folds, root: ' + (pf.hingeTree.root || '<none>'), 'ok');
-  if (p.axles.length === 0)              addBanner('No axles — rotation slider hidden.', 'ok');
-  if (p.thicknessSource === 'default')   addBanner('Thickness: 0.4 mm default (no thickness layer in SVG).', 'ok');
+  // Scene mode emits one summary banner per scene from renderSceneMulti, so
+  // we suppress the per-piece banners here to keep the panel uncluttered.
+  if (!sceneMode) {
+    addBanner('panels-first ✓ — ' + pf.panels.size + ' panels, ' + pf.folds.length +
+              ' folds, root: ' + (pf.hingeTree.root || '<none>'), 'ok');
+    if (p.axles.length === 0)              addBanner('No axles — rotation slider hidden.', 'ok');
+    if (p.thicknessSource === 'default')   addBanner('Thickness: 0.4 mm default (no thickness layer in SVG).', 'ok');
+  }
 
   // Diagnostics buttons stay disabled — they're cut-line-first instrumentation.
   if (dumpFaceGraphBtn)          dumpFaceGraphBtn.disabled = true;
   if (toggleFaceGraphOverlayBtn) toggleFaceGraphOverlayBtn.disabled = true;
+
+  return sceneMode ? sceneGroup : null;
 }
 
 // ─── Axle wire builder ────────────────────────────────────────────────────────
@@ -2859,9 +3196,11 @@ async function renderScene(p) {
   if (toggleFaceGraphOverlayBtn) toggleFaceGraphOverlayBtn.disabled = true;
 
   // Clear previous slab + axle markers, disposing their GPU resources.
-  // The scan texture is cached in _scanTexCache and disposed there; the slab's
-  // material references it via `map`, so we don't dispose the texture here —
-  // disposing the material is enough to release the JS-side reference.
+  // The scan texture is cached in _scanTexCache; we leave it alone so the
+  // scan stays available for re-loads (and so multi-piece scenes don't double-
+  // dispose textures shared across pieces). Disposing the material releases
+  // the JS-side reference; the GPU upload is freed when the texture itself is
+  // disposed (next time the cache is rebuilt with a different scanPng).
   if (currentSlabPivot) {
     scene.remove(currentSlabPivot);
     currentSlabPivot.traverse(obj => {
@@ -2876,6 +3215,17 @@ async function renderScene(p) {
     if (m.material) m.material.dispose();
   }
   currentAxleWires = [];
+  // A fresh single-piece render also tears down any prior multi-piece scene
+  // groups so loading a single piece after a scene leaves only the new slab
+  // in the world.
+  for (const g of sceneGroups) {
+    scene.remove(g);
+    g.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) obj.material.dispose();
+    });
+  }
+  sceneGroups = [];
 
   // ── Panels-first vs cut-line-first dispatch ────────────────────────────────
   // Settled 2026-05-05 (DECISIONS #6 + #7). Pieces with a non-empty <g id="panels">
@@ -3356,15 +3706,14 @@ function buildSlab(polygon, thicknessMm) {
 }
 
 // ─── Scan texture builder ─────────────────────────────────────────────────────
-let _scanTexCache = null;
-let _scanTexCacheSrc = null;
+// Keyed by Image object so a multi-piece scene can keep N pieces' scan textures
+// alive simultaneously (each slab's material references the texture for its
+// own piece's scan; one shared cache would cause pieces 2..N to thrash texture
+// uploads and leave earlier slabs holding disposed-texture references).
+const _scanTexCache = new Map();  // scanPng (HTMLImageElement) → THREE.Texture
 function buildScanTexture(scanPng) {
   if (!scanPng) return null;
-  // Reuse the cached texture when the same Image is requested (e.g. thickness-slider
-  // rebuilds): three.js's GPU upload is one-shot per Texture; re-creating it on every
-  // rebuild was wasted work even before render-on-demand.
-  if (_scanTexCache && _scanTexCacheSrc === scanPng) return _scanTexCache;
-  if (_scanTexCache) { _scanTexCache.dispose(); _scanTexCache = null; }
+  if (_scanTexCache.has(scanPng)) return _scanTexCache.get(scanPng);
   const tex = new THREE.Texture(scanPng);
   tex.needsUpdate = true;
   // tex.flipY defaults to true: HTML image row 0 (visual top) lands at UV v=1.
@@ -3380,8 +3729,7 @@ function buildScanTexture(scanPng) {
       requestRender();
     }, { once: true });
   }
-  _scanTexCache = tex;
-  _scanTexCacheSrc = scanPng;
+  _scanTexCache.set(scanPng, tex);
   return tex;
 }
 
@@ -3742,6 +4090,13 @@ setupFaceGraphDiagnostics();
 
 // Best-effort autocomplete population (silent on file://).
 populatePieceDatalist();
+
+// Fire-and-forget connection-graph load. Scene mode degrades to side-by-side
+// placement (no pivot alignment) when the file is unreachable.
+fetch('claude-work/state/connection-graph.json')
+  .then(r => r.ok ? r.json() : null)
+  .then(g => { connectionGraph = g; })
+  .catch(() => {});
 
 // URL-param auto-load: ?piece=069 → fetch + render on first load.
 // Bookmark / share-link surface; localStorage isn't used.
