@@ -1,9 +1,12 @@
 ---
-status: ready-for-code
+status: shipped
 started: 2026-05-06
+shipped: 2026-05-06
 owner: Zarathale (Alan)
 target: build-assembly-graph-inferred
 ---
+
+_Shipped 2026-05-06; paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / ROADMAP.md for current state._
 
 # CODE_PROMPT — `connections.inferred[]` merge in `build_assembly_graph.py`
 
