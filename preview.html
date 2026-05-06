@@ -894,10 +894,12 @@ function parseSVG(text, filename) {
     if (panelsMap.size > 0) {
       const pfFolds = parsePanelsFirstFolds(layerValley, layerMountain, panelsMap);
       const hingeTree = buildHingeTree(panelsMap, pfFolds);
+      const attachBundle = parsePanelsFirstAttachPoints(layerAttach, panelsMap);
       panelsFirst = {
         panels: panelsMap, folds: pfFolds, hingeTree,
         // Inert today; consumed by the next prompt's multi-piece scene assembly.
-        attachPoints: parsePanelsFirstAttachPoints(layerAttach),
+        attachPoints: attachBundle.attachPoints,
+        closureAttaches: attachBundle.closureAttaches,
         marks: parsePanelsFirstMarks(layerMarks),
       };
     }
@@ -2272,8 +2274,24 @@ function parsePanelsFirstFolds(layerValley, layerMountain, panels) {
     for (const el of layerEl.querySelectorAll('[id]')) {
       const id = el.getAttribute('id') || '';
       if (!id || id === 'folds-valley' || id === 'folds-mountain') continue;
-      if (!id.startsWith('fold-')) continue;
-      const rest = id.slice('fold-'.length);
+      // Affinity Designer prefixes ids beginning with a digit with `_` for SVG-spec
+      // compliance (the author's literal sits in `serif:id` on the same element).
+      // Strip the leading `_` to recover the authored form for parsing.
+      const normalized = id.startsWith('_') ? id.slice(1) : id;
+      // Optional leading `<step>-` ordinal (positive integer + hyphen) before
+      // `fold-`. Same step number across folds = "fire simultaneously" in a
+      // phased fold sequence (introduced 2026-05-05 with piece 095).
+      let step = null;
+      let rest;
+      const stepMatch = normalized.match(/^(\d+)-fold-(.*)$/);
+      if (stepMatch) {
+        step = parseInt(stepMatch[1], 10);
+        rest = stepMatch[2];
+      } else if (normalized.startsWith('fold-')) {
+        rest = normalized.slice('fold-'.length);
+      } else {
+        continue;
+      }
       const pair = resolvePanelPair(rest, panels);
       const fold = {
         id, polarity,
@@ -2282,6 +2300,7 @@ function parsePanelsFirstFolds(layerValley, layerMountain, panels) {
         descriptive: pair ? null : rest,
         defaultAngle: pair ? pair.defaultAngle : null,
         geometry: null,
+        step,
         sourceIndex: out.length
       };
       const tag = el.tagName.toLowerCase();
@@ -2384,15 +2403,52 @@ function buildHingeTree(panels, folds) {
 // Inert today; consumed by the next prompt's multi-piece scene assembly. We
 // stash the raw ids so the connection-graph parser can run when needed without
 // re-walking the SVG.
-function parsePanelsFirstAttachPoints(layerEl) {
-  if (!layerEl) return [];
-  const out = [];
+//
+// Same-piece closure resolution (introduced 2026-05-05 with piece 095): when
+// `panels` is provided, an id of form `attach-<panel-id>` (or `back-attach-<panel-id>`,
+// `landing-<panel-id>`, `back-landing-<panel-id>`) where `<panel-id>` matches a
+// known panel of THIS piece is classified as same-piece (closure attach / closure
+// landing). Otherwise it falls through to the cross-piece `<letter><piece>` shape
+// that the future multi-piece assembler will resolve. Mirrors `parse_connection_id`
+// in claude-work/scripts/build_assembly_graph.py.
+function parsePanelsFirstAttachPoints(layerEl, panels) {
+  const attachPoints = [];
+  const closureAttaches = [];
+  if (!layerEl) return { attachPoints, closureAttaches };
+  const panelsMap = panels || new Map();
   for (const el of layerEl.querySelectorAll('[id]')) {
     const id = el.getAttribute('id') || '';
     if (!id || id === 'attach-points') continue;
-    out.push({ id, element: el.tagName.toLowerCase() });
+    // Side annotation: leading `back-` followed by a recognized prefix marks
+    // the back side; strip and parse the rest as standard.
+    let side = 'front';
+    let s = id;
+    if (s.startsWith('back-')) {
+      const rest = s.slice('back-'.length);
+      for (const prefix of ['landing-', 'tab-', 'attach-', 'hole-', 'pivot-']) {
+        if (rest.startsWith(prefix)) { side = 'back'; s = rest; break; }
+      }
+    }
+    const entry = { id, element: el.tagName.toLowerCase(), side };
+    // Same-piece closure detection: structural-prefix suffix matches a panel id.
+    if (s.startsWith('attach-')) {
+      const suffix = s.slice('attach-'.length);
+      if (panelsMap.has(suffix)) {
+        entry.kind = 'attach-same-piece';
+        entry.panel = suffix;
+        closureAttaches.push({ id, side, panel: suffix, kind: 'attach-same-piece' });
+      }
+    } else if (s.startsWith('landing-')) {
+      const suffix = s.slice('landing-'.length);
+      if (panelsMap.has(suffix)) {
+        entry.kind = 'landing-same-piece';
+        entry.panel = suffix;
+        closureAttaches.push({ id, side, panel: suffix, kind: 'landing-same-piece' });
+      }
+    }
+    attachPoints.push(entry);
   }
-  return out;
+  return { attachPoints, closureAttaches };
 }
 
 function parsePanelsFirstMarks(layerEl) {
@@ -2658,6 +2714,17 @@ async function renderPanelsFirstScene(p) {
       const defAngle = fold.defaultAngle != null ? fold.defaultAngle : layerDefault;
       const isAuthored = fold.defaultAngle != null;
 
+      // Synthesized display label: include the fold-step ordinal when present.
+      // For two-panel folds: "<step>-fold-<a>-<b>" or "fold-<a>-<b>".
+      // For descriptive/unmatched folds: strip Affinity's `_` prefix from the raw id.
+      let displayLabel;
+      if (fold.a && fold.b) {
+        displayLabel = (fold.step != null ? fold.step + '-' : '') +
+          'fold-' + fold.a + '-' + fold.b;
+      } else {
+        displayLabel = pid.startsWith('_') ? pid.slice(1) : pid;
+      }
+
       const row = document.createElement('div');
       row.className = 'slider-row';
       row.dataset.pathId = pid;
@@ -2668,7 +2735,7 @@ async function renderPanelsFirstScene(p) {
         : '';
       row.innerHTML =
         '<label style="min-width:90px;font-size:11px;overflow:hidden;text-overflow:ellipsis" ' +
-          'title="' + pid + (isCurved ? ' (curved fold; v0 sketch)' : '') + '">' + pid + '</label>' +
+          'title="' + displayLabel + (isCurved ? ' (curved fold; v0 sketch)' : '') + '">' + displayLabel + '</label>' +
         '<input type="range" min="-180" max="180" step="1" value="0">' +
         '<span class="val">0°</span>' +
         '<span style="color:#666;font-size:10px;min-width:22px">×' + items.length + '</span>' +
@@ -2730,10 +2797,19 @@ async function renderPanelsFirstScene(p) {
   console.log('[panels-first] Loaded', p.filename);
   console.log('  panels:', pf.panels.size, '—', [...pf.panels.keys()].join(', '));
   console.log('  folds:', pf.folds.length, '(' + vFolds, 'valley +', mFolds, 'mountain)');
+  const stepSet = [...new Set(pf.folds.map(f => f.step).filter(s => s != null))].sort((a, b) => a - b);
+  if (stepSet.length > 0) {
+    console.log('  fold-steps:', '[' + stepSet.join(', ') + ']');
+  }
   console.log('  hinge forest sub-roots:', subRootsStr,
               '| descriptive:', pf.hingeTree.descriptiveFolds.length,
               '| cycle:', pf.hingeTree.cycleFolds.length);
   console.log('  attach-points:', pf.attachPoints.length, '| marks:', pf.marks.length);
+  const closure = pf.closureAttaches || [];
+  if (closure.length > 0) {
+    console.log('  closure-attaches:', closure.length,
+                '(' + closure.map(c => c.id).join(', ') + ')');
+  }
 
   // ── Banners (green info, sort to bottom) ───────────────────────────────────
   addBanner('panels-first ✓ — ' + pf.panels.size + ' panels, ' + pf.folds.length +
