@@ -152,6 +152,11 @@ button:hover { background:#383838; }
     </div>
     <!-- per-fold sliders: cleared + rebuilt by renderScene -->
     <div id="per-fold-sliders"></div>
+    <!-- save assembled pose: visible only in single-piece panels-first mode (DECISIONS #11) -->
+    <div id="save-pose-row" class="slider-row" style="display:none; justify-content:flex-end; gap:6px;">
+      <button id="savePoseBtn" title="Capture all per-fold slider values into a JSON snippet for sidecar merge"
+              style="font-size:11px; padding:2px 8px;">Save assembled pose</button>
+    </div>
   </div>
 
   <div id="thickness-section">
@@ -250,6 +255,13 @@ let   allPieceEntries = []; // [{id, notes}] sorted by piece number; populated a
 // loadPieceById, cleared back to null by drag-drop / file-picker paths so
 // `R` keypress doesn't accidentally re-fetch a stale piece).
 let currentPieceId = null;
+
+// Loaded sidecar's assembled.folds map for the current single-piece load,
+// or null if no sidecar / no assembled block. Keyed by literal SVG fold id
+// (including any Affinity `_` underscore prefix). Read by renderPanelsFirstScene
+// when building per-fold sliders. Scene mode skips this — assembled poses
+// across multiple pieces in a scene is a follow-up.
+let currentAssembledFolds = null;
 
 // ─── Scene mode state ─────────────────────────────────────────────────────────
 // Scene mode loads N panels-first pieces into the same scene and positions
@@ -362,6 +374,14 @@ function loadSvgFromString(text, opts = {}) {
   lastFileText = text;
   lastFilename = displayName;
 
+  // Drag-drop / file-picker / cached-reload paths bypass the piece-id loader,
+  // so the assembled.folds map (loaded only by maybeLoadSidecar in the piece-id
+  // path) must be cleared here too. Otherwise a reload after drag-drop would
+  // leak the prior piece's saved pose into the new SVG's slider defaults.
+  if (source === 'drag-drop' || source === 'file-picker' || source === 'cached-reload') {
+    currentAssembledFolds = null;
+  }
+
   // Drag-drop / file-picker paths flip the dropzone to a "loaded" state with
   // an in-zone Reload that re-renders the cached text. Piece-id / URL-param
   // paths leave the dropzone alone — its disk-fetch Reload lives in the
@@ -442,8 +462,12 @@ async function loadPieceById(rawId, source = 'piece-id') {
   pieceInput.value = id;
   reloadPieceBtn.disabled = false;
   history.replaceState(null, '', `?piece=${id}`);
-  loadSvgFromString(svgText, { source, pieceId: id, filename: `${id}.svg` });
+  // Sidecar fetched BEFORE loadSvgFromString so currentAssembledFolds is
+  // populated before renderPanelsFirstScene builds per-fold sliders. Drag-drop
+  // and file-picker paths skip this step (no piece id) and currentAssembledFolds
+  // stays null — the slider build falls through to the default-angle precedence.
   await maybeLoadSidecar(id);
+  loadSvgFromString(svgText, { source, pieceId: id, filename: `${id}.svg` });
 }
 
 function reloadCurrentPiece() {
@@ -480,6 +504,7 @@ async function loadScene(rawIds) {
   // Rotation slider, Reload button, and `R` keypress don't operate on stale
   // data.
   currentPieceId = null;
+  currentAssembledFolds = null;
   reloadPieceBtn.disabled = true;
   parsed = null;
   rotationSection.hidden = true;
@@ -554,6 +579,11 @@ async function renderSceneMulti(parsedArray) {
   globalFoldRow.style.display = 'none';
   globalFoldSlider.value = 0;
   globalFoldVal.textContent = '0%';
+  // Save assembled pose is single-piece-mode only (DECISIONS #11); scene mode
+  // shares the slider area across multiple pieces and the v1 sidecar covers
+  // a single piece's folds.
+  const savePoseRowMulti = document.getElementById('save-pose-row');
+  if (savePoseRowMulti) savePoseRowMulti.style.display = 'none';
   if (dumpFaceGraphBtn)          dumpFaceGraphBtn.disabled = true;
   if (toggleFaceGraphOverlayBtn) toggleFaceGraphOverlayBtn.disabled = true;
 
@@ -716,10 +746,14 @@ async function renderSceneMulti(parsedArray) {
   }
 }
 
-// Optional sidecar surfacing: if work/pieces/NNN/NNN.json exists with a
-// `function` block (gear / pinion metadata, settled 2026-04-30), render a
-// terse read-only summary in the side panel. Silent on any failure.
+// Optional sidecar surfacing: if work/pieces/NNN/NNN.json exists, surface its
+// blocks for downstream consumers:
+//   - `function` (gear / pinion metadata, settled 2026-04-30) → side-panel summary
+//   - `assembled.folds` (per-fold assembled pose, DECISIONS #11)  → currentAssembledFolds,
+//     read by renderPanelsFirstScene when building per-fold sliders
+// Silent on any fetch failure; both blocks are optional.
 async function maybeLoadSidecar(id) {
+  currentAssembledFolds = null;  // reset before any async work
   const path = `work/pieces/${id}/${id}.json`;
   try {
     const r = await fetch(path + '?t=' + Date.now());
@@ -727,6 +761,10 @@ async function maybeLoadSidecar(id) {
     const json = await r.json();
     if (json && json.function) renderFunctionBlock(json.function);
     else hideSidecarBlock();
+    if (json && json.assembled && json.assembled.folds &&
+        typeof json.assembled.folds === 'object') {
+      currentAssembledFolds = json.assembled.folds;
+    }
   } catch {
     hideSidecarBlock();
   }
@@ -3016,6 +3054,11 @@ async function renderPanelsFirstScene(p, options = {}) {
   const globalFoldVal    = document.getElementById('globalFoldVal');
 
   if (!sceneMode) perFoldSliders.innerHTML = '';
+  // Scene mode is opted out of assembled.folds for v1 — multiple pieces share
+  // the slider area and currentAssembledFolds only carries the single-piece
+  // load. Per-piece assembled poses across a scene is a follow-up.
+  const assembledMap = (!sceneMode && currentAssembledFolds) ? currentAssembledFolds : null;
+  const fromSidecar = [];   // diagnostics: { id, value } per slider initialised from the sidecar
   if (pathHingeMap.size > 0) {
     globalFoldRow.style.display = '';
     if (!sceneMode) {
@@ -3034,6 +3077,27 @@ async function renderPanelsFirstScene(p, options = {}) {
       const layerDefault = fold.polarity === 'valley' ? -90 : 90;
       const defAngle = fold.defaultAngle != null ? fold.defaultAngle : layerDefault;
       const isAuthored = fold.defaultAngle != null;
+
+      // Precedence for the slider initial value (highest first):
+      //   1. assembled.folds[fold.id] from the sidecar (literal id including any `_` prefix)
+      //   2. fold.defaultAngle (the `-<deg>` suffix on the fold id, parsed during parseSVG)
+      //   3. 0
+      // Malformed sidecar values (NaN, non-numeric) fall through to (2)/(3) with a warning.
+      let initialValue = 0;
+      if (assembledMap && Object.prototype.hasOwnProperty.call(assembledMap, fold.id)) {
+        const raw = assembledMap[fold.id];
+        const num = Number(raw);
+        if (Number.isFinite(num)) {
+          initialValue = num;
+          fromSidecar.push({ id: fold.id, value: num });
+        } else {
+          console.warn('[panels-first] assembled.folds[' + JSON.stringify(fold.id) +
+            '] is not a finite number:', raw, '— falling through to default-angle precedence.');
+          if (fold.defaultAngle != null) initialValue = fold.defaultAngle;
+        }
+      } else if (fold.defaultAngle != null) {
+        initialValue = fold.defaultAngle;
+      }
 
       // Synthesized display label: include the fold-step ordinal when present.
       // For two-panel folds: "<step>-fold-<a>-<b>" or "fold-<a>-<b>".
@@ -3056,11 +3120,12 @@ async function renderPanelsFirstScene(p, options = {}) {
         ? ' <span title="Descriptive curved fold — approximate visual sketch only" ' +
           'style="color:#fc6;font-size:10px">≈</span>'
         : '';
+      const initialDisplay = initialValue.toFixed(0);
       row.innerHTML =
         '<label style="min-width:90px;font-size:11px;overflow:hidden;text-overflow:ellipsis" ' +
           'title="' + displayLabel + (isCurved ? ' (curved fold; v0 sketch)' : '') + '">' + displayLabel + '</label>' +
-        '<input type="range" min="-180" max="180" step="1" value="0">' +
-        '<span class="val">0°</span>' +
+        '<input type="range" min="-180" max="180" step="1" value="' + initialValue + '">' +
+        '<span class="val">' + initialDisplay + '°</span>' +
         '<span style="color:#666;font-size:10px;min-width:22px">×' + items.length + '</span>' +
         '<span title="Assembled angle' + (isAuthored ? ' (authored in id)' : ' (layer default)') +
           '" style="color:' + (isAuthored ? '#8cf' : '#666') +
@@ -3071,6 +3136,21 @@ async function renderPanelsFirstScene(p, options = {}) {
 
       const slider  = row.querySelector('input');
       const valSpan = row.querySelector('.val');
+      // Drive the fold rotation immediately so the piece appears in its
+      // assembled (or authored-default) pose at load time. Skip when the
+      // initial is exactly 0 — the at-rest pose is already correct.
+      if (initialValue !== 0) {
+        for (const item of items) {
+          if (item.mode === 'fold') {
+            item.target.quaternion.setFromAxisAngle(
+              item.axis,
+              -(item.signFwd || 1) * initialValue * Math.PI / 180
+            );
+          } else if (item.mode === 'curved') {
+            item.target.quaternion.setFromAxisAngle(item.axis, initialValue * Math.PI / 180);
+          }
+        }
+      }
       slider.addEventListener('input', () => {
         const deg = parseFloat(slider.value);
         valSpan.textContent = deg.toFixed(0) + '°';
@@ -3089,6 +3169,15 @@ async function renderPanelsFirstScene(p, options = {}) {
     }
   } else {
     globalFoldRow.style.display = 'none';
+  }
+
+  // Save-pose row visibility: shown only when (a) single-piece mode AND
+  // (b) at least one panels-first fold slider rendered. Hidden in scene mode
+  // and when there are no folds. The button itself is wired up once at the
+  // bottom of the script.
+  const savePoseRow = document.getElementById('save-pose-row');
+  if (savePoseRow) {
+    savePoseRow.style.display = (!sceneMode && pathHingeMap.size > 0) ? '' : 'none';
   }
 
   // Rotation slider only meaningful in single-piece mode (one axle drives one
@@ -3140,6 +3229,10 @@ async function renderPanelsFirstScene(p, options = {}) {
   if (closure.length > 0) {
     console.log('  closure-attaches:', closure.length,
                 '(' + closure.map(c => c.id).join(', ') + ')');
+  }
+  if (fromSidecar.length > 0) {
+    console.log(logTag, 'assembled.folds applied:', fromSidecar.length, 'folds:',
+                fromSidecar.map(f => f.id + '=' + f.value + '°').join(', '));
   }
 
   // ── Banners (green info, sort to bottom) ───────────────────────────────────
@@ -3498,6 +3591,10 @@ async function renderScene(p) {
   const globalFoldVal   = document.getElementById('globalFoldVal');
 
   perFoldSliders.innerHTML = '';
+  // Save assembled pose is panels-first only (DECISIONS #11). The cut-line-first
+  // renderer path here always hides the row.
+  const savePoseRowLegacy = document.getElementById('save-pose-row');
+  if (savePoseRowLegacy) savePoseRowLegacy.style.display = 'none';
   if (useFoldTree && pathHingeMap.size > 0) {
     globalFoldRow.style.display = '';
     globalFoldSlider.value = 0;
@@ -3758,6 +3855,101 @@ function snapGlobalFold(pct) {
 }
 document.getElementById('flatBtn')     .addEventListener('click', () => snapGlobalFold(0));
 document.getElementById('assembledBtn').addEventListener('click', () => snapGlobalFold(100));
+
+// ─── Save assembled pose (DECISIONS #11) ─────────────────────────────────────
+// Captures the current per-fold slider state into an `assembled.folds` JSON
+// snippet for Alan to merge into work/pieces/NNN/NNN.json by hand. Browsers
+// can't write to disk from preview.html, so the workflow is copy-to-clipboard
+// + download → manual merge into the sidecar.
+//
+// Slider-row keying: in single-piece mode dataset.pathId is the literal SVG
+// fold id (including any Affinity `_` underscore prefix); in scene mode it's
+// "<piece>:<fold-id>" but the save button is hidden in scene mode, so the
+// scene-mode prefix shouldn't appear in practice — defensive strip kept for
+// safety.
+function showAssembledPoseModal(pieceId, payload) {
+  const text = JSON.stringify(payload, null, 2);
+  const escapeHtml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;' +
+    'display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML =
+    '<div style="background:#222;border:1px solid #444;border-radius:8px;padding:16px;' +
+      'width:520px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;gap:8px;">' +
+    '<div style="color:#ccc;font-size:12px;">' +
+      '<strong>Save assembled pose for piece ' + escapeHtml(pieceId) + '</strong>' +
+      '<div style="margin-top:4px;color:#999;font-size:11px;">' +
+        'Merge this <code>assembled</code> block into <code>work/pieces/' + escapeHtml(pieceId) +
+          '/' + escapeHtml(pieceId) + '.json</code>. ' +
+        'If the file doesn\'t exist yet, create it with this as the full content.' +
+      '</div>' +
+    '</div>' +
+    '<textarea readonly style="flex:1;min-height:240px;font-family:monospace;font-size:11px;' +
+      'background:#111;color:#ddd;border:1px solid #333;padding:8px;">' +
+      escapeHtml(text) +
+    '</textarea>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+      '<button id="poseCopy">Copy to clipboard</button>' +
+      '<button id="poseDownload">Download</button>' +
+      '<button id="poseClose">Close</button>' +
+    '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+  modal.querySelector('#poseCopy').addEventListener('click', () => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => { addBanner('Pose copied to clipboard.', 'ok'); },
+        () => { addBanner('Clipboard write failed; use Download instead.', 'warn'); }
+      );
+    } else {
+      addBanner('Clipboard API unavailable; use Download instead.', 'warn');
+    }
+  });
+  modal.querySelector('#poseDownload').addEventListener('click', () => {
+    const blob = new Blob([text], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = pieceId + '.assembled.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+  modal.querySelector('#poseClose').addEventListener('click', () => modal.remove());
+}
+
+document.getElementById('savePoseBtn').addEventListener('click', () => {
+  if (!currentPieceId) {
+    addBanner('Save assembled pose: no piece id loaded — use the piece-id loader, not drag-drop.', 'warn');
+    return;
+  }
+  const rows = document.querySelectorAll('#per-fold-sliders .slider-row');
+  if (!rows.length) {
+    addBanner('Save assembled pose: no fold sliders to capture.', 'warn');
+    return;
+  }
+  const folds = {};
+  for (const row of rows) {
+    const slider = row.querySelector('input[type=range]');
+    if (!slider) continue;
+    const pid = row.dataset.pathId;
+    if (!pid) continue;
+    // Strip the scene-mode "<piece>:<fold-id>" prefix if present (single-piece
+    // mode never has it; defensive only).
+    const foldId = pid.includes(':') ? pid.slice(pid.indexOf(':') + 1) : pid;
+    const val = parseFloat(slider.value);
+    if (Number.isFinite(val)) folds[foldId] = Math.round(val * 100) / 100;
+  }
+  const payload = {
+    assembled: {
+      folds,
+      captured: new Date().toISOString(),
+      note: ""
+    }
+  };
+  showAssembledPoseModal(currentPieceId, payload);
+});
 
 // ─── Thickness slider ─────────────────────────────────────────────────────────
 // Task 7: face graph is stable across thickness changes; reuse p._faceGraph cache.
