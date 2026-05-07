@@ -141,18 +141,19 @@ next_action: No CODE_PROMPTs queued. Next pull is the architecture call (DECISIO
 
 ```yaml
 status: active
-last_updated: 2026-05-04
-next_action: tag-pieces.html v2 schema — Alan ships CODE_PROMPT_tag-pieces-v2-schema.md via a Code session, then tags 123 pieces. Cowork follow-up: merge `character` + `subtype` into pieces.csv, author expected_layers.yaml v1 keyed by character, draft CODE_PROMPT_dashboard-and-audit-v2.md.
+last_updated: 2026-05-07
+next_action: Cowork follow-up to tagging — merge `character` + `subtype` into pieces.csv, author expected_layers.yaml v1 keyed by character, draft CODE_PROMPT_dashboard-and-audit-v2.md.
 ```
 
 **Hypothesis.** Carried forward from WORKPLAN. Per-piece state needs its own surface, separate from work-state. `work/scripts/audit_state.py` reads the filesystem and emits `work/state.json` reflecting per-piece lifecycle. Generated, never hand-maintained.
 
-**Status detail.** v0 audit script shipped 2026-05-03 (`work/state.json` exists with rich per-piece data). v1 of the schema sharpened during 2026-05-03 evening; tag-pieces.html v2 prompt drafted (`CODE_PROMPT_tag-pieces-v2-schema.md`, ready-for-code). Tagging session pending Alan's bench time.
+**Status detail.** v0 audit script shipped 2026-05-03 (`work/state.json` exists with rich per-piece data). v1 of the schema sharpened during 2026-05-03 evening; tag-pieces.html v2 prompt drafted. **Tagging pass complete 2026-05-07**: all 124 pieces tagged in `work/piece_characters_v2.yaml` — 0 pair-tags remaining, 0 pending captures. Character distribution: flat=12, flat-axle=29, flat-axle-cutout=11, folded=59, folded-axle=12, reference=1. Bracket corrections from Alan's overnight triage applied; notes cleaned of all audit-trail preambles.
 
 **Charter note.** Audit script + dashboard + new tooling-side standards eventually move under `claude-work/standards/` per CHARTER §5. Existing `work/scripts/audit_state.py` stays in the frozen archive; the next iteration lands under `claude-work/`. Not today — wait until there's a real schema bump or a dashboard ship to do the move.
 
 **Recent log.**
 
+- 2026-05-07: tagging pass complete. All 124 pieces in `work/piece_characters_v2.yaml` — characters, subtypes, notes. 041 pair-tag resolved; 093 split to 093a+093b; bracket corrections applied (038/046/047/062/064/087 → flat-axle; 058/059 → flat-axle-cutout; 079 → flat; 100 → flat-axle). See `sessions/2026-05-07-1030_cowork_piece-characters-v2-cleanup.md`.
 - See WORKPLAN asset-state track for the 2026-05-03 history (v0 audit ship, v1→v2 schema sharpen, tag-pieces.html, archetype pivot, dashboard design).
 
 ---
