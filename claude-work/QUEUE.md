@@ -9,23 +9,31 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 ### 1. Tag 123 pieces in tag-pieces.html
 
 - **Workflow:** open `tag-pieces.html` locally (`file://`), tag each piece by archetype. ~1 hour, splittable (localStorage persists).
-- **Why:** unblocks audit-v2 + dashboard CODE_PROMPTs. See STATUS asset-state track.
-- **State:** v2 schema already shipped (CODE_PROMPT archived at `_archive/code-prompts/CODE_PROMPT_tag-pieces-v2-schema.md`). The tagger is ready to use; no Code-session pre-req remains.
+- **Why:** unblocks audit-v2 + dashboard CODE_PROMPTs (Soon #3). See STATUS asset-state track.
+- **State:** v2 schema shipped 2026-05-03 (`_archive/code-prompts/CODE_PROMPT_tag-pieces-v2-schema.md`); embedded data snapshot refreshed 2026-05-06 to flip 013/014/016/017/090/110 from pending → captured/tagged (capture closed at 123/123). No Code-session pre-req.
+- **Caveat:** if you opened `tag-pieces.html` before 2026-05-06, your localStorage has the stale snapshot pinned. Clear site data for the page (DevTools → Application → Storage → Clear site data) and reload to pick up the refreshed defaults — or just override per-piece via the UI as you go.
 
 ---
 
 ## Soon (Claude-side work or decision pending)
 
-### 2. `attach-x<piece-id>` convention formalization (Cowork)
+### 2. Architecture call: preview.html ↔ work/viewer/ (DECISIONS #4, Cowork)
 
-- Surfaced in the 093 session: glue-only inter-piece attach (no printed tab letter), `attach-x<piece-id>` in `attach-points`. Not yet in LAYER-CONVENTIONS.md. Small conventions pass + DECISIONS entry before more pieces follow the pattern. Cowork-only; no Code needed.
-- [Alan adds this comment: open to reauthoring this, wasn't trying to define a whole new standard. Let's discuss.]
+- The strategically biggest open item, and STATUS Charter-rollout track explicitly calls it the next Cowork beat. Three substantive ships now sit on top of `preview.html` (PR #17 multi-piece scene, PR #18 inferred-connections audit-side, PR #19 assembled-pose) — enough data on the table to close. Three options on record: graduate `preview.html` into `work/viewer/`, run them in parallel as separate tools, or replace `work/viewer/` outright. Pull as a Cowork conversation; if we surface a need for more information mid-discussion, we'll log it and defer rather than pretend.
 
-### 3. Architecture call: preview.html ↔ work/viewer/ (DECISIONS #4, Cowork)
+### 3. Audit-v2 + dashboard CODE_PROMPT (Cowork drafts; Code ships)
 
-- Still deferred (open since charter sign-off). Multi-piece scene assembly (PR #17) + assembled-pose load/save (PR #19) both shipped — enough data on the table to close. Pull when the next Cowork beat has the bandwidth.
+- Post-tag follow-on: once Now #1 lands, merge `character` + `subtype` from `INITIAL_STATE` (or the v2 YAML re-export) into `pieces.csv`; author `expected_layers.yaml` v1 keyed by character; draft `CODE_PROMPT_dashboard-and-audit-v2.md`. STATUS asset-state track has this queued; surfacing it explicitly so it doesn't fall through the cracks once tagging is done. Per CHARTER §5, audit script + dashboard land under `claude-work/` rather than evolving `work/scripts/audit_state.py` in place.
 
-### 4. Build-graph script: support split pieces (`work/pieces/093/093a.svg` etc.) (Cowork or Code)
+### 4. `attach-x<piece-id>` convention formalization (Cowork)
+
+- Surfaced in the 093 session: glue-only inter-piece attach (no printed tab letter), `attach-x<piece-id>` in `attach-points`. Not yet in LAYER-CONVENTIONS.md. Small conversation + DECISIONS entry before more pieces follow the pattern. Alan flagged as open-to-reauthoring (not committed to defining a whole new standard) — the discussion may close it as "use existing convention X instead" rather than ratify a new form.
+
+### 5. 093a / 093b fold paths (bench authoring; no Code prereq)
+
+- Both halves landed under `work/pieces/093/` with `silhouette` + `panels` + `marks` + clean `cutaway` ids and cross-half `attach-x093a` on 093b, but neither has fold paths yet — the bob brace can't fold in `preview.html` until valley/mountain folds are authored. Pure bench work; surfaces during the next anchor/pendulum/bob touch-up pass. Not blocking the gear-train batch (087 is the next-action there per STATUS SVG-layer-authoring track).
+
+### 6. Build-graph script: support split pieces (`work/pieces/093/093a.svg` etc.) (Cowork or Code)
 
 - `claude-work/scripts/build_assembly_graph.py` main loop only globs `work/pieces/<dir>/<dir>.svg`, so 093a + 093b are silently absent from the connection graph today. Tiny extension: glob every `*.svg` in each piece dir, derive piece id from the filename stem rather than the dir name. Surfaced during the 2026-05-06 post-PR-19 review. Informational; not blocking — 093a/093b are the only split pieces today, and the SVGs themselves audit-clean (cutaway hyphenation fixed; combined 093.svg retired to `_attic/`).
 
@@ -56,7 +64,9 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 
 ---
 
-*Last updated: 2026-05-06 (post-PR-19 review) — assembled-pose shipped via PR #19; bob batch continuation (070 rename, 093a/093b refresh, combined 093.svg retired, 087 .af underway, 097 collision left as authoring choice) verified at the bench. Both struck through to Recently shipped. Old Now #1 + #2 retired; tag-pieces.html promoted to Now #1. Soon section renumbered (attach-x convention #2, architecture call #3); a new #4 logs the build-graph script's `<dirname>.svg` lookup that silently skips split pieces (093a/093b) — small extension queued, not blocking.*
+*Last updated: 2026-05-06 (later evening, PM cleanup) — refreshed `tag-pieces.html` embedded data snapshot in-session (Cowork hand-edit; Alan opted out of a Code-session formal route on hobby-project grounds): the 6 stale `pending` rows for 013/014/016/017/090/110 are now `captured` in PIECES; INITIAL_STATE flips them to `tagged` (bracket clones inherit 012's `folded / bracket-tab`; 090 keeps the speculative-tag note; 110 keeps the pair-tag note). LocalStorage caveat called out in Now #1 — if Alan already opened tag-pieces.html under the v2 schema, he'll need to clear site data once to pick up the new defaults. Soon section reordered: architecture call (DECISIONS #4) promoted to #2 (was #3) on the basis that three substantive `preview.html` ships now push the question; new #3 audit-v2 + dashboard surfaced as the explicit post-tag follow-on (was buried in STATUS asset-state); attach-x demoted to #4 (was #2); new #5 093a/093b fold paths (was buried in STATUS SVG-layer-authoring open-questions); old #4 build-graph split-pieces extension demoted to #6.*
+
+*Earlier 2026-05-06 (post-PR-19 review) — assembled-pose shipped via PR #19; bob batch continuation (070 rename, 093a/093b refresh, combined 093.svg retired, 087 .af underway, 097 collision left as authoring choice) verified at the bench. Both struck through to Recently shipped. Old Now #1 + #2 retired; tag-pieces.html promoted to Now #1. Soon section renumbered (attach-x convention #2, architecture call #3); a new #4 logs the build-graph script's `<dirname>.svg` lookup that silently skips split pieces (093a/093b) — small extension queued, not blocking.*
 
 *Earlier 2026-05-06 (late evening) — inferred-connections audit shipped via PR #18. Old Now #2 struck through to Recently shipped; bob batch + tag-pieces renumbered to #2/#3; Soon section renumbered #4/#5. Now #1 (assembled-pose Code session) carried forward as the highest-ROI next pull.*
 

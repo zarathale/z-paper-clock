@@ -197,11 +197,16 @@
     </div>
     <div class="piece-subtype" id="subtypeRow" style="margin-bottom:8px;">
       <label for="subtypeInput" style="font-size:13px; color:var(--muted);">Subtype:</label>
-      <input type="text" id="subtypeInput" list="subtypeList"
-             placeholder="e.g. frame-rail, bracket-tab, tube-pulley"
-             style="width:60%; padding:5px 8px; font:inherit;
-                    border:1px solid var(--line); border-radius:4px; margin-left:6px;">
-      <datalist id="subtypeList"></datalist>
+      <select id="subtypeInput"
+              style="width:60%; padding:5px 8px; font:inherit;
+                     border:1px solid var(--line); border-radius:4px; margin-left:6px;">
+      </select>
+      <div id="subtypeCustomRow" style="display:none; margin-top:6px; margin-left:62px;">
+        <input type="text" id="subtypeCustom"
+               placeholder="custom subtype slug (lowercase, hyphenated)"
+               style="width:55%; padding:5px 8px; font:inherit;
+                      border:1px solid var(--line); border-radius:4px;">
+      </div>
     </div>
     <div class="piece-controls" id="controlsBadge" style="display:none; font-size:12px; color:var(--accent); margin-bottom:8px;">
       <strong>Controls:</strong> <span id="controlsList"></span>
@@ -336,21 +341,27 @@ const SUBTYPE_VOCABULARY = [
 // On first load (empty localStorage), state seeds from this. Subsequent
 // edits are persisted to localStorage and override INITIAL_STATE on reload.
 // Re-embed when piece_characters_v2.yaml changes.
+// Patched 2026-05-06: flipped 013/014/016/017/090/110 status pending → tagged
+// (capture closed 2026-05-05 at 123/123). Bracket clones 013/014/016/017
+// inherit 012's tag (folded / bracket-tab) — they're byte-identical drawings.
+// If your localStorage was seeded before this patch, the old "pending" status
+// will still show on reload. Clear site data for tag-pieces.html and reload
+// to pick up the refreshed defaults, or override per-piece via the UI.
 const INITIAL_STATE = {
   "001": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
   "002": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
   "006": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
   "007": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
-  "110": { character: "folded", subtype: "frame-rail-face", status: "pending", note: "Pair-tag resolved 2026-05-03 from embedded labels (Panel A): '+++' along the right edge (mountain folds) and '---' along the left edge (valley folds), with X/Y end-match markers to 111/112. Same family as 111/112/112a confirmed even pre-capture. status: pending kept until source/pieces/110.png lands.", v1_was: null },
+  "110": { character: "folded", subtype: "frame-rail-face", status: "tagged", note: "Pair-tag resolved 2026-05-03 from embedded labels (Panel A): '+++' along the right edge (mountain folds) and '---' along the left edge (valley folds), with X/Y end-match markers to 111/112. Same family as 111/112/112a. PNG captured 2026-05-05.", v1_was: null },
   "003": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
   "005": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
   "008": { character: "folded", subtype: "frame-rail", status: "tagged", note: "", v1_was: "frame-channel" },
   "012": { character: "folded", subtype: "bracket-tab", status: "tagged", note: "", v1_was: "frame-channel" },
-  "013": { character: "folded", subtype: "bracket-tab", status: "pending", note: "source/pieces/ pending capture per pieces.csv.", v1_was: "frame-channel" },
-  "014": { character: "folded", subtype: "bracket-tab", status: "pending", note: "source/pieces/ pending capture per pieces.csv.", v1_was: "frame-channel" },
-  "015": { character: "folded", subtype: "bracket-tab", status: "tagged", note: "", v1_was: "frame-channel" },
-  "016": { character: "folded", subtype: "bracket-tab", status: "pending", note: "source/pieces/ pending capture per pieces.csv.", v1_was: "frame-channel" },
-  "017": { character: "folded", subtype: "bracket-tab", status: "pending", note: "source/pieces/ pending capture per pieces.csv.", v1_was: "frame-channel" },
+  "013": { character: "folded", subtype: "bracket-tab", status: "tagged", note: "Byte-identical clone of 012 (resolved 2026-05-05; MD5-verified). Same artwork; tag inherits from 012.", v1_was: "frame-channel" },
+  "014": { character: "folded", subtype: "bracket-tab", status: "tagged", note: "Byte-identical clone of 012 (resolved 2026-05-05; MD5-verified). Same artwork; tag inherits from 012.", v1_was: "frame-channel" },
+  "015": { character: "folded", subtype: "bracket-tab", status: "tagged", note: "Canonical scan for the 012-017 bracket cluster (six identical drawings).", v1_was: "frame-channel" },
+  "016": { character: "folded", subtype: "bracket-tab", status: "tagged", note: "Byte-identical clone of 012 (resolved 2026-05-05; MD5-verified). Same artwork; tag inherits from 012.", v1_was: "frame-channel" },
+  "017": { character: "folded", subtype: "bracket-tab", status: "tagged", note: "Byte-identical clone of 012 (resolved 2026-05-05; MD5-verified). Same artwork; tag inherits from 012.", v1_was: "frame-channel" },
   "093": { character: "flat", subtype: "bob-brace", status: "tagged", note: "Printed as 6 copies, glued in pairs to make 3 braces (laminated).", v1_was: "anchor-pendulum-mixed" },
   "113": { character: "flat-cutout", subtype: "face-brace-cross-hole", status: "tagged", note: "Has hole through it (non-axle). User-flagged in v1.", v1_was: "frame-channel" },
   "114": { character: "flat", subtype: "face-brace-cross", status: "tagged", note: "", v1_was: "frame-channel" },
@@ -418,7 +429,7 @@ const INITIAL_STATE = {
   "087": { character: "flat-axle-cutout", subtype: "reduction-gear", status: "tagged", note: "Reduction-gear disc; pieces.csv: 'cut out center'. RECLASSIFIED v1→v2 to flat-axle-cutout.", v1_was: "gear-disc" },
   "088": { character: "flat-axle", subtype: "pulley-disc", status: "tagged", note: "Pulley/gear stack disc — pieces.csv doesn't mention cut-out center, so flat-axle (no cutout).", v1_was: "gear-disc" },
   "089": { character: "flat-axle", subtype: "pulley-disc", status: "tagged", note: "Pulley disc for hands mechanism.", v1_was: "gear-disc" },
-  "090": { character: "flat-axle", subtype: "pulley-disc", status: "pending", note: "Pulley/gear stack disc — pending capture. Tagged speculatively from pieces.csv notes.", v1_was: "gear-disc" },
+  "090": { character: "flat-axle", subtype: "pulley-disc", status: "tagged", note: "Pulley/gear stack disc. Tagged speculatively from pieces.csv notes; PNG captured 2026-05-05 — visual confirmation welcome during this tagging pass.", v1_was: "gear-disc" },
   "120": { character: "flat-axle", subtype: "axle-mount-square", status: "tagged", note: "Pair-tag resolved 2026-05-03. §II.A explicitly lists 120 in the pin-hole list ('Locate pieces 27, 28, 33, ..., 120 and make a small pin hole in the center of each as indicated'). 120 IS a real per-instance build piece that gets a real axle hole — not pure reference. The 'model for all mounting squares' framing in pieces.csv means the same shape is replicated for unnamed mounting squares around the build, but 120 itself is build-grade. Re-RECLASSIFIED v1→v2 (had been reference in v2 draft; now flat-axle).", v1_was: "flat-laminate" },
   "033": { character: "flat-axle", subtype: "motor-wheel-back", status: "tagged", note: "Large disc with internal triangle (motor-wheel back face); a35 corner labels — the triangle is a landing marker for piece 35, on the marks layer, not a cutout.", v1_was: "gear-disc" },
   "034": { character: "folded", subtype: "tube-pulley-string-wind", status: "tagged", note: "User-corrected v1 export: not motor-wheel teeth — smooth surface that the weight string winds around. Zigzag teeth are anchoring tabs between the circular motor wheels. Really a folded tube.", v1_was: "gear-teeth-strip" },
@@ -463,21 +474,25 @@ const INITIAL_STATE = {
 };
 
 // ─── Pieces — embedded from work/pieces.csv ─────────────────────────────────
+// Re-synced 2026-05-06 with capture closed at 123/123 (2026-05-05).
+// Six rows previously at status:"pending" — 013/014/016/017/090/110 — are
+// now status:"captured". `notes` updated for the 012-017 bracket cluster
+// to flag the six byte-identical clones explicitly.
 const PIECES = [
   {id:"001",plate:"A",section:"framework",status:"reviewed",notes:"U-channel frame strip (long horizontal frame run, paired with 2/6/7 across panels A and B)"},
   {id:"002",plate:"A",section:"framework",status:"reviewed",notes:"U-channel frame strip"},
   {id:"006",plate:"A",section:"framework",status:"captured",notes:"U-channel frame strip"},
   {id:"007",plate:"A",section:"framework",status:"captured",notes:"U-channel frame strip"},
-  {id:"110",plate:"A",section:"face-case",status:"pending",notes:"Face-frame end rail; X/Y end-match markers to 111/112"},
+  {id:"110",plate:"A",section:"face-case",status:"captured",notes:"Face-frame end rail; X/Y end-match markers to 111/112"},
   {id:"003",plate:"B",section:"framework",status:"captured",notes:"Vertical frame strip (paired with 1)"},
   {id:"005",plate:"B",section:"framework",status:"captured",notes:"Vertical frame strip (paired with 2)"},
   {id:"008",plate:"B",section:"framework",status:"captured",notes:"Vertical frame strip (paired with 6)"},
-  {id:"012",plate:"B",section:"framework",status:"captured",notes:"Bracket piece (12/13/14 top row)"},
-  {id:"013",plate:"B",section:"framework",status:"pending",notes:"Bracket piece"},
-  {id:"014",plate:"B",section:"framework",status:"pending",notes:"Bracket piece"},
-  {id:"015",plate:"B",section:"framework",status:"captured",notes:"Bracket piece (15/16/17 bottom row)"},
-  {id:"016",plate:"B",section:"framework",status:"pending",notes:"Bracket piece"},
-  {id:"017",plate:"B",section:"framework",status:"pending",notes:"Bracket piece"},
+  {id:"012",plate:"B",section:"framework",status:"captured",notes:"Bracket piece; canonical scan for the 012-017 cluster (six byte-identical clones)"},
+  {id:"013",plate:"B",section:"framework",status:"captured",notes:"Bracket piece; clone of 012 (identical drawing)"},
+  {id:"014",plate:"B",section:"framework",status:"captured",notes:"Bracket piece; clone of 012 (identical drawing)"},
+  {id:"015",plate:"B",section:"framework",status:"captured",notes:"Bracket piece; clone of 012 (identical drawing)"},
+  {id:"016",plate:"B",section:"framework",status:"captured",notes:"Bracket piece; clone of 012 (identical drawing)"},
+  {id:"017",plate:"B",section:"framework",status:"captured",notes:"Bracket piece; clone of 012 (identical drawing)"},
   {id:"093",plate:"B",section:"anchor-pendulum",status:"captured",notes:"Pendulum-bob inner brace; printed as 6 copies, glued in pairs to make 3 braces"},
   {id:"113",plate:"B",section:"face-case",status:"captured",notes:"Cross-shaped brace piece for face frame (1 of 4: 113-116)"},
   {id:"114",plate:"B",section:"face-case",status:"captured",notes:"Cross-shaped brace piece for face frame"},
@@ -545,7 +560,7 @@ const PIECES = [
   {id:"087",plate:"F",section:"reduction-gear",status:"captured",notes:"Reduction-gear disc; cut out center"},
   {id:"088",plate:"F",section:"reduction-gear",status:"captured",notes:"Pulley/gear stack disc"},
   {id:"089",plate:"F",section:"reduction-gear",status:"captured",notes:"Pulley disc for hands mechanism; also appears on plate H"},
-  {id:"090",plate:"F",section:"reduction-gear",status:"pending",notes:"Pulley/gear stack disc"},
+  {id:"090",plate:"F",section:"reduction-gear",status:"captured",notes:"Pulley/gear stack disc"},
   {id:"120",plate:"F",section:"reference",status:"captured",notes:"Axle-mount cardboard square (model for all mounting squares)"},
   {id:"033",plate:"G",section:"motor-wheel",status:"captured",notes:"Large disc with internal triangle (motor-wheel back face); a35 corner labels"},
   {id:"034",plate:"G",section:"motor-wheel",status:"captured",notes:"Long zig-zag teeth strip (motor-wheel teeth); engages between 33 and 36"},
@@ -688,6 +703,8 @@ function renderCard() {
     document.getElementById("currentTagLine").innerHTML = "Current tag: <span class=\"tag-name\">none</span>";
     document.getElementById("v1WasLine").style.display = "none";
     document.getElementById("subtypeInput").value = "";
+    document.getElementById("subtypeCustomRow").style.display = "none";
+    document.getElementById("subtypeCustom").value = "";
     document.getElementById("controlsBadge").style.display = "none";
     document.getElementById("perPieceNote").value = "";
     document.getElementById("tagStatus").className = "piece-status pristine";
@@ -722,8 +739,24 @@ function renderCard() {
     v1WasLine.style.display = "none";
   }
 
-  // Subtype input
-  document.getElementById("subtypeInput").value = e.subtype || "";
+  // Subtype dropdown — pick the matching option, or fall through to custom mode
+  const subtypeSel = document.getElementById("subtypeInput");
+  const subtypeCustomRow = document.getElementById("subtypeCustomRow");
+  const subtypeCustomInput = document.getElementById("subtypeCustom");
+  if (!e.subtype) {
+    subtypeSel.value = "";
+    subtypeCustomRow.style.display = "none";
+    subtypeCustomInput.value = "";
+  } else if (SUBTYPE_VOCABULARY.includes(e.subtype)) {
+    subtypeSel.value = e.subtype;
+    subtypeCustomRow.style.display = "none";
+    subtypeCustomInput.value = "";
+  } else {
+    // Existing subtype isn't in the vocabulary — must've been custom-coined
+    subtypeSel.value = "__custom__";
+    subtypeCustomRow.style.display = "";
+    subtypeCustomInput.value = e.subtype;
+  }
 
   // Controls badge
   const controlsBadge = document.getElementById("controlsBadge");
@@ -879,12 +912,24 @@ function populateSectionFilter() {
 }
 
 function populateSubtypeList() {
-  const list = document.getElementById("subtypeList");
-  SUBTYPE_VOCABULARY.forEach(s => {
+  const sel = document.getElementById("subtypeInput");
+  // Default option (no subtype set yet)
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = "— pick subtype —";
+  sel.appendChild(blank);
+  // Alpha-sorted vocabulary (copy + sort to avoid mutating the source array)
+  [...SUBTYPE_VOCABULARY].sort().forEach(s => {
     const opt = document.createElement("option");
     opt.value = s;
-    list.appendChild(opt);
+    opt.textContent = s;
+    sel.appendChild(opt);
   });
+  // Custom escape hatch — if Alan needs to coin a slug not in the vocabulary
+  const custom = document.createElement("option");
+  custom.value = "__custom__";
+  custom.textContent = "Other (type below)…";
+  sel.appendChild(custom);
 }
 
 // ─── Note saving ────────────────────────────────────────────────────────────
@@ -902,8 +947,29 @@ document.getElementById("perPieceNote").addEventListener("input", e => {
 });
 
 // ─── Subtype saving ──────────────────────────────────────────────────────────
+// Dropdown: change event saves immediately for vocab options, or reveals the
+// custom text field when "Other (type below)…" is picked.
+document.getElementById("subtypeInput").addEventListener("change", e => {
+  const p = currentPiece();
+  if (!p) return;
+  const v = e.target.value;
+  const customRow = document.getElementById("subtypeCustomRow");
+  const customInput = document.getElementById("subtypeCustom");
+  if (v === "__custom__") {
+    customRow.style.display = "";
+    customInput.focus();
+    return; // wait for the custom input event to save the actual slug
+  }
+  customRow.style.display = "none";
+  customInput.value = "";
+  const prev = entry(p.id);
+  state[p.id] = { ...prev, subtype: v || null };
+  saveState();
+});
+
+// Custom text field: debounced save while Alan types a coined slug.
 let subtypeSaveTimer = null;
-document.getElementById("subtypeInput").addEventListener("input", e => {
+document.getElementById("subtypeCustom").addEventListener("input", e => {
   const p = currentPiece();
   if (!p) return;
   clearTimeout(subtypeSaveTimer);
@@ -940,7 +1006,7 @@ document.getElementById("sectionFilter").addEventListener("change", e => {
 // ─── Keyboard ───────────────────────────────────────────────────────────────
 document.addEventListener("keydown", e => {
   const tag = (e.target.tagName || "").toUpperCase();
-  if (tag === "TEXTAREA" || tag === "INPUT") {
+  if (tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT") {
     if (e.key === "Escape") e.target.blur();
     return;
   }
