@@ -81,7 +81,7 @@ id,plate,section,bucket,status,notes
 060,E,escapement,,captured,Pinion for escapement wheel (rolled cylinder)
 074,E,anchor-pendulum,,captured,Thin strip (hook form) at bottom of plate E; small fragment also visible on H
 078,E,hands,,captured,Hour-hand wheel; glue back to back to 79 before cutting teeth
-079,E,hands,,captured,Hour-hand wheel partner to 78
+079,E,hands,,captured,Hour-hand wheel backer — plain blank disc; glued to 078 before cutting teeth (teeth cut through both layers simultaneously); no folds/cutouts/connection labels of its own
 082,E,reduction-gear,,captured,Reduction-gear accordion strip
 083,E,reduction-gear,,captured,Reduction-gear accordion strip
 103,E,reduction-gear,,captured,Small reduction gear with central spiral pattern
@@ -151,7 +151,7 @@ id,plate,section,bucket,status,notes
 097,H,anchor-pendulum,,reviewed,Pendulum-bob front face (large round disc); 'apply no glue here' inner rectangle
 098,H,anchor-pendulum,,captured,"Bowed retainer; glues to 97 (bowed when glued, holds bob in place)"
 099,H,anchor-pendulum,,captured,Saw-toothed crescent (decorative trim)
-100,H,anchor-pendulum,,captured,Bob-position disc with F (fast/up) and S (slow/down) arrows
+100,H,anchor-pendulum,,captured,Bob-position disc — front face of pendulum bob; F (fast/raise) and S (slow/lower) arrows; two pendulum-rod slots (cutout-1/cutout-2) through which rod weaves over/under for friction fit; d100 connection label; no folds
 118,I,face-case,,captured,Case-side panel; * pin-hole markers; glues to b119/c119 underside of 117
 119,I,face-case,,captured,Case-side panel; * pin-hole markers; glues to b118/c118 underside of 117
 101,J,weight,,captured,"Weight cylinder development (rectangular sheet, multiple horizontal folds)"
