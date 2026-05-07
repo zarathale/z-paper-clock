@@ -990,27 +990,22 @@
       "panel_count": 13,
       "folds": [
         {
-          "id": "fold-panelsideb-tabb",
+          "id": "fold-sideb-tabb",
           "polarity": "mountain",
           "step": null,
-          "a": null,
-          "b": null,
-          "descriptive": "panelsideb-tabb"
+          "a": "sideb",
+          "b": "tabb"
         },
         {
-          "id": "fold-panelsidec-tabc",
+          "id": "fold-sidec-tabc",
           "polarity": "mountain",
           "step": null,
-          "a": null,
-          "b": null,
-          "descriptive": "panelsidec-tabc"
+          "a": "sidec",
+          "b": "tabc"
         }
       ],
       "fold_count": 2,
-      "fold_unresolved": [
-        "fold-panelsideb-tabb",
-        "fold-panelsidec-tabc"
-      ],
+      "fold_unresolved": [],
       "attach_points": [],
       "marks": [
         {
@@ -1137,49 +1132,6 @@
           "count": 1,
           "element": "rect",
           "tab": "a",
-          "partner": null
-        }
-      ],
-      "cutouts": [],
-      "inferred_connections": []
-    },
-    "093": {
-      "id": "093",
-      "layers": [
-        "silhouette",
-        "panels",
-        "attach-points",
-        "marks"
-      ],
-      "panels": [
-        "pane1",
-        "pane2",
-        "pane3",
-        "pane4",
-        "pane5"
-      ],
-      "panel_count": 5,
-      "folds": [],
-      "fold_count": 0,
-      "fold_unresolved": [],
-      "attach_points": [
-        {
-          "kind": "attach",
-          "side": "front",
-          "letter": "x",
-          "partner": "093a",
-          "raw_id": "attach-x093a",
-          "element": "rect"
-        }
-      ],
-      "marks": [
-        {
-          "id": "attach-x093a1",
-          "side": "front",
-          "kind": "decorative",
-          "count": 1,
-          "element": "path",
-          "tab": null,
           "partner": null
         }
       ],
@@ -2095,19 +2047,6 @@
         "valid": true,
         "matched_panel": "tabb",
         "matched_via": "panel-tab"
-      },
-      {
-        "from": "093",
-        "to": "093a",
-        "kind": "attach",
-        "side": "front",
-        "tab": null,
-        "letter": "x",
-        "raw_id": "attach-x093a",
-        "source_layer": "attach-points",
-        "provenance": "authored",
-        "valid": false,
-        "reason": "partner piece 093a not authored yet"
       },
       {
         "from": "094",
