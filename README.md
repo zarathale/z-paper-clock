@@ -21,16 +21,21 @@ Personal project repo for a model paper-clock build, studying *Make Your Own Wor
   - `pieces.csv` — master index of all 123 pieces in the build
   - `pipeline/` — Python scripts (auto-trace, layer-split, validate)
   - `_archive/m1-plate-d-phone/` — M1 gen-1 outputs against the archived phone scans
-- `ROADMAP.md` — build milestone sequence (M0.5 → M6)
+- `ROADMAP.md` — build milestone sequence (M0.5 → M6); historical reference, see `claude-work/STATUS.md` for the live working surface
 - `CLAUDE.md` — working conventions for collaboration with Claude (Cowork ↔ Code workflow, session notes, git, naming)
+- `LAYER-CONVENTIONS.md` — scannable cheat sheet for SVG authoring (companion to CLAUDE.md File Naming Conventions)
+- `PROJECT-STATE.md` — slow-moving framing of what this project is and how to read the other docs
 - `sessions/` — session-by-session working notes
-- `CODE_PROMPT_*.md` — per-task orchestration prompts handed to Code sessions; kept after ship as decision records
+- `claude-work/` — Claude-led working surfaces (CHARTER, STATUS, QUEUE, DECISIONS, scripts, standards)
+- `preview.html` — single-file authoring/QA preview for per-piece SVGs (M0.6)
+- `tag-pieces.html` — single-file UI for tagging pieces by archetype/subtype (asset-state v2)
+- `CODE_PROMPT_*.md` — per-task orchestration prompts. In-flight prompts (`status: draft | in-development | ready-for-code`) live at repo root; on ship they move to `_archive/code-prompts/` as the decision record
 
 ## Status
 
-The study side is complete: full transcriptions of all prose and embedded-label content, plus the gen-1 cleaned scan archive (now retired to `source/_archive/`).
+The study side is complete: full transcriptions of all prose and embedded-label content, plus the gen-1 cleaned scan archive (now retired to `source/_archive/`). Source-side capture closed 2026-05-05 at 123/123 per-piece PNGs in `source/pieces/`.
 
-The build side is mid-onboarding to a **chunk-and-crop** workflow on a flat-bed home scanner — scan multi-piece chunks, hand-crop to per-piece PNGs in editing software, archive the chunks as recovery references. The pipeline reads `source/pieces/NNN.png` directly. M0.5 is the active milestone (chunk-and-crop populating the per-piece archive; pipeline reshape).
+The build side is mid-flight on **panels-first SVG authoring** in Affinity Designer + a single-file `preview.html` viewer at repo root that loads any piece by id and renders folds + cuts + axles + assembled-pose. 17 pieces are panels-first authored across the anchor / pendulum / bob clusters; the connection graph (`claude-work/state/connection-graph.{md,json}`) resolves cross-piece edges. M0.6 (preview tool) is the active milestone; M3+ (production viewer) is downstream pending the architecture decision (DECISIONS #4 in `claude-work/DECISIONS.md`). For the live per-track stance, see `claude-work/STATUS.md`.
 
 ## A note on scope
 

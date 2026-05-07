@@ -199,13 +199,16 @@ A row per decision. Each row captures:
 
 - **Why:** Per-fold validation today happens by scrubbing sliders in the preview, but the result evaporates on reload. Sidecar `assembled.folds` makes it durable and reproducible across machines, sessions, and commits. The preview becomes a tool Alan uses to *discover* the angle and *capture* it; the sidecar carries it forward.
 - **Type:** Co-authored.
-- **Downstream:** `CODE_PROMPT_preview-html-assembled-pose.md` (preview.html load + save affordance); `LAYER-CONVENTIONS.md` updated with new "Per-piece JSON sidecar" section.
+- **Downstream:** `CODE_PROMPT_preview-html-assembled-pose.md` (preview.html load + save affordance) — **shipped 2026-05-06 via PR #19**; `LAYER-CONVENTIONS.md` updated with new "Per-piece JSON sidecar" section.
 - **Out of scope (deliberately):** Inter-piece assembled transforms — where each piece sits in 3D space relative to its partners once folded — are M4 assembly-transform work and live separately. Likely shape: SE(3) transforms attached to connection-graph edges, or a top-level `assembled.json`. Per-fold pose (one piece's internal fold geometry) is the v1 deliverable here. The two compose later: each piece's `assembled.folds` settles its internal geometry; a per-edge transform settles its placement in the world.
+- **Follow-up parked from v1 ship:** scene mode opted out of the per-piece `assembled.folds` map for v1 — `currentAssembledFolds` is gated on single-piece mode. Per-piece assembled poses applied independently across a scene needs `currentAssembledFolds` to grow into a per-piece map keyed by `_sceneId`. Pull when the scene-mode use case actually wants it.
 - **Reopen?** closed in v1.
 
 ---
 
-*Last updated: 2026-05-06 — Decisions #10 and #11 closed: per-piece JSON sidecar gains `connections.inferred[]` (learned cross-piece connections with provenance) and `assembled.folds` (per-fold assembled-state angles, with preview load + save affordances). Two CODE_PROMPTs queued for execution. LAYER-CONVENTIONS extended.*
+*Last updated: 2026-05-06 (post-PR-19 review) — Decision #11 downstream pointer flipped to shipped (PR #19 wired `assembled.folds` load + save through `preview.html`); v1 follow-up parked for per-piece assembled poses across scene mode (only relevant when the scene-mode use case actually surfaces). #10 had already shipped via PR #18 the same evening.*
+
+*Earlier 2026-05-06 — Decisions #10 and #11 closed: per-piece JSON sidecar gains `connections.inferred[]` (learned cross-piece connections with provenance) and `assembled.folds` (per-fold assembled-state angles, with preview load + save affordances). Two CODE_PROMPTs queued for execution. LAYER-CONVENTIONS extended.*
 
 *Earlier 2026-05-05 (bob-batch evening) — Decision #9 closed: fold-step prefix + same-piece closure attach via panel-id. Both extensions surfaced through 095 authoring; build_assembly_graph patched + LAYER-CONVENTIONS extended; preview.html parser changes queued.*
 

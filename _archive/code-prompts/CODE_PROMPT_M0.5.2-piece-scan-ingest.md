@@ -1,9 +1,13 @@
 ---
-status: ready-for-code
+status: archived
 started: 2026-04-30
+archived: 2026-05-06
+archived_reason: Source-side capture closed at 123/123 on 2026-05-05 without this helper getting written. The audit's primary use case ("what's still pending?") collapsed when the answer became "nothing." A one-shot validation could still be useful, but the urgency that motivated the prompt is gone — `claude-work/scripts/build_assembly_graph.py` (panels-first audit) and `work/scripts/audit_state.py` (lifecycle audit) cover most of the audit ground in practice. Archiving rather than reworking; reopen if a real recurring need surfaces.
 owner: Zarathale (Alan)
 target: M0.5.2-piece-scan-ingest
 ---
+
+_Archived 2026-05-06 without shipping. Refer to `CLAUDE.md` / `claude-work/STATUS.md` for current state. The skill's `SKILL.md` at `.claude/skills/piece-scan-ingest/SKILL.md` is preserved as design record; the helper script described below was never written._
 
 ## What You Are Doing and Why
 

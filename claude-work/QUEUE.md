@@ -6,41 +6,35 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 
 ## Now
 
-### 1. Per-fold assembled-pose load + save — Code session
-
-- **What:** open a Code session against `CODE_PROMPT_preview-html-assembled-pose.md` (repo root, ready-for-code). Adds two things to `preview.html`: (a) read `assembled.folds` from the per-piece sidecar at piece-load time and use those values as the per-fold slider's initial value, applying the rotations immediately so the piece appears in its assembled pose; (b) a "Save assembled pose" button that emits the current slider state as a JSON snippet (copy + download) for Alan to merge into the sidecar by hand. Schema settled in DECISIONS #11.
-- **Why first:** the missing durable-record-of-fold-state piece. Today every preview reload starts at zero; assembled-pose makes the validation work stick. Pairs naturally with the multi-piece scene mode just shipped — once individual piece poses are recorded, the scene starts looking like the actual assembled clock instead of a row of flat slabs.
-- **Verification target:** load `?piece=069` with no sidecar (regression: all sliders at 0); load with a test sidecar carrying two assembled folds (those sliders pre-populate, geometry pre-folds); Save button emits JSON containing all 10 folds at their current values.
-- **How to pull:** open a Code session, hand it `CODE_PROMPT_preview-html-assembled-pose.md`.
-
-### 2. Bob batch continuation (bench)
-
-- **Pieces with open work:** 093a/093b (add fold paths in `folds-valley`/`folds-mountain`; rename `cutaway1` → `cutaway-1`; retire combined `work/pieces/093/093.svg` to `_attic/`), 070 (rename stale fold ids: `fold-panelsideb-tabb` → `fold-sideb-tabb`, `fold-panelsidec-tabc` → `fold-sidec-tabc`), 087 escape wheel (first gear-disc piece — should surface any gear-specific convention needs).
-- **Decision to make before scaling:** 097 Affinity collision-suffix — 5 visually-distinct `attach-a99` copies auto-suffixed by Affinity to `attach-a991`/`992`/`993`/`994`. Options: (a) convention #16 parser tolerance (strip digit suffix when base id already resolves); (b) author per-instance ids. Either is fine; pick what feels right when you're at the bench.
-- **How to pull:** bench session. Run `python claude-work/scripts/build_assembly_graph.py` after each export.
-
-### 3. Tag 123 pieces in tag-pieces.html
+### 1. Tag 123 pieces in tag-pieces.html
 
 - **Workflow:** open `tag-pieces.html` locally (`file://`), tag each piece by archetype. ~1 hour, splittable (localStorage persists).
 - **Why:** unblocks audit-v2 + dashboard CODE_PROMPTs. See STATUS asset-state track.
-- **Pre-req:** `CODE_PROMPT_tag-pieces-v2-schema.md` (ready-for-code at repo root) ships to a Code session first if you want the v2 schema active. Otherwise the v1 tagger works; re-tag pass after v2 ships.
+- **State:** v2 schema already shipped (CODE_PROMPT archived at `_archive/code-prompts/CODE_PROMPT_tag-pieces-v2-schema.md`). The tagger is ready to use; no Code-session pre-req remains.
 
 ---
 
 ## Soon (Claude-side work or decision pending)
 
-### 4. `attach-x<piece-id>` convention formalization (Cowork)
+### 2. `attach-x<piece-id>` convention formalization (Cowork)
 
 - Surfaced in the 093 session: glue-only inter-piece attach (no printed tab letter), `attach-x<piece-id>` in `attach-points`. Not yet in LAYER-CONVENTIONS.md. Small conventions pass + DECISIONS entry before more pieces follow the pattern. Cowork-only; no Code needed.
+- [Alan adds this comment: open to reauthoring this, wasn't trying to define a whole new standard. Let's discuss.]
 
-### 5. Architecture call: preview.html ↔ work/viewer/ (DECISIONS #4, Cowork)
+### 3. Architecture call: preview.html ↔ work/viewer/ (DECISIONS #4, Cowork)
 
-- Still deferred (open since charter sign-off). Multi-piece scene assembly shipped (PR #17); assembled-pose ship will likely tip the conversation. After Now #1 ships, this has enough data to close.
+- Still deferred (open since charter sign-off). Multi-piece scene assembly (PR #17) + assembled-pose load/save (PR #19) both shipped — enough data on the table to close. Pull when the next Cowork beat has the bandwidth.
+
+### 4. Build-graph script: support split pieces (`work/pieces/093/093a.svg` etc.) (Cowork or Code)
+
+- `claude-work/scripts/build_assembly_graph.py` main loop only globs `work/pieces/<dir>/<dir>.svg`, so 093a + 093b are silently absent from the connection graph today. Tiny extension: glob every `*.svg` in each piece dir, derive piece id from the filename stem rather than the dir name. Surfaced during the 2026-05-06 post-PR-19 review. Informational; not blocking — 093a/093b are the only split pieces today, and the SVGs themselves audit-clean (cutaway hyphenation fixed; combined 093.svg retired to `_attic/`).
 
 ---
 
 ## Recently shipped
 
+- ~~**Per-fold assembled-pose load + save in `preview.html`**~~ → PR #19, 2026-05-06. `preview.html` reads `assembled.folds` from the per-piece sidecar at load time (precedence `assembled.folds[id]` > fold-id `-<deg>` suffix > 0) and applies the rotations immediately so the piece appears in its assembled pose. New "Save assembled pose" button emits the current per-fold slider state as a JSON snippet (copy-to-clipboard + download). Scene mode opted out for v1. All 9 verification checks green. See `sessions/2026-05-06-1900_code_preview-html-assembled-pose.md`.
+- ~~**Bob batch continuation (070 / 093a / 093b refresh)**~~ → 2026-05-06 (late evening, bench). 070 renamed `panelsideb`/`panelsidec` panel ids → `sideb`/`sidec` (folds now resolve cleanly); 093a + 093b shipped under `work/pieces/093/` with `silhouette` + `panels` + `folds-valley` + `marks` + clean `cutaway` ids; combined `093.svg`/`.af` retired to `work/pieces/093/_attic/`; 093b carries cross-half `attach-x093a`. 087 .af authoring underway on the bench (no SVG export yet — pieces.csv stays at `captured`). 097 Affinity collision-suffix left as authoring choice (Alan: author uniquely if it ever truly matters; otherwise leave the `attach-a991`/`992`/`993`/`994` Affinity-disambiguated state in place); not promoted to a convention. Fresh `build_assembly_graph.py` run: 17 panels-first pieces, 24 valid authored cross-piece edges, 070 folds clean.
 - ~~**Inferred cross-piece connections in the audit**~~ → PR #18, 2026-05-06. `claude-work/scripts/build_assembly_graph.py` reads `connections.inferred[]` from per-piece sidecars and merges with SVG-derived edges. Every edge tagged `provenance: "authored" | "inferred"`. Soft `inferred_warnings` on duplicates; legacy `pivot_clusters` shape preserved (preview.html scene-mode unaffected). New `prov` column + "Inferred connections" + "Inferred conflicts" sections in the markdown report. See `sessions/2026-05-06-1700_code_build-assembly-graph-inferred.md`.
 - ~~**Multi-piece scene assembly in preview.html**~~ → PR #17, 2026-05-06. `loadScene` + `renderSceneMulti` + pivot-cluster co-location. Anchor cluster (065/066/067/068/069) renders in one scene with 067+069 pivot-aligned on `pivot-anchor`. See `sessions/2026-05-06-0847_code_preview-html-multi-piece-scene.md`.
 - ~~**Panels-aware parser + fold-step/closure-attach in preview.html**~~ → PRs #15 + #16, 2026-05-05. Panels-first dispatch, hinge forest, `attachPoints`/`closureAttaches` populated. See `sessions/2026-05-05-2345_code_preview-html-panels-aware.md` + `sessions/2026-05-05-1820_code_preview-html-fold-step-and-closure-attach.md`.
@@ -62,7 +56,9 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 
 ---
 
-*Last updated: 2026-05-06 (late evening) — inferred-connections audit shipped via PR #18. Old Now #2 struck through to Recently shipped; bob batch + tag-pieces renumbered to #2/#3; Soon section renumbered #4/#5. Now #1 (assembled-pose Code session) carried forward as the highest-ROI next pull.*
+*Last updated: 2026-05-06 (post-PR-19 review) — assembled-pose shipped via PR #19; bob batch continuation (070 rename, 093a/093b refresh, combined 093.svg retired, 087 .af underway, 097 collision left as authoring choice) verified at the bench. Both struck through to Recently shipped. Old Now #1 + #2 retired; tag-pieces.html promoted to Now #1. Soon section renumbered (attach-x convention #2, architecture call #3); a new #4 logs the build-graph script's `<dirname>.svg` lookup that silently skips split pieces (093a/093b) — small extension queued, not blocking.*
+
+*Earlier 2026-05-06 (late evening) — inferred-connections audit shipped via PR #18. Old Now #2 struck through to Recently shipped; bob batch + tag-pieces renumbered to #2/#3; Soon section renumbered #4/#5. Now #1 (assembled-pose Code session) carried forward as the highest-ROI next pull.*
 
 *Earlier 2026-05-06 (evening) — multi-piece scene shipped (PR #17) + assembled-pose / inferred-connections design conversation closed. Multi-piece scene struck through to Recently shipped; new Now #1 is assembled-pose Code session (`CODE_PROMPT_preview-html-assembled-pose.md`); new Now #2 is inferred-connections audit Code session (`CODE_PROMPT_build-assembly-graph-inferred.md`). Bob batch + tag-pieces renumbered to #3/#4. Soon section renumbered #5/#6.*
 

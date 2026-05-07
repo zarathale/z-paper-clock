@@ -2,7 +2,7 @@
 
 > Read this at the start of every session. It tells you where things are, what's active, and how to work with Zarathale (Alan) on this project. The "Z" in z-paper-clock is Zarathale — Alan's name in this collaboration. **Z**, **Zara**, and **Zarathale** are all good — Zarathale is a mouthful, so the casual forms are usually what comes out in chat. Alan also works.
 
-This file is the cross-session coaching for z-paper-clock. It loads at the start of every Cowork session and is the standing context for every Code session. Per-task orchestration prompts (`CODE_PROMPT_*.md`) live alongside this file at repo root and are the Cowork→Code handoff docs for specific units of work — this file is the background everything else assumes.
+This file is the cross-session coaching for z-paper-clock. It loads at the start of every Cowork session and is the standing context for every Code session. Per-task orchestration prompts (`CODE_PROMPT_*.md`) are the Cowork→Code handoff docs for specific units of work — **only ready-for-code (or in-development) prompts live at repo root; once a prompt ships it moves to `_archive/code-prompts/` as the decision record** (see "Orchestration Prompt Format" below). This file is the background everything else assumes.
 
 ---
 
@@ -62,24 +62,25 @@ Most design, transcription, and document work happens in **Cowork** (Claude desk
 
 ## Where We Are
 
-_For slow-moving framing on what this project is and what actually exists today, see `PROJECT-STATE.md`. For the current stance — open tracks + next actions + recent activity — see `WORKPLAN.md`. The status table below is the executive-summary mirror of `ROADMAP.md` and gets reconciled at each planning beat. The status table will likely simplify or get generated once `WORKPLAN.md` proves out for a few sessions._
+_For slow-moving framing on what this project is and what actually exists today, see `PROJECT-STATE.md`. **For the live stance — open tracks + next actions + recent activity — see `claude-work/STATUS.md`** (replaced `WORKPLAN.md` at charter sign-off per `claude-work/DECISIONS.md` #2). The status table below is the executive-summary mirror of `ROADMAP.md` and gets reconciled at planning beats; for granular post-charter ship history (PR #15+), STATUS.md is canonical._
 
-The study side is complete. The build side hit a pause on 2026-04-30 over gutter warp surviving the gen-1 phone-scan pipeline (visible on piece 31 in Inkscape). Initial response: archive gen-1, capture gen-2 on a flat-bed home scanner. Same day, second-pass refinement: the home scanner can't fit a whole plate, so the workflow pivots to **chunk-and-crop** — capture multi-piece chunks that fit the bed, hand-crop to per-piece PNGs in your editor, archive the chunks as recovery references. M1 deliverables remain at `work/_archive/m1-plate-d-phone/`. Quick status:
+The study side is complete. The build side hit a pause on 2026-04-30 over gutter warp surviving the gen-1 phone-scan pipeline (visible on piece 31 in Inkscape). Initial response: archive gen-1, capture gen-2 on a flat-bed home scanner. Same day, second-pass refinement: the home scanner can't fit a whole plate, so the workflow pivots to **chunk-and-crop** — capture multi-piece chunks that fit the bed, hand-crop to per-piece PNGs in your editor, archive the chunks as recovery references. M1 deliverables remain at `work/_archive/m1-plate-d-phone/`. Source-side capture closed 2026-05-05 at 123/123. Quick status:
 
 | Track | State |
 |---|---|
 | Source scans — gen-1 (phone) | 📦 Archived 2026-04-30 to `source/_archive/phone-scans-2025/` |
-| Source scans — gen-2 chunks (`source/scans-chunks/`) | 🔄 In progress; flat-bed multi-piece chunks. 8 chunks landed 2026-04-30 (most of plate D + parts of E/F/G/H). 2026-05-01 added L/R partials + programmatically-stitched composites for pieces 34/35 (plate G long teeth strip) and 94 (plate H pendulum-bob casing) — both stitched at score 0.9+ via cv2.matchTemplate. |
-| Source pieces — gen-2 per-piece archive (`source/pieces/`) | 🔄 **117 of 123 captured** (115 numeric + 092a + 112a). 6 still pending: 013, 014, 016, 017 (plate B brackets), 090 (plate F reduction-gear pulley/disc), 110 (plate A face-frame end rail). First batch (97) ingested 2026-04-30 — see `sessions/2026-04-30-2359_cowork_inbox-ingest.md`. Second batch (4 + L/R-stitching for 34/35/94) ingested 2026-05-01 — see `sessions/2026-05-01-0030_cowork_inbox-ingest-batch2.md`. Third batch (16 more: 003/005/008/012/015/034/035/065/067/073/075/076/080/094/120/121) ingested 2026-05-01 — see `sessions/2026-05-01-0130_cowork_inbox-ingest-batch3.md`. Effective DPI verified at ~613 from a ruler measurement on piece 002 (above the 600-DPI spec). |
-| Master piece list (`work/pieces.csv`) | ✅ Expanded 2026-04-30 to a 123-row master index: **121 numbered pieces (1–121, contiguous) + 092a + 112a**. The clock face was renumbered from 122 → 121 in the consolidation pass (face is not numbered in print; the book's piece numbering is non-contiguous and 121 is the only available slot — closes the gap). Schema: id, plate, section, bucket, status, notes. Bbox columns dropped — pipeline reads `source/pieces/` directly. |
+| Source scans — gen-2 chunks (`source/scans-chunks/`) | ✅ Complete; chunks landed across 2026-04-30 → 2026-05-05 covering all 13 plates. Programmatically-stitched composites used for pieces 34/35 (plate G long teeth strip) and 94 (plate H pendulum-bob casing) — both stitched at score 0.9+ via cv2.matchTemplate. |
+| Source pieces — gen-2 per-piece archive (`source/pieces/`) | ✅ **123 of 123 captured (closed 2026-05-05).** Letter variants `092a.png`, `112a.png` included. Effective DPI verified at ~613 from a ruler measurement on piece 002 (above the 600-DPI spec). Plate B brackets 013-017 resolved as clones of 012; 090 + 110 captured 2026-05-05. |
+| Master piece list (`work/pieces.csv`) | ✅ 123-row master index: 121 numbered pieces (1–121, contiguous) + 092a + 112a. Clock face renumbered from 122 → 121 in the consolidation pass (face is not numbered in print; piece 121 closes the gap). Schema: id, plate, section, bucket, status, notes. Bbox columns dropped — pipeline reads `source/pieces/` directly. 093 split into 093a + 093b (2026-05-05); both rows traced. |
 | Transcriptions (5 markdown files) | ✅ Complete; audited 2026-04-29; scan-independent |
 | Auto-trace test v1 + v2 | 📦 Archived (gen-1 era) |
 | 3D viewer spec (`work/SPEC-3D-VIEWER.md`) | ✅ Drafted; 5 product decisions resolved 2026-04-30 |
-| Build roadmap (`ROADMAP.md`) | ✅ Drafted 2026-04-30; M0.5 reshaped 2026-04-30 for chunk-and-crop onboarding |
-| M0.5 — Chunk-and-crop onboarding + pipeline reshape | 🔄 In progress; superseded the original "rescan + re-bring-up" plate-based plan |
-| M0.6 — Authoring/QA preview tool (`preview.html`) | 🔄 In progress; foundation + cut-layer + texture-flip + back-face-mirror + perf + thickness fix + axle rotation shipped 2026-05-02. v1b (polygon cut + hinge animation) + cutouts subtraction + multi-cutaway + `work/viewer/` graduation decision pending. See `work/SPEC-3D-VIEWER.md` §"Authoring/QA preview tool" and `ROADMAP.md` M0.6. |
-| M1 — pipeline end-to-end on plate D (gen-1) | 📦 Shipped against gen-1 (archived); to be re-run against gen-2 per-piece archive in M0.5 |
-| Piece-scan ingest skill | 🔄 SKILL.md drafted at `.claude/skills/piece-scan-ingest/SKILL.md`; helper queued via `CODE_PROMPT_M0.5.2-piece-scan-ingest.md` |
+| Build roadmap (`ROADMAP.md`) | ✅ Drafted 2026-04-30; M0.5 reshaped 2026-04-30 for chunk-and-crop onboarding. Note: post-2026-05-04 ships tracked in `claude-work/STATUS.md`, not in ROADMAP. |
+| M0.5 — Chunk-and-crop onboarding + pipeline reshape | 🔄 Capture complete (123/123). Pipeline reshape (archive `01-crop.py`, repoint `02-trace.py` at `source/pieces/`) still pending; not currently blocking other tracks. |
+| M0.6 — Authoring/QA preview tool (`preview.html`) | 🔄 In progress; many ships through 2026-05-06 (v1a foundation, cut-layer, texture-flip, back-face-mirror, perf, thickness fix, axle rotation, v1b face graph + hinge tree, source-of-truth piece loader, face-graph diagnostics, cut-trim, panels-aware parser, fold-step + closure-attach, multi-piece scene assembly, inferred-connections audit-side, assembled-pose load + save). Architecture decision (graduate / parallel / replace `work/viewer/`) is the next Cowork beat. See `claude-work/STATUS.md` `preview.html iteration` track for the live state. |
+| Panels-first SVG authoring | 🔄 17 panels-first SVGs authored across the anchor / pendulum / bob clusters (065-072 + 094-100 + 110). Connection graph (`claude-work/state/connection-graph.{md,json}`) resolves 24 valid authored cross-piece edges. Conventions stable post-`claude-work/DECISIONS.md` #7; `LAYER-CONVENTIONS.md` is the live reference. |
+| M1 — pipeline end-to-end on plate D (gen-1) | 📦 Shipped against gen-1 (archived); re-run against gen-2 still pending the M0.5 pipeline reshape. |
+| Piece-scan ingest skill | 📦 Archived 2026-05-06 without shipping. SKILL.md preserved at `.claude/skills/piece-scan-ingest/SKILL.md` as design record; helper script never written. CODE_PROMPT lives at `_archive/code-prompts/CODE_PROMPT_M0.5.2-piece-scan-ingest.md` with `archived_reason:` documenting why (capture closed at 123/123 before the helper became necessary; `claude-work/scripts/build_assembly_graph.py` + `work/scripts/audit_state.py` cover most of the audit ground in practice). |
 | M2 — all pieces traced + gear-ratio validation | ⏳ Pending; blocked on M0.5 |
 | M3 — flat viewer (illustrative aesthetic) | ⏳ Pending; ships v0.1.0 |
 | M4 — assembly transforms | ⏳ Pending |
@@ -95,7 +96,7 @@ Update the relevant row whenever a milestone closes or a new state is reached.
 
 This is the Cowork→Code handoff format. It's what turns a fuzzy intent into a clean Code session.
 
-Naming: `CODE_PROMPT_M1-pipeline-plate-d.md` for milestone work; `CODE_PROMPT_v0.1.0.md` once the viewer is shipping versioned releases. Both live at repo root and are kept after ship as decision records.
+Naming: `CODE_PROMPT_M1-pipeline-plate-d.md` for milestone work; `CODE_PROMPT_v0.1.0.md` once the viewer is shipping versioned releases. While in flight (`status: draft | in-development | ready-for-code`) the prompt lives at repo root so it's the first thing a fresh Code session sees. **Once it ships, it moves to `_archive/code-prompts/` as the decision record** (see "After ship" below). Repo root stays clear of stale prompts; pulling the archive folder open shows the full ship history.
 
 **Front matter:**
 
@@ -122,7 +123,9 @@ shipped_version: 0.1.0                 # if version-numbered
 7. **What NOT to Change** — named exclusions. Stops Code from drifting into out-of-scope refactors.
 8. **Manual tests** (optional) — small table or list of pre-/post-conditions Zarathale runs after merge against the local checkout. Include when the change is observable end-to-end.
 
-**After ship:** don't delete the prompt. Flip its front-matter `status` to `shipped`, add `shipped:` and (if applicable) `shipped_version:`, and leave the file in repo root as the decision record. The session note should reference the prompt by filename. **Add a one-line italic header below the front matter:** `_Shipped YYYY-MM-DD; paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / ROADMAP.md for current state._` This stops a fresh session from misreading a stale orchestration prompt as a current task list — the prompt body stays as it shipped (decision record), but the header makes the time-of-write framing explicit.
+**After ship:** don't delete the prompt. Flip its front-matter `status` to `shipped`, add `shipped:` and (if applicable) `shipped_version:`, and **move the file to `_archive/code-prompts/`** as the decision record. The session note should reference the prompt by filename — the bare filename is fine since `_archive/code-prompts/` is the only place a shipped prompt lives. **Add a one-line italic header below the front matter:** `_Shipped YYYY-MM-DD; paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / ROADMAP.md / claude-work/STATUS.md for current state._` This stops a fresh session from misreading a stale orchestration prompt as a current task list — the prompt body stays as it shipped (decision record), but the header makes the time-of-write framing explicit.
+
+**Killed-without-shipping** prompts also live in `_archive/code-prompts/` with `status: archived` and an `archived_reason:` line in the front matter (e.g. `CODE_PROMPT_preview-html-snap-extension.md`, killed by DECISIONS #6). The prompt's `status` distinguishes it from a shipped prompt within the same folder.
 
 ---
 
@@ -189,13 +192,29 @@ For pipeline-only work that doesn't touch the viewer (M1, M2 milestones), no ver
 
 ```
 z-paper-clock/                              ← repo root
-├── CLAUDE.md                               ← this file
+├── CLAUDE.md                               ← this file (working conventions)
 ├── README.md                               ← public-facing project description
+├── PROJECT-STATE.md                        ← slow-moving framing doc (what this project is)
+├── ROADMAP.md                              ← milestone roadmap (M0.5 / M0.6 / M1 / …); historical, not the live surface
+├── WORKPLAN.md                             ← legacy pre-charter work surface; frozen 2026-05-04 per DECISIONS #2 (replaced by claude-work/STATUS.md)
+├── LAYER-CONVENTIONS.md                    ← scannable cheat sheet for SVG authoring conventions (companion to CLAUDE.md File Naming Conventions §)
+├── preview.html                            ← single-file HTML authoring/QA preview tool (M0.6)
+├── tag-pieces.html                         ← single-file HTML piece-tagging UI (asset-state v2 schema)
+├── CODE_PROMPT_<topic>.md                  ← in-flight orchestration prompts only (status: draft / in-development / ready-for-code). After ship → moved to _archive/code-prompts/.
+├── claude-work/                            ← Claude-led working surfaces post-charter (2026-05-04)
+│   ├── CHARTER.md                          collaboration charter (Claude-as-lead; Alan in human-assistant role)
+│   ├── STATUS.md                           live work-state surface (replaces WORKPLAN.md as the active per-track tracker)
+│   ├── QUEUE.md                            pull-based queue of what Alan should author / pull next
+│   ├── DECISIONS.md                        Claude-led decision record (parallel to CLAUDE.md's "Architectural Decisions" table)
+│   ├── scripts/                            audit + automation (`build_assembly_graph.py`, `preview_render.py`, `watch_and_render.py`)
+│   ├── standards/                          environment + tooling standards (`ENVIRONMENT.md`)
+│   ├── state/                              generated outputs (connection-graph.{md,json}, preview-renders, render-triggers)
+│   └── to-alan/                            dropbox of cheat sheets / per-piece briefs from Claude to Alan
 ├── source/                                 ← reference archive (personal-use only)
 │   ├── inventory.md
 │   ├── SCAN-INTAKE-CHECKLIST.md            chunk-and-crop capture + QC standard (gen-2)
-│   ├── pieces/                             per-piece source archive: NNN[a].png, lossless (NEW, populating M0.5)
-│   ├── scans-chunks/                       multi-piece chunk captures kept as recovery references (NEW, populating M0.5)
+│   ├── pieces/                             per-piece source archive: NNN[a].png, lossless (123/123 captured)
+│   ├── scans-chunks/                       multi-piece chunk captures kept as recovery references
 │   ├── scans-raw/                          legacy plate-oriented raw (kept; mostly unused)
 │   ├── scans-clean/                        legacy plate-oriented clean (kept; mostly unused)
 │   ├── scans-prepped/                      legacy plate-oriented prepped (kept; mostly unused)
@@ -204,18 +223,22 @@ z-paper-clock/                              ← repo root
 │       └── phone-scans-2025/               gen-1 (handheld phone) raw + clean + prepped, archived 2026-04-30
 ├── work/                                   ← derivative work
 │   ├── SPEC-3D-VIEWER.md                   build spec; the source of truth for the viewer
-│   ├── pieces/                             per-piece working folder: NNN/{NNN.af, NNN.svg, NNN.json, crop.png} (populating)
+│   ├── SPEC-REGIONS.md                     legacy cut-line-first face-graph spec (paused per DECISIONS #6; panels-first replaces it)
+│   ├── pieces/                             per-piece working folder: NNN/{NNN.af, NNN.svg, NNN.json}; optional `_attic/` for retired variants
 │   ├── assemblies/                         per-group transforms (NEW, populated in M4)
-│   ├── pipeline/                           Python pipeline scripts; 01-crop.py being archived in M0.5 (chunk-and-crop replaces plate slicing)
-│   ├── viewer/                             TS + three.js viewer (NEW, populated in M3)
+│   ├── pipeline/                           Python pipeline scripts (01-crop.py archived in M0.5; 02-trace.py to repoint at source/pieces/)
+│   ├── viewer/                             TS + three.js viewer (NEW, populated in M3 — pending DECISIONS #4)
 │   ├── pieces.csv                          master index of all 123 pieces (1–121 contiguous + 092a + 112a). Schema: id, plate, section, bucket, status, notes
-│   ├── scripts/
-│   │   ├── build_master_list.py            generator for pieces.csv from embedded-labels.md (run to regenerate)
-│   │   └── preprocess_scans.py             flat-field + chroma-aware bleed suppression (gen-1 era; per-piece re-tuning if needed)
+│   ├── piece_characters_v2.yaml            per-piece archetype + subtype tags (asset-state v2)
+│   ├── expected_layers.yaml                per-piece expected-layer overrides for the audit
+│   ├── scripts/                            generator + tooling (`build_master_list.py`, `preprocess_scans.py`, `audit_state.py`)
+│   ├── state.json                          audit output: per-piece lifecycle + convention-check results (generated by audit_state.py)
 │   └── _archive/
 │       └── m1-plate-d-phone/               M1 gen-1 outputs: pieces/0NN/, auto-trace-test/, auto-trace-test-v2/, RESCAN_FINDINGS.md
-├── sessions/                               session notes (NEW, this convention)
-└── CODE_PROMPT_*.md                        per-task orchestration prompts (NEW, root-level)
+├── sessions/                               session notes (cross-session journal — `YYYY-MM-DD-HHMM_mode_short-topic.md`)
+├── _archive/
+│   └── code-prompts/                       shipped + archived CODE_PROMPT_*.md files (decision records)
+└── .claude/                                Claude Code config (settings.json, skills/, worktrees/)
 ```
 
 The (NEW) entries don't exist yet but are reserved by name in the SPEC. Don't create them speculatively — let the active milestone populate them. The legacy `scans-raw/`, `scans-clean/`, `scans-prepped/` folders carry forward as empty-but-reserved; they're not part of the active chunk-and-crop loop, but the structure stays in case a non-plate page ever benefits from a whole-page capture path. (Two staging folders have been retired: the original `scans-intake/` was folded into chunks-direct on 2026-04-30; the repo-root `inbox/` was retired on 2026-05-03 in the file-system restructure pass. Chunks now land directly in `source/scans-chunks/`; SVG exports land directly in `work/pieces/NNN/`.)
@@ -294,7 +317,7 @@ At the end of any Code session that changed files, in this order:
 3. Add a session note to `sessions/` — not optional. Include branch name and commit SHA.
 4. Commit to the `claude/*` branch and push to `origin`.
 5. Open the PR via `gh pr create`. Return the PR URL to Zarathale in the final chat message.
-6. Flip the orchestration prompt's front matter to `shipped` + add `shipped:` and (if applicable) `shipped_version:`. Leave the file in place as the decision record.
+6. Flip the orchestration prompt's front matter to `shipped` + add `shipped:` and (if applicable) `shipped_version:`. **Move the file from repo root to `_archive/code-prompts/`** — that's where the decision record lives, not at root. Update any active surfaces that reference the old root-level path (notably `claude-work/STATUS.md`, `claude-work/QUEUE.md`, `claude-work/DECISIONS.md`, and any in-flight `CODE_PROMPT_*.md` still at root); historical session notes stay as-is.
 7. Zarathale reviews + merges in-browser, deletes the remote branch there, pulls `main` via GitHub Desktop, then runs the post-merge cleanup block (below) on his mac.
 
 **If a Code session must end before all of these steps are complete:** at minimum, write the session note with whatever was done, commit to `claude/*`, and push. A session that wrote code but left no commit trail is a bug, not a feature. If only the PR step didn't complete, say so explicitly and paste the exact `gh pr create` command Zarathale can run.
@@ -443,7 +466,7 @@ Do not reopen these without Zarathale.
 > For a scannable cheat sheet of the SVG authoring conventions (layer names, per-element ids, common slips), see `LAYER-CONVENTIONS.md` at repo root. The list below is the authoritative source; the cheat sheet is the distilled version designed to stay open while editing in Affinity.
 
 - **Session notes:** `YYYY-MM-DD-HHMM_mode_short-topic.md` in `sessions/`. Datetime, not date-only. HHMM is **Pacific/Seattle local time** (24-hour; what the clock on Zarathale's mac shows — no UTC conversion). **HHMM collision rule:** if a previous session note already exists for the same `YYYY-MM-DD-HHMM`, bump the new note to a non-colliding HHMM (15:00 + 15:30, not 15:00 + 15:00). Front-matter `start_time` should match the filename's HHMM, even if it's a small fudge from the actual clock — filename and front matter agree, and the HHMM is just a unique-key, not a time log.
-- **Orchestration prompts:** `CODE_PROMPT_<target>.md` at repo root. `<target>` is either `M<n>-<short>` for milestone work or `v<x.y.z>` for version ships.
+- **Orchestration prompts:** `CODE_PROMPT_<target>.md`. While in flight (`status: draft | in-development | ready-for-code`) the prompt lives at repo root. After ship it moves to `_archive/code-prompts/` (same filename) as the decision record. Killed-without-shipping prompts also live in `_archive/code-prompts/` with `status: archived`. `<target>` is either `M<n>-<short>` for milestone work or `v<x.y.z>` for version ships, otherwise a descriptive slug (e.g. `preview-html-assembled-pose`).
 - **Per-piece source archive:** `source/pieces/NNN.png` (lossless PNG). Three-digit zero-padded. Letter variants suffix lowercase: `092a.png`, `112a.png`.
 - **Per-piece working folder:** `work/pieces/NNN/` holds everything for piece NNN — authoring file `NNN.af` (Affinity Designer; Alan opens this), latest export `NNN.svg`, sidecar `NNN.json`, and any optional pipeline-produced `crop.png`. Three-digit zero-padded piece number; letter variants are appended (`092a.af`, `092a.svg`, `092a.json`). The `piece-` prefix used in the M1 archive (`work/_archive/m1-plate-d-phone/pieces/0NN/piece-0NN.svg`) is retired going forward — the folder name `NNN/` already provides the context, and dropping the prefix makes authoring + export + sidecar filenames parallel with the source archive's bare-form `NNN.png`. Authoring iteration variants (e.g. an exploratory branch) go in a per-piece scratch zone like `work/pieces/NNN/_attic/`, not at the canonical filename. Affinity lock files (`.~lock.NNN.af#`) and editor backups (`NNN.af~`) are gitignored. (Variant suffixes like `NNN-full.af` are accepted by the audit but flagged informationally — pick one canonical and retire the rest.)
 - **Chunk scans:** `NN_NN_NN.{jpeg,png}` listing the COMPLETE pieces inside, ascending. Single-piece chunks: `NN.{jpeg,png}`. L/R partials: `NN_l.jpeg` + `NN_r.jpeg` for a single piece, `NN_NN_l.jpeg` + `NN_NN_r.jpeg` for a multi-piece chunk. Stitched composites: `NN_stitched.png` (single piece) or `NN_NN_stitched.png` (multi-piece), always PNG. Letter-variant pieces (`92a`) sort alphanumerically with their numeric base in ascending lists (e.g. `92a_98_99.jpeg`). Live in `source/scans-chunks/` — saved there directly from the scanner; there is no staging folder.
@@ -468,7 +491,9 @@ Do not reopen these without Zarathale.
 
 ---
 
-*Last updated: 2026-05-04 (morning) — **marker-bound fold ids convention settled, then revised within the same session.** Triggered by piece 066's fold-tagging failure: 14 vertical tab/landing folds at shared x-coordinates collapse during half-plane cuts, producing 19 orphan regions and 188 unknown-tag edges. Resolution is authoring-side: a fold path's id has the form `fold-<marker-id>` (e.g., `fold-tab-c`, `fold-landing-h65`) where `<marker-id>` matches an element in `<g id="marks">`. Optional default-angle suffix `-<N>` (`fold-tab-c-40`). The `fold-` prefix sidesteps Affinity Designer's auto-rename on cross-layer id collision (an earlier same-day draft had fold paths share marker ids directly; Affinity suffixed marker side with `1` on export, breaking the binding for 15 of 17 marker pairs). New Architectural-Decisions row "Marker-bound fold ids" added; new "Per-element ids inside fold layers" entry in File Naming Conventions; LAYER-CONVENTIONS.md folds section extended; work/SPEC-3D-VIEWER.md parser-consumption table row updated; WORKPLAN.md SVG-layer-authoring + preview.html-iteration tracks logged. Parser implementation also landed in `preview.html`: `parseSVG` builds `marksCentroidsById`, `parseMarkerBoundFoldId` resolves prefix + optional angle suffix, `buildFaceGraph` adjacency uses geometric matching (`MARKER_FOLD_EPS = max(ADJ_EPS, 0.003 × diagLen)`) for marker-bound folds. Implementation imperfect — improved 066 from 19 → 5 orphans and 15+ marker-bound hinges resolving, but visual still shows shards/slivers when folded; 4 marker-bound folds still trip the centroid-not-in-adjacent-region check. Session closed at a design pivot: the next iteration should replace the geometric adjacency search with **shared-edge topology** (find neighbors via polygon-clipping's clean shared edges instead of fold-line geometric proximity). No new authoring required for that revision; existing `fold-tab-X` / `fold-landing-Y` ids stay as-is. Closure constraint (cylinder wrap-around) still in design — three options on the table. See `sessions/2026-05-04-0815_cowork_marker-bound-fold-ids.md`.*
+*Last updated: 2026-05-06 (post-PR-19 review) — **shipped CODE_PROMPTs now move to `_archive/code-prompts/`.** Convention flip: orchestration prompts at repo root only while in flight (`status: draft | in-development | ready-for-code`); on ship, they move to `_archive/code-prompts/` as the decision record. Same folder also hosts killed-without-shipping prompts (`status: archived` with `archived_reason:`). Driver: 21 stale shipped prompts had accumulated at root; `_archive/code-prompts/` already existed with two archived drafts. Edits in this pass: intro paragraph + "Orchestration Prompt Format" section (both Naming and After-ship paragraphs) + "End-of-Code-session" step #6 + Repo Structure tree + File Naming Conventions Orchestration-prompts row all reflect the new rule. Repo Structure tree expanded to include `claude-work/`, `_archive/code-prompts/`, `LAYER-CONVENTIONS.md`, `PROJECT-STATE.md`, `ROADMAP.md`, `WORKPLAN.md`, `preview.html`, `tag-pieces.html`, `work/SPEC-REGIONS.md`, `work/state.json`, `work/piece_characters_v2.yaml`, `work/expected_layers.yaml`, `.claude/` — all of which had landed since the last tree refresh. Footer shipped/superseded prompt references (e.g. `CODE_PROMPT_filesystem-restructure.md`, `CODE_PROMPT_preview-html-cut-layer.md`) are bare filenames in historical context and stay as-is — bare filenames resolve correctly against the archive folder when used as references.*
+
+*Earlier 2026-05-04 (morning) — **marker-bound fold ids convention settled, then revised within the same session.** Triggered by piece 066's fold-tagging failure: 14 vertical tab/landing folds at shared x-coordinates collapse during half-plane cuts, producing 19 orphan regions and 188 unknown-tag edges. Resolution is authoring-side: a fold path's id has the form `fold-<marker-id>` (e.g., `fold-tab-c`, `fold-landing-h65`) where `<marker-id>` matches an element in `<g id="marks">`. Optional default-angle suffix `-<N>` (`fold-tab-c-40`). The `fold-` prefix sidesteps Affinity Designer's auto-rename on cross-layer id collision (an earlier same-day draft had fold paths share marker ids directly; Affinity suffixed marker side with `1` on export, breaking the binding for 15 of 17 marker pairs). New Architectural-Decisions row "Marker-bound fold ids" added; new "Per-element ids inside fold layers" entry in File Naming Conventions; LAYER-CONVENTIONS.md folds section extended; work/SPEC-3D-VIEWER.md parser-consumption table row updated; WORKPLAN.md SVG-layer-authoring + preview.html-iteration tracks logged. Parser implementation also landed in `preview.html`: `parseSVG` builds `marksCentroidsById`, `parseMarkerBoundFoldId` resolves prefix + optional angle suffix, `buildFaceGraph` adjacency uses geometric matching (`MARKER_FOLD_EPS = max(ADJ_EPS, 0.003 × diagLen)`) for marker-bound folds. Implementation imperfect — improved 066 from 19 → 5 orphans and 15+ marker-bound hinges resolving, but visual still shows shards/slivers when folded; 4 marker-bound folds still trip the centroid-not-in-adjacent-region check. Session closed at a design pivot: the next iteration should replace the geometric adjacency search with **shared-edge topology** (find neighbors via polygon-clipping's clean shared edges instead of fold-line geometric proximity). No new authoring required for that revision; existing `fold-tab-X` / `fold-landing-Y` ids stay as-is. Closure constraint (cylinder wrap-around) still in design — three options on the table. See `sessions/2026-05-04-0815_cowork_marker-bound-fold-ids.md`.*
 
 *Earlier 2026-05-03 (evening) — **filesystem restructure pass.** Each piece's authoring file (`.af`), latest export (`.svg`), and sidecar (`.json`) now colocate at `work/pieces/NNN/` — single canonical home, single source-of-truth for `preview.html` to load from. Per-piece filenames drop the `piece-` prefix going forward (the folder name provides the context); M1 archive keeps its `piece-NNN.svg` files as decision records. `source/pieces/` is locked to PNG scans only (no `.af`, no `.svg`). `inbox/` retired entirely — chunks land directly in `source/scans-chunks/`, exports land directly in `work/pieces/NNN/`. Affinity lock files + editor backups added to `.gitignore`. New Architectural-Decisions row "Per-piece authoring + export colocation; `inbox/` retired" added; Known Issues "Letter-variant convention split" struck through (resolved); Repo Structure tree updated; File Naming Conventions section's "Per-piece working folder" line rewritten; "Chunk scans" line updated; SCAN-INTAKE-CHECKLIST.md, source/pieces/README.md, LAYER-CONVENTIONS.md, work/SPEC-3D-VIEWER.md, ROADMAP.md, WORKPLAN.md, .gitignore all aligned. Two CODE_PROMPTs handed off: `CODE_PROMPT_filesystem-restructure.md` (the actual file moves + audit-script repoint + v1b verification-path bump) and `CODE_PROMPT_preview-html-source-of-truth.md` (preview.html piece-id loader). See `sessions/2026-05-03-2345_cowork_filesystem-restructure.md`.*
 
