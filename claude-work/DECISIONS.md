@@ -205,9 +205,36 @@ A row per decision. Each row captures:
 - **Follow-up parked from v1 ship:** scene mode opted out of the per-piece `assembled.folds` map for v1 — `currentAssembledFolds` is gated on single-piece mode. Per-piece assembled poses applied independently across a scene needs `currentAssembledFolds` to grow into a per-piece map keyed by `_sceneId`. Pull when the scene-mode use case actually wants it.
 - **Reopen?** closed in v1.
 
+### #12 — Parser consults `marks` for cross-piece feature lookup (mark-first attach pattern made real)
+
+- **Date:** 2026-05-07 (evening)
+- **Decision:** Extend the cross-piece feature-lookup chain in `claude-work/scripts/build_assembly_graph.py` (`find_partner_feature`) and the equivalent parser in `preview.html` to consult the partner's `marks` layer in addition to `panels` and `attach-points`. Closes the gap surfaced by 093b's `attach-x093a`, where the documented mark-first attach pattern (LAYER-CONVENTIONS.md Patterns) was authored on the partner side as a `marks` element but never resolved by the parser, which only inspected `panels` and `attach-points`.
+
+  **New lookup chain** (replaces the existing 6-step ladder):
+
+  1. Exact panel id == letter
+  2. Panel id == `tab<letter>`
+  3. Partner `attach-points`: parsed letter field == letter (kinds: attach / landing / letter-target / hole)
+  4. **Partner `marks`: id == letter (exact bare-letter match)** ← NEW
+  5. **Partner `marks`: id == `mark-<letter>` or `landing-<letter><self>` (typed marks whose semantic part equals letter)** ← NEW
+  6. Fuzzy substring on panel id (composite ids like `bh`, `ai`, `e65`)
+  7. Fuzzy substring on attach-points semantic part
+  8. **Fuzzy substring on `marks` semantic part** ← NEW
+
+  Tiebreaker: shortest matching id wins (preserves existing `ai` beats `main` for letter `i` rule). When a partner has multi-instance same-id marks (the `a × 12` pattern on 099, convention #15), the resolver returns the set as a logical entity — the assembly engine downstream can pick a specific instance via additional registration data (e.g., physical proximity, fold-state, sequence). For the connection-graph's per-edge resolution today, returning the multi-instance set is sufficient; an unresolved discriminator is logged as `multi-target` provenance.
+
+  No re-authoring required: every authored SVG that follows the documented mark-first pattern (093a's `x` mark, 095's `mark-a`, 099's 12×`a` marks) starts resolving correctly the moment the parser ships. Edges that resolved-by-accident through panel-substring (094 → `pane1` instead of `mark-a`; 097 → `main` instead of one of 099's `a` marks) shift to mark-anchored, which is the documented intent.
+
+- **Why:** LAYER-CONVENTIONS.md "Mark-first attach pattern" section (added 2026-05-07 morning) tells authors marks are the preferred connection target — centroid is the connection point geometry; panels are coarser. But the parser never inspected marks, so the documented pattern only "worked" when the partner's panel name happened to substring-match the letter. 093 was the first piece where the letter (`x`) had no panel-name accident to fall back on, exposing the gap. Option A picked from three options (A: extend parser; B: standardize on bare letter targets in attach-points; C: union). Option A honors the existing convention as written, requires zero re-authoring of the 16 panels-first pieces, and matches the precedent set by the multi-instance markers in `marks` already being canonical.
+- **Type:** Co-authored. Convention text didn't change; the parser implementation is being aligned to it.
+- **Downstream:** CODE_PROMPT to be drafted next session for the `find_partner_feature` extension in `build_assembly_graph.py` plus the parallel resolver in `preview.html`. LAYER-CONVENTIONS.md updated in this pass: Parser-rules section gains the new lookup steps, Patterns section adds 066 as worked exemplar showing the chain end-to-end. Connection-graph regenerates after the script lands; expect 094/095, 097/099, 097/098, 093/093a edges to shift their `matched via` from panel-substring to marks-anchored. Open follow-up tracked separately: 097's period-suffix `attach-a99.{1..5}` pattern is parked for a post-Option-A read; if multi-instance attach-points-as-set covers the registration ambiguity it solves, the period-suffix may not be needed.
+- **Reopen?** closed in v1. Reopens if the marks-layer lookup introduces resolution conflicts the tiebreaker can't settle.
+
 ---
 
-*Last updated: 2026-05-07 — Decision #4 closed: Option B (clean separation). `preview.html` stays as permanent authoring/QA tool; `claude-work/viewer/` deferred until M3 is imminent and will be built fresh in TypeScript + Vite. See session note `2026-05-07-1700_cowork_architecture-and-attach-convention.md`.*
+*Last updated: 2026-05-07 (evening) — Decision #12 closed: parser will consult `marks` for cross-piece feature lookup, codifying the mark-first attach pattern that LAYER-CONVENTIONS.md already documented. CODE_PROMPT pending. Surfaced from a sweep of 093/066/094-100/110 attach-point conventions; full report in session note `2026-05-07-2200_cowork_attach-convention-sweep.md` (forthcoming).*
+
+*Earlier 2026-05-07 — Decision #4 closed: Option B (clean separation). `preview.html` stays as permanent authoring/QA tool; `claude-work/viewer/` deferred until M3 is imminent and will be built fresh in TypeScript + Vite. See session note `2026-05-07-1700_cowork_architecture-and-attach-convention.md`.*
 
 *Earlier 2026-05-06 (post-PR-19 review) — Decision #11 downstream pointer flipped to shipped (PR #19 wired `assembled.folds` load + save through `preview.html`); v1 follow-up parked for per-piece assembled poses across scene mode (only relevant when the scene-mode use case actually surfaces). #10 had already shipped via PR #18 the same evening.*
 

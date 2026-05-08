@@ -204,10 +204,15 @@ These are the rules the parser follows when consuming a panels-first SVG. They'r
 1. Exact panel id == `X`
 2. Exact panel id == `tab<X>`
 3. Partner attach-points: parsed letter field == `X`
-4. Fuzzy substring on panel id (composite letter clusters like `bh`/`ai` match this way)
-5. Fuzzy substring on attach-points semantic part (after stripping prefixes like `attach-`/`landing-`/etc., so the prefix word doesn't leak into the match)
+4. Partner marks: id == `X` (exact bare-letter match — covers the multi-instance pattern, e.g. 099's `a × 12`)
+5. Partner marks: id == `mark-<X>` or `landing-<X><self>` (typed marks whose semantic part equals `X`)
+6. Fuzzy substring on panel id (composite letter clusters like `bh`/`ai` match this way)
+7. Fuzzy substring on attach-points semantic part (after stripping prefixes like `attach-`/`landing-`/etc., so the prefix word doesn't leak into the match)
+8. Fuzzy substring on marks semantic part (after stripping `mark-`/`landing-`/`back-` prefixes)
 
-When multiple panels match by substring, **prefer the shortest panel id** (`ai` beats `main` for letter `i`). Ties broken alphabetically.
+When multiple candidates match, **prefer the shortest id** (`ai` beats `main` for letter `i`; bare `a` beats `mark-a`). Ties broken alphabetically. When a partner has N≥2 same-id marks (the multi-instance pattern, convention #15 above), the resolver returns the set as a logical entity; downstream registration picks the specific instance.
+
+The mark steps (4, 5, 8) make the documented mark-first attach pattern operational — the `Patterns and design rules` section below has the full worked exemplar on 066.
 
 **Side annotation.** Id starting with `back-` followed by a recognized prefix (`landing-`, `tab-`, `attach-`, `hole-`, `pivot-`) means the annotation is on the back side of the paper. Strip the `back-` and parse the rest as standard.
 
@@ -344,6 +349,52 @@ The printed tab letter from the book is the canonical case — the letter is alr
 
 **For 093b → 093a specifically:** place a mark on 093a at the joint edge, give it an id (e.g. `joint`), then author `attach-joint093a` on 093b.
 
+### 066 cluster — worked exemplar (the canonical reference)
+
+The 066 / 065 / 068 cluster is the cleanest panels-first authoring in the repo and the reference to copy when starting a new cluster. Every cross-piece edge resolves through the documented chain. If a new pattern doesn't fit somewhere into this exemplar, that's a signal to talk it out before adding it.
+
+What's authored, by piece:
+
+**066** (anchor strip, the busy hub of the cluster — 22 panels, 21/21 folds resolve)
+- `panels` carries seven dual-presence landing panels (`b65, c65, d65, e65, f65, g65, h65`) — these ARE folding regions of 066 with their own material area. Each pairs with a same-id-prefixed mark in 066's `marks` layer (`landing-b65 … landing-h65`) — that's the dual-presence pattern below.
+- `panels` also carries the strip's own panes (`pane1 … pane7`), tabs (`taba … tabg`), and the closure tab (`tabaa`).
+- `marks` carries the matching `landing-b65 … landing-h65` (centroid = connection point geometry, even though the panels are full regions), printed-letter markers `tab-a … tab-g` and `tab-aa` (decorative, locating where the tab letter is printed on the plate), and the closure landing `landing-tabaa`.
+- `attach-points` is sparse — just `landing-j68`, the typed cross-piece landing for piece 68 parked in attach-points instead of marks. (Convention says either layer is fine; the parser reads both.)
+- `folds-valley` and `folds-mountain` use the marker-bound form everywhere folds are co-linear: `fold-tabe-pane5`, `fold-e65-pane4`, `fold-tabaa-pane7`, etc. — every fold names its panel pair explicitly so the parser doesn't have to guess.
+
+**065** (anchor framework, single-panel piece — 7 cross-piece edges out)
+- `panels` is just `main` — flat single-region piece.
+- `axles` carries `anchor-pivot` — the actual pin-hole on this piece (the wire that 066 + 067 + 069 spin around).
+- `attach-points` is the cross-piece edge surface — seven entries (`attach-b66 … attach-h66`), each pointing at a letter on 066. The letter-pairing across the boundary: 065 says "letter b on 66"; 066 has panel `b65` (= "the b region for partner 65") and mark `landing-b65`. The parser pairs them via the letter `b`, not via piece numbers matching.
+- `marks` is empty.
+
+**068** (gear-attach plate, 19 panels, 17/17 folds — anchors letter `j` for 066's reverse landing)
+- `panels` includes printed-letter panels `g`, `b` (named directly after the letter, no `tab` prefix because they're not glue tabs — they're printed letter regions), composite-shaped panels (`tabff`, `c1`, `c2`, `sider`, `sidel`, `flap1`, `flap2`), and the strip panes (`pane1 … pane8`, plus `taba`, `tabb`).
+- `attach-points` carries three cross-piece attaches into 069 (`attach-g69`, `attach-h69`, `attach-i69`) plus the bare letter target `j` — that's the partner-side anchor for 066's `landing-j68`. Bare-letter-in-attach-points is the canonical "letter X is structurally referenced here on this piece" form.
+- `marks` carries decorative letter markers (`d, h, i, e`, plus their `back-` and `landing-` variants) and back-side annotations.
+
+The cross-piece edges at a glance, with how each resolves:
+
+| from | → | to | id authored | matches | via |
+|---|---|---|---|---|---|
+| 065 | → | 066 | `attach-b66 … attach-h66` | 066's panels `tabb … tabg` and `b65 … h65` | panel-tab / panel-substring |
+| 066 | → | 065 | (reverse of the above; parser infers landing on 066 from 065's attach) | `attach-b66 … attach-h66` on 065 | attach-attach-letter |
+| 066 | → | 068 | `landing-j68` (in attach-points) | 068's bare `j` in attach-points | attach-letter-target |
+| 068 | → | 069 | `attach-g69, attach-h69, attach-i69` | 069's panels `g`, `bh`, `ai` | panel-exact, panel-substring (×2) |
+| 067 | → | 069 | `landing-c69 … landing-f69` (in marks) | 069's `tabc … tabf` panels | panel-tab |
+
+Every edge resolves; nothing falls back to fuzzy-on-marks (steps 4–5, 8 of the lookup chain) because every authored letter has either a panel-direct match, a tab-form panel match, or a bare letter target. The mark-anchored lookup steps exist for cases like 093 (no panel/tab match available — anchor IS in marks) and for the multi-instance bob-cluster cases (097 → 099, where 099's 12×`a` marks are the right targets and panel-substring against `main` was a false-positive accident).
+
+**The naming pattern to copy.** Across all three pieces, the pairing of a cross-piece letter is always:
+
+- The piece whose tab/letter is being attached uses `attach-<letter><partner-piece>` (065's `attach-b66`).
+- The partner has the letter as one of: a tab panel (`tabb`), a dual-presence panel + mark pair (`b65` + `landing-b65`), a bare letter target in attach-points (068's `j`), or a bare letter mark in marks (the multi-instance form).
+- The letter and the piece-suffix both come from the printed plate — never invented.
+
+**Skinny pieces (single panel, no folds) that still belong to the cluster** (065) carry only their attach-points + axle/pivot + the mandatory `<panel id="main">`. Don't add `marks` or `folds-valley` if there's nothing to put in them.
+
+**Composite letter panels** (069's `bh`, `ai`) absorb multiple printed letters into one panel id — fold-binding becomes `fold-main-bh` / `fold-bh-tabe`, and cross-piece attaches matching the letter (`attach-h69`) resolve via panel-substring with shortest-match tiebreaker. This is the same idiom as 066's dual-presence panels (`b65`, etc.) but with the letter at the start and the partner-piece-suffix dropped because the panel itself is part of the printed structure.
+
 ### Dual-presence pattern (typed landing as both panel and mark)
 
 When a typed landing region is itself a folding panel — meaning it has its own fold relationships and is a distinct material area — author **both**:
@@ -403,7 +454,7 @@ The rule keeps the two halves cleanly separable: regenerate the SVG (Affinity ex
 
 ## Cross-references
 
-- `claude-work/DECISIONS.md` — decision records (row #6 panels-first pivot; row #7 comprehensive convention lock-in 2026-05-05; rows #10–#11 sidecar `connections.inferred[]` + `assembled.folds`).
+- `claude-work/DECISIONS.md` — decision records (row #6 panels-first pivot; row #7 comprehensive convention lock-in 2026-05-05; rows #10–#11 sidecar `connections.inferred[]` + `assembled.folds`; row #12 parser consults `marks` for cross-piece feature lookup).
 - `claude-work/scripts/build_assembly_graph.py` — connection-graph extraction script; the formal parser of these conventions, also the merger for `connections.inferred[]`.
 - `claude-work/state/connection-graph.{md,json}` — current cross-piece graph + per-piece state (regenerate via the script).
 - `claude-work/CHARTER.md` — collaboration charter.
@@ -411,7 +462,9 @@ The rule keeps the two halves cleanly separable: regenerate the SVG (Affinity ex
 
 ---
 
-*Last updated: 2026-05-07 — documented the mark-first attach pattern: `attach-<letter><piece>` should reference a mark on the partner (centroid = connection point geometry), not a panel; marks are preferred because they locate the exact sub-panel connection point. Added "Mark-first attach pattern" to Patterns section; updated `attach-<letter><piece>` entry; added two entries to Common slips.*
+*Last updated: 2026-05-07 (evening) — Option A pivot per DECISIONS #12: parser-rules section grew steps 4, 5, and 8 in the cross-piece feature lookup chain to consult the partner's `marks` layer (in addition to panels and attach-points). Makes the mark-first attach pattern operational — until now, the pattern was documented but never resolved by the parser, so authored marks like 093a's `x` or 099's 12×`a` were invisible to cross-piece resolution. Added "066 cluster — worked exemplar" to Patterns section as the canonical reference for new clusters: shows the dual-presence pattern, bare-letter target, composite-letter panels, and skinny-piece minimal authoring all in one cluster. CODE_PROMPT pending to ship the parser change in `build_assembly_graph.py` + `preview.html`.*
+
+*Earlier 2026-05-07 (morning) — documented the mark-first attach pattern: `attach-<letter><piece>` should reference a mark on the partner (centroid = connection point geometry), not a panel; marks are preferred because they locate the exact sub-panel connection point. Added "Mark-first attach pattern" to Patterns section; updated `attach-<letter><piece>` entry; added two entries to Common slips.*
 
 *Earlier 2026-05-06 — added "Per-piece JSON sidecar" section documenting the existing `function` block plus two new blocks (`assembled.folds` per DECISIONS #11; `connections.inferred[]` per DECISIONS #10). Added "Lane discipline" section codifying SVG-vs-sidecar split: SVG = originally-authored printed content (Alan's lane); sidecar = everything learned afterward (Claude's lane on schema). Re-authoring the SVG to capture inferred or assembled-state knowledge is explicitly out — that goes in the sidecar.*
 
