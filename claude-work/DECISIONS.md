@@ -40,12 +40,13 @@ A row per decision. Each row captures:
 - **Type:** Co-authored convention.
 - **Reopen?** open-but-stable.
 
-### #4 — preview.html ↔ work/viewer/ architecture (PENDING)
+### #4 — preview.html ↔ work/viewer/ architecture
 
-- **Date:** TBD.
-- **Decision:** Deferred. Inherited SPEC's question 0.6.13 (graduate / parallel / replace `work/viewer/`) parked. Update 2026-05-05: diagnostic + cut-trim shipped; orientation reset (#6) landed; still deferred.
-- **Type:** Claude-led when it lands.
-- **Reopen?** open — next architecture decision in queue.
+- **Date:** 2026-05-07
+- **Decision:** **Option B — clean separation, viewer deferred.** `preview.html` stays as the permanent authoring and QA tool: single-file HTML, runs from `file://`, no build step. It is not the production viewer. `claude-work/viewer/` will be built fresh (TypeScript + Vite + three.js, per SPEC) when M3 is genuinely imminent — meaning the bulk of SVG authoring is done and the viewer is the actual bottleneck. No code is shared between the two for now; the SVG parser and three.js mesh logic will be rewritten clean in TypeScript at that point. The `work/viewer/` stub in the frozen `work/` folder is irrelevant (was always empty). `claude-work/viewer/` does not get created until M3.
+- **Why:** Three options were on the table: (A) graduate `preview.html` into the viewer (requires a Code session of module extraction before any real viewer work; produces no new capability; wrong trade at this stage); (B) parallel tools, viewer deferred; (C) ship `preview.html` as the viewer, retire Vite. Option C fails the charter mission — a public GitHub Pages static site with 123 pieces, manifests, and a full inspect panel needs a build system. Option A is premature — the SVG parser is still maturing; a TypeScript rewrite will be cleaner once ~100 pieces have stress-tested the conventions. The real bottleneck is authoring, not viewer scaffolding. Iteration discipline (§9) applies to infrastructure: don't build ahead of the need. When M3 arrives, the parser will be fully mature and the rewrite will be straightforward.
+- **Type:** Claude-led (CHARTER §3: architecture is Claude's pen).
+- **Reopen?** closed. Reopens if preview.html authoring genuinely needs viewer-production capability before M3 — flag it then.
 
 ### #5 — Cut-trim uses `fold.start`/`fold.end`, not `authoredStart`/`authoredEnd`
 
@@ -206,7 +207,9 @@ A row per decision. Each row captures:
 
 ---
 
-*Last updated: 2026-05-06 (post-PR-19 review) — Decision #11 downstream pointer flipped to shipped (PR #19 wired `assembled.folds` load + save through `preview.html`); v1 follow-up parked for per-piece assembled poses across scene mode (only relevant when the scene-mode use case actually surfaces). #10 had already shipped via PR #18 the same evening.*
+*Last updated: 2026-05-07 — Decision #4 closed: Option B (clean separation). `preview.html` stays as permanent authoring/QA tool; `claude-work/viewer/` deferred until M3 is imminent and will be built fresh in TypeScript + Vite. See session note `2026-05-07-1700_cowork_architecture-and-attach-convention.md`.*
+
+*Earlier 2026-05-06 (post-PR-19 review) — Decision #11 downstream pointer flipped to shipped (PR #19 wired `assembled.folds` load + save through `preview.html`); v1 follow-up parked for per-piece assembled poses across scene mode (only relevant when the scene-mode use case actually surfaces). #10 had already shipped via PR #18 the same evening.*
 
 *Earlier 2026-05-06 — Decisions #10 and #11 closed: per-piece JSON sidecar gains `connections.inferred[]` (learned cross-piece connections with provenance) and `assembled.folds` (per-fold assembled-state angles, with preview load + save affordances). Two CODE_PROMPTs queued for execution. LAYER-CONVENTIONS extended.*
 

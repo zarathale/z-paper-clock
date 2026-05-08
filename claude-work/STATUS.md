@@ -25,14 +25,15 @@ For per-piece lifecycle state (which pieces are scanned vs. authored vs. sidecar
 
 ```yaml
 status: active
-last_updated: 2026-05-06
-next_action: PR #19 (assembled-pose load + save) shipped. The two sidecar extensions DECISIONS #10 (`connections.inferred[]`) and #11 (`assembled.folds`) are both wired through their respective consumers — audit reads inferred edges, preview reads + writes assembled poses. CHARTER §6 commitment #2 closed; sidecar substrate is now the durable home for both learned cross-piece truth and per-fold validated geometry. Architecture decision (DECISIONS #4: preview.html ↔ work/viewer/) still deferred but on the table — three Code-session ships (PRs #17/#18/#19) of substantive preview-side work make this the next Cowork beat to pull.
+last_updated: 2026-05-07
+next_action: DECISIONS #4 closed (2026-05-07) — Option B: preview.html stays as permanent authoring/QA tool; claude-work/viewer/ deferred until M3 imminent. CHARTER §6 commitments #1 (onboarding) + #2 (first end-to-end piece) + #3 (architecture call) all closed. Active: §6 #4 (bring authoring to sustainable rate — 087 escape wheel is next) and §6 #5 (assemble the clock, M4).
 ```
 
 **Hypothesis.** Day-one for Claude-as-lead. The skeleton (CHARTER + STATUS + QUEUE + DECISIONS + to-alan/) needs to land before any new building work, so Alan has a coherent surface to read and pull from. After that, the four "first moves" from CHARTER §10 row 8 sequence: (a) skeleton ✅, (b) LAYER-CONVENTIONS co-maintenance routine ✅ (DECISIONS #3), (c) preview.html ↔ work/viewer/ architecture pick ⏸ (deferred per DECISIONS #4), (d) first piece end-to-end ✅ — multi-piece scene assembly shipped (PR #17), anchor cluster places 5 pieces with 067+069 pivot-aligned, and per-fold assembled poses are now durable across reload (PR #19).
 
 **Recent log.**
 
+- 2026-05-07: DECISIONS #4 closed — architecture Option B (clean separation; `claude-work/viewer/` deferred until M3). `attach-x` convention clarified (see SVG layer authoring track + LAYER-CONVENTIONS.md). CHARTER §6 commitment #3 closed. See `sessions/2026-05-07-1700_cowork_architecture-and-attach-convention.md`.
 - 2026-05-06 (post-PR-19 review): assembled-pose shipped via PR #19. `preview.html` reads `assembled.folds` from the per-piece sidecar at load time (precedence `assembled.folds[id]` > fold-id `-<deg>` suffix > 0) and applies the fold rotations immediately so the piece appears in its assembled pose; new "Save assembled pose" button emits a JSON snippet (copy + download) for hand-merge into `work/pieces/NNN/NNN.json`. Scene mode opted out for v1. All 9 verification checks green. Bob batch continuation verified at the same bench: 070 stale fold-ids renamed (panelside* → side*); 093a + 093b refreshed (cutaway hyphenation, combined 093.svg retired to `work/pieces/093/_attic/`, cross-half `attach-x093a` in 093b); 087 .af authoring underway (SVG not yet exported); 097 Affinity collision-suffix left as authoring choice per Alan ("author uniquely if it ever truly matters; otherwise leave"). Fresh `build_assembly_graph.py` run: 17 panels-first pieces, 24 valid authored cross-piece edges. See `sessions/2026-05-06-1900_code_preview-html-assembled-pose.md` (Code) + the post-review session note (Cowork).
 - 2026-05-06 (late evening): inferred-connections audit shipped via PR #18. `claude-work/scripts/build_assembly_graph.py` now reads `connections.inferred[]` from per-piece sidecars and merges with SVG-derived edges; every edge carries `provenance: "authored" | "inferred"`. Conflict detection produces soft `inferred_warnings`; never blocks. Legacy `pivot_clusters` flat-list shape preserved (preview.html scene-mode read path unaffected); new parallel `pivot_clusters_provenance`. Markdown report grew `prov` column + "Inferred connections" + "Inferred conflicts" sections. All 7 verification checks passed; `connection-graph.{json,md}` regenerated. See `sessions/2026-05-06-1700_code_build-assembly-graph-inferred.md`.
 - 2026-05-06 (evening): assembled-pose + inferred-connections design conversation. Two new sidecar blocks settled (DECISIONS #10 connections.inferred[]; #11 assembled.folds), LAYER-CONVENTIONS extended with "Per-piece JSON sidecar" + "Lane discipline" sections, two CODE_PROMPTs handed off (`CODE_PROMPT_build-assembly-graph-inferred.md`, `CODE_PROMPT_preview-html-assembled-pose.md`). Procedural cleanup of PR #17 (retroactive session note + flipped multi-piece-scene CODE_PROMPT to shipped). See `sessions/2026-05-06-1520_cowork_assembled-pose-and-inferred-connections.md`.
@@ -81,7 +82,7 @@ next_action: 087 export landing in `work/pieces/087/` (escape-wheel — first ge
 **Open questions.**
 
 - **093a/093b fold paths** — both halves have `panels` scaffolding but no fold paths yet. Need valley/mountain fold lines authored before the braces can fold in preview.html. (Cutaway hyphenation + combined-093.svg retirement done in the 2026-05-06 bench pass.)
-- **`attach-x<piece-id>` convention** — the 093 session surfaced a glue-only inter-piece attach form (no printed tab letter) not yet in LAYER-CONVENTIONS.md. Alan flagged in QUEUE Soon #2 as open-to-reauthoring. Worth a small Cowork conversation before more pieces follow the pattern.
+- **093b `attach-x093a` needs rework** — `x` was invented and doesn't resolve to anything on 093a. Correct approach (mark-first pattern): place a small mark shape on 093a at the joint edge (give it an id, e.g. `joint`), then author `attach-joint093a` on 093b. The mark's centroid becomes the connection point geometry. Alan to rework in Affinity on next touch. LAYER-CONVENTIONS.md updated with the mark-first attach pattern.
 - Whether existing pre-pivot pieces ever get re-authored panels-first (vs. staying cut-line-first as legacy) — answered piece-by-piece on touch, not as a bulk decision.
 
 **Closed (post-PR-19 bench pass).**
@@ -93,6 +94,7 @@ next_action: 087 export landing in `work/pieces/087/` (escape-wheel — first ge
 
 **Recent log.**
 
+- 2026-05-07: `attach-x093a` on 093b flagged as a bad invented letter — rework to `attach-<panel-id>093a` form. LAYER-CONVENTIONS.md updated; no new convention needed. See session note `2026-05-07-1700_cowork_architecture-and-attach-convention.md`.
 - 2026-05-06 (post-PR-19 bench): 070 stale panel ids renamed (`panelsideb`/`panelsidec` → `sideb`/`sidec`); 093a + 093b refreshed (clean `cutaway` ids; combined `093.svg` retired to `work/pieces/_attic/`; 093b carries cross-half `attach-x093a`); 087 .af authoring underway (no SVG export yet); 097 Affinity collision-suffix left as authoring choice. Fresh graph: 17 panels-first pieces, 24 valid authored edges, 070 folds clean. See `sessions/2026-05-06-1900_code_preview-html-assembled-pose.md` (Code) and the post-review session note (Cowork).
 - 2026-05-05 (late night): 093 split into 093a + 093b. `pieces.csv` replaced single 093 row with two rows (status: traced). `build_master_list.py` + `piece_characters_v2.yaml` + `expected_layers.yaml` updated. Combined `093.svg` retired to `_attic/` pending Alan's Affinity pass. See `sessions/2026-05-05-2355_cowork_piece-093-split-and-pieces-csv-cleanup.md`.
 - 2026-05-05 (afternoon-evening): anchor-pendulum batch panels-first authoring landed across 9 pieces (065/066/067/068/069/070/071/072 + 099). Bob batch authored same session: 094 ✓, 095 ✓, 096 ✓, 097 ⚠ (collision question open), 098 ✓, 100 (silhouette + marks only; no panels yet). Conventions ratified via DECISIONS #7 (21 specific elements). LAYER-CONVENTIONS.md rewritten as the single canonical reference. See `sessions/2026-05-05-2330_cowork_panels-first-batch-and-graph.md` and `sessions/2026-05-05-1630_cowork_env-buildup-and-fold-step-convention.md`.
@@ -104,8 +106,8 @@ next_action: 087 export landing in `work/pieces/087/` (escape-wheel — first ge
 
 ```yaml
 status: active
-last_updated: 2026-05-06
-next_action: No CODE_PROMPTs queued. Next pull is the architecture call (DECISIONS #4: graduate / parallel / replace `work/viewer/`) — three substantive ships now sit on top of preview.html (PR #17 multi-piece scene, PR #18 inferred-connections audit-side, PR #19 assembled-pose load + save). Cowork beat, not Code. Open follow-up: scene-mode opted out of `assembled.folds` for v1 — per-piece assembled poses across a scene is a separate prompt when the use-case lands.
+last_updated: 2026-05-07
+next_action: Architecture settled (DECISIONS #4): preview.html is permanently the authoring/QA tool. No CODE_PROMPTs currently queued. Next preview.html work is driven by authoring needs, not viewer feature completeness — pull when 087 or another piece surfaces a parser gap. Open follow-up: scene-mode opted out of `assembled.folds` for v1 — per-piece assembled poses across a scene is a separate prompt when the use-case lands.
 ```
 
 **Hypothesis.** A single-file HTML preview tool is the right substrate for testing SVG authoring conventions while the eventual viewer is still upstream. Each new capability gets its own CODE_PROMPT and ships independently. Architecture call (DECISIONS #4) deferred until enough capabilities pile up to force the question.

@@ -102,9 +102,20 @@ The `axles` layer holds the actual axle pin-hole markers on this piece. The cros
 Anything that's structurally part of the cross-piece connection graph. The parser builds the connection graph from this layer plus typed landings in `marks`.
 
 ```
-id="attach-<letter><piece>"     this piece glues onto letter <letter> on piece <piece>
-                                e.g. attach-g69, attach-h69, attach-i69 (068's attaches to 069's body cells)
-                                e.g. attach-b66, attach-c66, ..., attach-h66 (065's attaches to 066's letter regions)
+id="attach-<letter><piece>"     this piece attaches onto <letter> on piece <piece>
+                                <letter> must reference something AUTHORED on the partner — preferably a
+                                mark (small shape in the partner's `marks` layer), because marks locate the
+                                exact connection point (centroid of the shape) rather than a whole panel.
+                                Prefer marks over panels: attach points are often a sub-portion of a panel,
+                                and the mark's centroid is the default connection point geometry. Register
+                                position by testing in preview.html and adjusting the mark placement if needed.
+                                A printed tab letter from the book is the most natural mark id; when no
+                                printed letter exists, author a small mark on the partner at the connection
+                                location and give it any unambiguous id — then use that id here.
+                                Do NOT invent letters that don't resolve to anything authored on the partner.
+                                e.g. attach-g69, attach-h69, attach-i69 (068 → 069's marks g/h/i)
+                                e.g. attach-b66, attach-c66, ..., attach-h66 (065 → 066's mark letters)
+                                — for 093b → 093a: author a mark on 093a at the joint; use its id here
 
 id="landing-<tab><piece>"       this piece receives tab <tab> from piece <piece>
                                 e.g. landing-c69 (067 receives tab c from 069)
@@ -320,6 +331,19 @@ The audit script reads SVG → produces authored edges → reads sidecar → pro
 
 ## Patterns and design rules
 
+### Mark-first attach pattern (preferred for all cross-piece attaches)
+
+When piece A attaches to piece B, the preferred form is:
+
+- **Piece B** (`marks` layer): a small shape (circle, polygon, ellipse) at the exact connection location. Its centroid is the default connection point geometry. Give it an unambiguous id — a printed tab letter if one exists, otherwise any descriptive label unique within B's marks.
+- **Piece A** (`attach-points` layer): `attach-<that-id>B` referencing the mark.
+
+Why marks over panels: the attachment is often a sub-portion of a panel, not the whole panel. The mark pins the geometry precisely. Panel ids resolve as a fallback (parser's cross-piece lookup checks marks before panels), but a mark-first approach gives the assembly engine and preview a real point to work from. Once the mark is placed, test the connection in `preview.html` and adjust the mark's position to refine registration before saving.
+
+The printed tab letter from the book is the canonical case — the letter is already a printed mark on the plate. When no printed letter exists at the connection (e.g., two halves of the same piece, or an unlettered glue edge), author a small shape on the partner piece at the joint and assign it an id. What id? Anything unambiguous and lowercase: a descriptive word (`joint`, `seam`, `edge-left`), or a new single letter not used elsewhere on that piece.
+
+**For 093b → 093a specifically:** place a mark on 093a at the joint edge, give it an id (e.g. `joint`), then author `attach-joint093a` on 093b.
+
 ### Dual-presence pattern (typed landing as both panel and mark)
 
 When a typed landing region is itself a folding panel — meaning it has its own fold relationships and is a distinct material area — author **both**:
@@ -353,6 +377,8 @@ Example: 066 has tab `tabaa` (the closure tab that wraps the cylinder) which lan
 
 ## Common slips to avoid
 
+- **Invented attach letter with no authored mark on the partner.** If `attach-x093a` is authored on 093b but piece 093a has no mark or element with id `x`, the parser can't resolve the connection. Always verify the referenced id actually exists on the partner before export.
+- **Attaching to a panel when a mark would be more precise.** Panel ids work as a fallback, but marks are preferred — they give the assembly engine a point, not a region.
 - **Hyphens inside panel suffixes.** `panel-tab-a` would break `fold-tab-a-stem` parsing. Use `tabA` or just `taba`.
 - **`panel-` prefix on panel ids.** Panel ids are bare aliases. Direct ids: `main`, `tabb`, `bh`. Not `panel-main`.
 - **Bare untyped landings still in `attach-points`.** Untyped (no piece suffix) landings like `landing-h` or `back-landing-d` are reference markers and live in `marks`. Cross-piece typed landings like `landing-c69` can live in either layer; parser reads both.
@@ -385,6 +411,8 @@ The rule keeps the two halves cleanly separable: regenerate the SVG (Affinity ex
 
 ---
 
-*Last updated: 2026-05-06 — added "Per-piece JSON sidecar" section documenting the existing `function` block plus two new blocks (`assembled.folds` per DECISIONS #11; `connections.inferred[]` per DECISIONS #10). Added "Lane discipline" section codifying SVG-vs-sidecar split: SVG = originally-authored printed content (Alan's lane); sidecar = everything learned afterward (Claude's lane on schema). Re-authoring the SVG to capture inferred or assembled-state knowledge is explicitly out — that goes in the sidecar.*
+*Last updated: 2026-05-07 — documented the mark-first attach pattern: `attach-<letter><piece>` should reference a mark on the partner (centroid = connection point geometry), not a panel; marks are preferred because they locate the exact sub-panel connection point. Added "Mark-first attach pattern" to Patterns section; updated `attach-<letter><piece>` entry; added two entries to Common slips.*
+
+*Earlier 2026-05-06 — added "Per-piece JSON sidecar" section documenting the existing `function` block plus two new blocks (`assembled.folds` per DECISIONS #11; `connections.inferred[]` per DECISIONS #10). Added "Lane discipline" section codifying SVG-vs-sidecar split: SVG = originally-authored printed content (Alan's lane); sidecar = everything learned afterward (Claude's lane on schema). Re-authoring the SVG to capture inferred or assembled-state knowledge is explicitly out — that goes in the sidecar.*
 
 *Earlier 2026-05-05 — comprehensive panels-first lock-in pass after the anchor-pendulum batch (065/066/067/068/069 + 070/071/072 + 099/100). Replaces the prior cut-line-first-era version of this doc; LAYERS.md (the v0 cheat sheet from earlier the same day) consolidated and removed in the same pass. Conventions ratified by 24/24 cross-piece edges resolving cleanly across the batch.*
