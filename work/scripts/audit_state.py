@@ -36,8 +36,14 @@ CANONICAL_LAYERS = {
 # IDs that are valid inside <g id="silhouette"> but not canonical layer names
 SILHOUETTE_CHILD_IDS = re.compile(r"^(cutaway(?:-\d+)?|mask(?:-\d+)?)$")
 
-# Landing marker id format: landing-<lowercase-letter><piece-number>[optional-letter]
-LANDING_ID_RE = re.compile(r"^landing-[a-z][0-9]+[a-z]?$")
+# Landing marker id format — two valid forms:
+#   1. Cross-piece:  landing-<letter><piece-number>[<variant-letter>]
+#                    e.g. landing-c70, landing-h65, landing-a92a
+#   2. Same-piece closure (LAYER-CONVENTIONS.md line 157): landing-<panel-id>
+#                    where the suffix is bare letters naming a panel on this piece
+#                    (a tab wraps around to land here on the same piece)
+#                    e.g. landing-d, landing-taba, landing-tabaa, landing-aa
+LANDING_ID_RE = re.compile(r"^landing-[a-z]+(?:[0-9]+[a-z]?)?$")
 
 # ── filename patterns ──────────────────────────────────────────────────────────
 
@@ -410,22 +416,22 @@ def check_no_stray_paths(analysis):
 
 
 @register("landing-marker-id-format",
-          "landing-* ids match landing-<letter><piece-number>[variant] format", "advisory")
+          "landing-* ids match landing-<letter><piece-number>[variant] OR landing-<panel-id> format", "advisory")
 def check_landing_format(analysis):
     inv = analysis.get("layer_id_inventory", {})
     marks_ids = inv.get("marks", [])
     landing_ids = [i for i in marks_ids if i.startswith("landing-")]
     if not landing_ids:
         return _make("landing-marker-id-format",
-                     "landing-* ids match landing-<letter><piece-number>[variant] format", "advisory",
+                     "landing-* ids match landing-<letter><piece-number>[variant] OR landing-<panel-id> format", "advisory",
                      "skip", message="No landing-* ids in marks layer")
     bad = [i for i in landing_ids if not LANDING_ID_RE.match(i)]
     if bad:
         return _make("landing-marker-id-format",
-                     "landing-* ids match landing-<letter><piece-number>[variant] format", "advisory",
+                     "landing-* ids match landing-<letter><piece-number>[variant] OR landing-<panel-id> format", "advisory",
                      "fail", message=f"Malformed landing ids: {', '.join(bad)}")
     return _make("landing-marker-id-format",
-                 "landing-* ids match landing-<letter><piece-number>[variant] format", "advisory",
+                 "landing-* ids match landing-<letter><piece-number>[variant] OR landing-<panel-id> format", "advisory",
                  "pass", f"All {len(landing_ids)} landing id(s) valid: {', '.join(landing_ids)}")
 
 
