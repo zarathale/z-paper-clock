@@ -26,7 +26,7 @@ For per-piece lifecycle state (which pieces are scanned vs. authored vs. sidecar
 ```yaml
 status: active
 last_updated: 2026-05-07
-next_action: DECISIONS #4 closed (2026-05-07) — Option B: preview.html stays as permanent authoring/QA tool; claude-work/viewer/ deferred until M3 imminent. CHARTER §6 commitments #1 (onboarding) + #2 (first end-to-end piece) + #3 (architecture call) all closed. Active: §6 #4 (bring authoring to sustainable rate — 087 escape wheel is next) and §6 #5 (assemble the clock, M4).
+next_action: DECISIONS #4 closed (2026-05-07) — Option B: preview.html stays as permanent authoring/QA tool; claude-work/viewer/ deferred until M3 imminent. CHARTER §6 commitments #1 (onboarding) + #2 (first end-to-end piece) + #3 (architecture call) all closed. Active: §6 #4 (bring authoring to sustainable rate — gear train next, brief at `claude-work/to-alan/gear-train/`; 087 reduction-gear disc currently on the bench) and §6 #5 (assemble the clock, M4).
 ```
 
 **Hypothesis.** Day-one for Claude-as-lead. The skeleton (CHARTER + STATUS + QUEUE + DECISIONS + to-alan/) needs to land before any new building work, so Alan has a coherent surface to read and pull from. After that, the four "first moves" from CHARTER §10 row 8 sequence: (a) skeleton ✅, (b) LAYER-CONVENTIONS co-maintenance routine ✅ (DECISIONS #3), (c) preview.html ↔ work/viewer/ architecture pick ⏸ (deferred per DECISIONS #4), (d) first piece end-to-end ✅ — multi-piece scene assembly shipped (PR #17), anchor cluster places 5 pieces with 067+069 pivot-aligned, and per-fold assembled poses are now durable across reload (PR #19).
@@ -72,7 +72,7 @@ next_action: None — source-side capture closed at 123/123. Track stays open as
 ```yaml
 status: active
 last_updated: 2026-05-06
-next_action: 087 export landing in `work/pieces/087/` (escape-wheel — first gear-disc piece, will surface any gear-specific convention needs). 093a/093b fold paths still pending. After that: pull pieces from the §II.B gear train (087 unblocks the rest of the train). Convention stable.
+next_action: 087 export landing in `work/pieces/087/` (reduction-gear disc — first gear-disc piece authored, will surface any gear-specific convention needs). 093a/093b fold paths still pending. After that: pull pieces from the gear train per the brief at `claude-work/to-alan/gear-train/` (covers §II.B motor/middle/escape + §II.D reduction-gear/hands; the timing chain and display chain are kinematically separate so stack ordering has flex). Convention stable.
 ```
 
 **Hypothesis.** The actual current bottleneck. Conventions now stable post-DECISIONS #7. Each new piece applies the convention and stress-tests it; LAYER-CONVENTIONS.md is the live reference.

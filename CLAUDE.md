@@ -24,7 +24,7 @@ z-paper-clock is a personal study and derivative-work project around *Make Your 
 
 **The build** — actively being designed. `work/` is where derivative work grows: pre-processing pipeline, auto-trace experiments, and the 3D viewer that turns the cut-out plates into an interactive model of the assembled clock. The build's spec is `work/SPEC-3D-VIEWER.md` — that document is the next-action source of truth for any session that touches the viewer or the per-piece authoring pipeline.
 
-This is a hobby project. The collaboration with Claude is part of the point. Keep the tone working-and-curious, not corporate. Lean into the metaphor when it helps — the build is a stage production with Zarathale as director and Claude as the production team.
+This is a hobby project. The collaboration with Claude is part of the point. Keep the tone working-and-curious, not corporate.
 
 **Repo path:** `/Users/mainstage/Documents/GitHub/z-paper-clock` (mac, in the GitHub folder convention; no OneDrive — see "Git locks" below for the implications).
 
@@ -60,7 +60,7 @@ Most design, transcription, and document work happens in **Cowork** (Claude desk
 ## Session Startup
 
 1. Read this file (and `PROJECT-STATE.md` for the slow-moving framing if loading fresh context)
-2. Read `WORKPLAN.md` to see what tracks are open right now and what the next action is on each
+2. Read `claude-work/STATUS.md` to see what tracks are open right now and what the next action is on each (and `claude-work/QUEUE.md` to see what's queued for the bench)
 3. Read `work/SPEC-3D-VIEWER.md` if the work touches the build at all
 4. Read the most recent entry in `sessions/` to pick up the thread
 5. **If working on a Code task:** read the relevant `CODE_PROMPT_*.md` in full before writing code
