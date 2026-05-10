@@ -5600,13 +5600,13 @@ async function renderPanelsFirstScene(p, options = {}) {
     globalFoldRow.style.display = 'none';
   }
 
-  // Save-pose row visibility: shown only when (a) single-piece mode AND
-  // (b) at least one panels-first fold slider rendered. Hidden in scene mode
-  // and when there are no folds. The button itself is wired up once at the
-  // bottom of the script.
+  // Save-pose row visibility: shown in single-piece mode regardless of fold
+  // count — the button handler suppresses with a warning when both folds and
+  // transform are identity/empty, so we don't need to gate here. Hidden in
+  // scene mode (Cluster has its own save flow).
   const savePoseRow = document.getElementById('save-pose-row');
   if (savePoseRow) {
-    savePoseRow.style.display = (!sceneMode && pathHingeMap.size > 0) ? '' : 'none';
+    savePoseRow.style.display = !sceneMode ? '' : 'none';
   }
 
   // Rotation slider only meaningful in single-piece mode (one axle drives one
