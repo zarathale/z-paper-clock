@@ -110,7 +110,7 @@ next_action: 087 export landing in `work/pieces/087/` (reduction-gear disc — f
 ```yaml
 status: active
 last_updated: 2026-05-10
-next_action: Fix 068 fold authoring (missing pane→c1 fold line; 2-component fold graph confirmed in Bench mode 2026-05-09). Then capture pose sidecars for 067 (pivot-anchor reference first), 066, 065, 068 — only 069 is in. After all 5 anchor-cluster sidecars land, regenerate connection-graph.json (pivot_clusters.anchor currently only lists [067, 069]) and bump CODE_PROMPT_preview-html-cluster-mode.md to ready-for-code. PR A (bench-cluster-foundation) and parser-marks-lookup both shipped 2026-05-10 and need merge.
+next_action: Fix 068 fold authoring (missing pane→c1 fold line; 2-component fold graph confirmed in Bench mode 2026-05-09). Then capture pose sidecars for 067 (pivot-anchor reference first), 066, 065, 068 — only 069 is in. PR C (preview-html-cluster-mode, shipped 2026-05-10) lands the multi-piece subassembly tier; the cluster-pose authoring loop runs on top of it.
 ```
 
 **Hypothesis.** A single-file HTML preview tool is the right substrate for testing SVG authoring conventions while the eventual viewer is still upstream. Each new capability gets its own CODE_PROMPT and ships independently. Architecture call (DECISIONS #4) deferred until enough capabilities pile up to force the question.
