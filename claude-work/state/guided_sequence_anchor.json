@@ -1,0 +1,1166 @@
+{
+  "_meta": {
+    "cluster": "anchor",
+    "section": "§II.C — The Anchor and the Pendulum",
+    "source": "source/transcriptions/instructions.md",
+    "annotated_ref": "claude-work/INSTRUCTIONS-ANNOTATED.md",
+    "authored": "2026-05-10",
+    "authored_by": "Claude (Cowork session 2026-05-10-1040)",
+    "status": "draft",
+    "notes": [
+      "Step IDs use prefix 'c-' (§II.C) followed by a 3-digit number, spaced by 10s to allow insertion.",
+      "Gap G4: 067's direct connections to 065/066 are not in current valid graph edges.",
+      "The book's 'six pieces designated 93' = six copies of the piece labelled 93 in print.",
+      "In our repo, 093 was split into 093a + 093b (two distinct shapes). The brace pairs",
+      "may use one or both variants — requires visual verification against plate G scan.",
+      "Precondition for this cluster: framework (§II.A, 001-022) fully assembled and dry,",
+      "mechanism (§II.B, 033-064) mounted in framework, pin holes pre-drilled in 065/067/069."
+    ]
+  },
+
+  "preconditions": [
+    "§II.A framework (001–022) fully assembled, glued, dry",
+    "§II.B mechanism (033–064) mounted in framework",
+    "Pin holes pre-drilled in centers of: 065, 067, 069 (called out in §II.A pre-drill list)"
+  ],
+
+  "pieces": ["065", "066", "067", "068", "069", "070", "071", "072", "093", "094", "095", "097", "098"],
+
+  "step_types": {
+    "add-piece": "Bring a piece into the scene/field",
+    "fold": "Apply fold angles on a piece (usually human-calibrated)",
+    "glue-self": "Glue same-piece self-connections (closure tabs)",
+    "glue-cross": "Apply glue at a cross-piece joint after snapping",
+    "glue-no": "Explicit do-NOT-glue — piece held by pin or friction only",
+    "lock-shape": "Commit piece's current shape as fixed (the 'glue dry' moment); shows confirmation popup",
+    "snap-connection": "Translate piece so its connection point meets its partner's",
+    "insert-axle": "Thread axle wire through aligned holes in multiple pieces",
+    "install-bearing": "Seat a bead bearing in the axle hole of a specific piece",
+    "orient": "Rotate or position a piece to a specific spatial orientation",
+    "pin": "Install a physical pin (not glue) to hold a piece in place",
+    "check": "Functional verification — must be confirmed by human before proceeding"
+  },
+
+  "steps": [
+
+    {
+      "id": "c-010",
+      "type": "add-piece",
+      "piece": "065",
+      "description": "Bring piece 065 (anchor side panel A) into the field. This is the first piece of the anchor assembly.",
+      "source_section": "§II.C",
+      "source_quote": "Assemble the anchor, pieces 65, 66, 67, 68, and 69.",
+      "requires_human": false,
+      "depends_on": [],
+      "ui": {
+        "highlight_pieces": ["065"],
+        "action_label": "Add piece 065"
+      }
+    },
+
+    {
+      "id": "c-020",
+      "type": "fold",
+      "piece": "065",
+      "folds": "all",
+      "fold_ids": null,
+      "angle_deg": null,
+      "description": "Apply all folds on piece 065. Set each fold angle by visual inspection — piece should reach its structural shape before any attachment to other pieces.",
+      "source_section": "§I.D",
+      "source_quote": "Each piece or part of a piece should be folded, glued, and allowed to dry before it is attached to another piece.",
+      "requires_human": true,
+      "human_note": "Fold angles not specified in the book. Set by visual inspection against Fig. 9 and the scanned source piece. Valley folds (dashed in print) fold away from you; mountain folds (plus-sign in print) fold toward you.",
+      "depends_on": ["c-010"],
+      "ui": {
+        "highlight_pieces": ["065"],
+        "action_label": "Set folds on 065",
+        "opens": "fold-panel"
+      }
+    },
+
+    {
+      "id": "c-030",
+      "type": "glue-self",
+      "piece": "065",
+      "description": "Glue any self-connecting tabs on piece 065 (same-piece closure connections, if present).",
+      "source_section": "§I.A",
+      "source_quote": "Spaces on that piece bearing identical letters should be glued together.",
+      "requires_human": false,
+      "depends_on": ["c-020"],
+      "ui": {
+        "highlight_pieces": ["065"],
+        "action_label": "Glue self-connections on 065"
+      }
+    },
+
+    {
+      "id": "c-040",
+      "type": "lock-shape",
+      "piece": "065",
+      "description": "Lock 065's shape. Its folds and self-connections are now set.",
+      "source_section": "§I.C",
+      "source_quote": "Let each piece dry thoroughly after it is glued.",
+      "requires_human": false,
+      "depends_on": ["c-030"],
+      "ui": {
+        "highlight_pieces": ["065"],
+        "action_label": "Lock 065's shape",
+        "shows_popup": true,
+        "popup_title": "Lock 065's shape?",
+        "popup_body": "Like letting the glue dry — the folds and self-connections are set from here. You can still move and rotate the piece, but its own shape is fixed.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-050",
+      "type": "add-piece",
+      "piece": "066",
+      "description": "Bring piece 066 (anchor side panel B) into the field.",
+      "source_section": "§II.C",
+      "source_quote": "Assemble the anchor, pieces 65, 66, 67, 68, and 69.",
+      "requires_human": false,
+      "depends_on": ["c-040"],
+      "ui": {
+        "highlight_pieces": ["066"],
+        "action_label": "Add piece 066"
+      }
+    },
+
+    {
+      "id": "c-060",
+      "type": "fold",
+      "piece": "066",
+      "folds": "all",
+      "fold_ids": null,
+      "angle_deg": null,
+      "description": "Apply all folds on piece 066. Shape it fully before attaching to 065.",
+      "source_section": "§I.D",
+      "source_quote": "Each piece should be folded, glued, and allowed to dry before it is attached to another piece.",
+      "requires_human": true,
+      "human_note": "Fold angles not specified. Set by visual inspection against Fig. 9.",
+      "depends_on": ["c-050"],
+      "ui": {
+        "highlight_pieces": ["066"],
+        "action_label": "Set folds on 066",
+        "opens": "fold-panel"
+      }
+    },
+
+    {
+      "id": "c-070",
+      "type": "glue-self",
+      "piece": "066",
+      "description": "Glue any self-connecting tabs on piece 066.",
+      "source_section": "§I.A",
+      "requires_human": false,
+      "depends_on": ["c-060"],
+      "ui": {
+        "highlight_pieces": ["066"],
+        "action_label": "Glue self-connections on 066"
+      }
+    },
+
+    {
+      "id": "c-080",
+      "type": "lock-shape",
+      "piece": "066",
+      "description": "Lock 066's shape.",
+      "source_section": "§I.C",
+      "requires_human": false,
+      "depends_on": ["c-070"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock 066's shape?",
+        "popup_body": "Like letting the glue dry — the folds and self-connections are set from here. You can still move and rotate the piece, but its own shape is fixed.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-090",
+      "type": "snap-connection",
+      "from_piece": "065",
+      "to_piece": "066",
+      "letters": ["b", "c", "d", "e", "f", "g", "h"],
+      "snap_all": true,
+      "description": "Attach piece 065 to piece 066 — seven tab connections (letters b through h). Use 'Snap all 7 pairs'; the book gives no sub-ordering within this set.",
+      "source_section": "§I.A + §II.C",
+      "source_quote": "The space with that letter on the piece with that number should be glued there.",
+      "requires_human": false,
+      "graph_edges": [
+        "attach-b66", "attach-c66", "attach-d66",
+        "attach-e66", "attach-f66", "attach-g66", "attach-h66"
+      ],
+      "depends_on": ["c-040", "c-080"],
+      "ui": {
+        "highlight_pieces": ["065", "066"],
+        "action_label": "Snap 065 → 066 (7 connections)",
+        "opens": "snap-panel",
+        "snap_all_label": "Snap all 7 pairs → 066"
+      }
+    },
+
+    {
+      "id": "c-100",
+      "type": "glue-cross",
+      "pieces": ["065", "066"],
+      "description": "Glue the 065–066 joint. All seven connections are now permanent.",
+      "source_section": "§I.C",
+      "requires_human": false,
+      "depends_on": ["c-090"],
+      "ui": {
+        "highlight_pieces": ["065", "066"],
+        "action_label": "Glue 065+066 joint"
+      }
+    },
+
+    {
+      "id": "c-110",
+      "type": "lock-shape",
+      "pieces": ["065", "066"],
+      "description": "Lock the 065+066 joint. The two panels are now one rigid unit.",
+      "source_section": "§I.C",
+      "requires_human": false,
+      "depends_on": ["c-100"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock the 065+066 joint?",
+        "popup_body": "Like letting the glue dry — the two panels are now one rigid unit. You can still move and rotate the combined piece.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-120",
+      "type": "add-piece",
+      "piece": "067",
+      "description": "Bring piece 067 (anchor body / hub) into the field.",
+      "source_section": "§II.C",
+      "source_quote": "Assemble the anchor, pieces 65, 66, 67, 68, and 69.",
+      "requires_human": false,
+      "depends_on": ["c-110"],
+      "ui": {
+        "highlight_pieces": ["067"],
+        "action_label": "Add piece 067"
+      }
+    },
+
+    {
+      "id": "c-130",
+      "type": "fold",
+      "piece": "067",
+      "folds": "all",
+      "fold_ids": null,
+      "angle_deg": null,
+      "description": "Apply all folds on piece 067.",
+      "requires_human": true,
+      "human_note": "Fold angles not specified. Set by visual inspection.",
+      "depends_on": ["c-120"],
+      "ui": {
+        "highlight_pieces": ["067"],
+        "action_label": "Set folds on 067",
+        "opens": "fold-panel"
+      }
+    },
+
+    {
+      "id": "c-140",
+      "type": "glue-self",
+      "piece": "067",
+      "description": "Glue any self-connecting tabs on piece 067.",
+      "requires_human": false,
+      "depends_on": ["c-130"],
+      "ui": {
+        "highlight_pieces": ["067"],
+        "action_label": "Glue self-connections on 067"
+      }
+    },
+
+    {
+      "id": "c-150",
+      "type": "lock-shape",
+      "piece": "067",
+      "description": "Lock 067's shape.",
+      "requires_human": false,
+      "depends_on": ["c-140"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock 067's shape?",
+        "popup_body": "Like letting the glue dry — folds and self-connections set. You can still move and rotate the piece.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-160",
+      "type": "add-piece",
+      "piece": "068",
+      "description": "Bring piece 068 (the fork) into the field. This piece will swing between the wall and the frame, passing over beam 009.",
+      "source_section": "§II.C",
+      "source_quote": "The fork, piece 68, passes over the beam, piece 9, of the frame and will swing between the wall and the frame.",
+      "requires_human": false,
+      "depends_on": ["c-150"],
+      "ui": {
+        "highlight_pieces": ["068"],
+        "action_label": "Add piece 068 (fork)"
+      }
+    },
+
+    {
+      "id": "c-170",
+      "type": "fold",
+      "piece": "068",
+      "folds": "all",
+      "fold_ids": null,
+      "angle_deg": null,
+      "description": "Apply all folds on piece 068. The fork must form its Y-shape completely before attachment.",
+      "requires_human": true,
+      "human_note": "Fold angles not specified. The fork's prong gap must be wide enough to accept the pendulum rod (070) without binding — check against Fig. 9.",
+      "depends_on": ["c-160"],
+      "ui": {
+        "highlight_pieces": ["068"],
+        "action_label": "Set folds on 068",
+        "opens": "fold-panel"
+      }
+    },
+
+    {
+      "id": "c-180",
+      "type": "glue-self",
+      "piece": "068",
+      "description": "Glue any self-connecting tabs on piece 068.",
+      "requires_human": false,
+      "depends_on": ["c-170"],
+      "ui": {
+        "highlight_pieces": ["068"],
+        "action_label": "Glue self-connections on 068"
+      }
+    },
+
+    {
+      "id": "c-190",
+      "type": "lock-shape",
+      "piece": "068",
+      "description": "Lock 068's shape.",
+      "requires_human": false,
+      "depends_on": ["c-180"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock 068's shape?",
+        "popup_body": "Like letting the glue dry — folds and self-connections set. You can still move and rotate the piece.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-200",
+      "type": "add-piece",
+      "piece": "069",
+      "description": "Bring piece 069 (anchor side panel C / hub cap) into the field.",
+      "source_section": "§II.C",
+      "source_quote": "Assemble the anchor, pieces 65, 66, 67, 68, and 69.",
+      "requires_human": false,
+      "depends_on": ["c-190"],
+      "ui": {
+        "highlight_pieces": ["069"],
+        "action_label": "Add piece 069"
+      }
+    },
+
+    {
+      "id": "c-210",
+      "type": "fold",
+      "piece": "069",
+      "folds": "all",
+      "fold_ids": null,
+      "angle_deg": null,
+      "description": "Apply all folds on piece 069.",
+      "requires_human": true,
+      "human_note": "Fold angles not specified. Set by visual inspection.",
+      "depends_on": ["c-200"],
+      "ui": {
+        "highlight_pieces": ["069"],
+        "action_label": "Set folds on 069",
+        "opens": "fold-panel"
+      }
+    },
+
+    {
+      "id": "c-220",
+      "type": "glue-self",
+      "piece": "069",
+      "description": "Glue any self-connecting tabs on piece 069.",
+      "requires_human": false,
+      "depends_on": ["c-210"],
+      "ui": {
+        "highlight_pieces": ["069"],
+        "action_label": "Glue self-connections on 069"
+      }
+    },
+
+    {
+      "id": "c-230",
+      "type": "lock-shape",
+      "piece": "069",
+      "description": "Lock 069's shape.",
+      "requires_human": false,
+      "depends_on": ["c-220"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock 069's shape?",
+        "popup_body": "Like letting the glue dry — folds and self-connections set. You can still move and rotate the piece.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-240",
+      "type": "snap-connection",
+      "from_piece": "067",
+      "to_piece": "069",
+      "letters": ["c", "d", "e", "f"],
+      "snap_all": true,
+      "description": "Attach 067 to 069 — four landing connections (letters c, d, e, f). 067 receives tabs from 069.",
+      "source_section": "§II.C",
+      "requires_human": false,
+      "graph_edges": [
+        "landing-c69", "landing-d69", "landing-e69", "landing-f69"
+      ],
+      "depends_on": ["c-150", "c-230"],
+      "ui": {
+        "highlight_pieces": ["067", "069"],
+        "action_label": "Snap 067 ↔ 069 (4 connections)",
+        "opens": "snap-panel",
+        "snap_all_label": "Snap all 4 pairs"
+      }
+    },
+
+    {
+      "id": "c-250",
+      "type": "snap-connection",
+      "from_piece": "068",
+      "to_piece": "069",
+      "letters": ["g", "h", "i"],
+      "snap_all": true,
+      "description": "Attach 068 (fork) to 069 — three connections (letters g, h, i).",
+      "source_section": "§II.C",
+      "requires_human": false,
+      "graph_edges": [
+        "attach-g69", "attach-h69", "attach-i69"
+      ],
+      "depends_on": ["c-190", "c-230"],
+      "ui": {
+        "highlight_pieces": ["068", "069"],
+        "action_label": "Snap 068 → 069 (3 connections)",
+        "opens": "snap-panel",
+        "snap_all_label": "Snap all 3 pairs"
+      }
+    },
+
+    {
+      "id": "c-260",
+      "type": "snap-connection",
+      "from_piece": "066",
+      "to_piece": "068",
+      "letters": ["j"],
+      "snap_all": false,
+      "description": "Attach 066 to 068 — one connection (letter j). 066 receives tab j from 068.",
+      "source_section": "§II.C",
+      "requires_human": false,
+      "graph_edges": ["landing-j68"],
+      "depends_on": ["c-080", "c-190"],
+      "ui": {
+        "highlight_pieces": ["066", "068"],
+        "action_label": "Snap 066 ↔ 068 (1 connection)",
+        "opens": "snap-panel"
+      }
+    },
+
+    {
+      "_note": "Gap G4: The book says '065, 066, 067, 068, 069' are one anchor assembly but current valid graph edges do not show any direct 067-to-065/066 connection. Either 067 connects only via 069 (mediated), or there are un-authored edges. When 067's SVG is complete, run build_assembly_graph.py and check — if new edges appear, insert a snap-connection step here between c-260 and c-270.",
+      "id": "c-265",
+      "type": "check",
+      "description": "[GAP] Verify that 067 is physically connected to the 065+066 panel unit — either via 069 as intermediary or via direct tabs not yet in the graph. Inspect the assembled anchor against Fig. 9 before gluing.",
+      "requires_human": true,
+      "human_note": "If 067 is floating relative to 065/066, there are un-authored connections. Note which tabs connect and flag for SVG authoring pass.",
+      "depends_on": ["c-240", "c-250", "c-260"],
+      "ui": {
+        "highlight_pieces": ["065", "066", "067", "068", "069"],
+        "action_label": "Verify anchor assembly geometry",
+        "opens": "check-panel"
+      }
+    },
+
+    {
+      "id": "c-270",
+      "type": "glue-cross",
+      "pieces": ["065", "066", "067", "068", "069"],
+      "description": "Glue all cross-piece joints in the anchor assembly. Do all five pieces in the state they're in — do not move or adjust after gluing.",
+      "source_section": "§I.C",
+      "source_quote": "Let each piece dry thoroughly after it is glued.",
+      "requires_human": false,
+      "depends_on": ["c-265"],
+      "ui": {
+        "highlight_pieces": ["065", "066", "067", "068", "069"],
+        "action_label": "Glue all anchor joints"
+      }
+    },
+
+    {
+      "id": "c-280",
+      "type": "lock-shape",
+      "pieces": ["065", "066", "067", "068", "069"],
+      "description": "Lock the full anchor assembly. All five pieces are now one rigid unit.",
+      "source_section": "§I.C",
+      "requires_human": false,
+      "depends_on": ["c-270"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock the anchor assembly?",
+        "popup_body": "All five anchor pieces (065–069) will be treated as one rigid unit. The fork (068) will still pivot on its axle — the lock applies to the paper structure, not the mechanical motion.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-290",
+      "type": "insert-axle",
+      "pieces": ["065", "067", "069"],
+      "axle_order": ["065", "067", "069"],
+      "axle_material": "wire",
+      "description": "Insert the anchor axle through pieces 065, 067, and 069 in order. The axle passes through the pre-drilled center holes.",
+      "source_section": "§II.C + §I.E",
+      "source_quote": "Put enough beads on the anchor axle, on both sides of the anchor, to prevent the fork, piece 68, from binding against the frame as it swings.",
+      "requires_human": true,
+      "human_note": "Thread axle through 065, then 067, then 069 — all three holes must align. If holes don't align cleanly, the anchor assembly may need adjustment before the axle is inserted.",
+      "depends_on": ["c-280"],
+      "ui": {
+        "highlight_pieces": ["065", "067", "069"],
+        "action_label": "Insert anchor axle"
+      }
+    },
+
+    {
+      "id": "c-300",
+      "type": "install-bearing",
+      "piece": "065",
+      "sides": "both",
+      "description": "Seat bead bearings on both sides of the anchor at piece 065. Bearings glued or wedged; must not squeeze axle.",
+      "source_section": "§I.E + §II.C",
+      "source_quote": "Put beads on pieces 65 and 69, only. The axle hole in piece 67 should be large enough to permit play.",
+      "requires_human": true,
+      "human_note": "Bead count determined by feel. Enough beads to prevent fork (068) from binding against frame during swing. Not so many that they squeeze the axle.",
+      "depends_on": ["c-290"],
+      "ui": {
+        "highlight_pieces": ["065"],
+        "action_label": "Install bearings on 065"
+      }
+    },
+
+    {
+      "id": "c-310",
+      "type": "install-bearing",
+      "piece": "069",
+      "sides": "both",
+      "description": "Seat bead bearings on both sides of the anchor at piece 069. Same rules as 065.",
+      "source_section": "§I.E + §II.C",
+      "requires_human": true,
+      "human_note": "Same bead-count judgment as 065. 067 gets NO bearing — its axle hole is intentionally loose.",
+      "depends_on": ["c-290"],
+      "ui": {
+        "highlight_pieces": ["069"],
+        "action_label": "Install bearings on 069"
+      }
+    },
+
+    {
+      "id": "c-320",
+      "type": "orient",
+      "piece": "068",
+      "description": "Orient the anchor assembly so that fork piece 068 passes over beam 009 of the framework. The fork will swing between the wall and the frame.",
+      "source_section": "§II.C",
+      "source_quote": "The fork, piece 68, passes over the beam, piece 9, of the frame and will swing between the wall and the frame.",
+      "requires_human": true,
+      "human_note": "This is a spatial orientation that requires physical placement. Verify fork clears beam 009 on both sides of its swing arc before proceeding.",
+      "depends_on": ["c-310"],
+      "ui": {
+        "highlight_pieces": ["068", "009"],
+        "action_label": "Orient fork over beam 009"
+      }
+    },
+
+    {
+      "id": "c-330",
+      "type": "check",
+      "description": "Verify fork (068) swings freely between wall and frame without binding.",
+      "source_section": "§II.C",
+      "requires_human": true,
+      "human_note": "Swing the fork manually through its full arc. It must clear the frame and wall on both sides without touching. If it binds: adjust bearing count on 065 and 069.",
+      "depends_on": ["c-320"],
+      "ui": {
+        "highlight_pieces": ["068"],
+        "action_label": "Check fork clearance",
+        "opens": "check-panel"
+      }
+    },
+
+    {
+      "id": "c-340",
+      "type": "add-piece",
+      "piece": "072",
+      "description": "Bring piece 072 (the blade, from which the pendulum hangs) into the field.",
+      "source_section": "§II.C",
+      "source_quote": "The blade, piece 72, from which the pendulum hangs, is held in place by a horizontal pin passing through the hole drawn on the blade.",
+      "requires_human": false,
+      "depends_on": ["c-330"],
+      "ui": {
+        "highlight_pieces": ["072"],
+        "action_label": "Add piece 072 (blade)"
+      }
+    },
+
+    {
+      "id": "c-350",
+      "type": "fold",
+      "piece": "072",
+      "folds": "all",
+      "fold_ids": null,
+      "angle_deg": null,
+      "description": "Apply all folds on piece 072.",
+      "requires_human": true,
+      "human_note": "Fold angles not specified.",
+      "depends_on": ["c-340"],
+      "ui": {
+        "highlight_pieces": ["072"],
+        "action_label": "Set folds on 072",
+        "opens": "fold-panel"
+      }
+    },
+
+    {
+      "id": "c-360",
+      "type": "glue-self",
+      "piece": "072",
+      "description": "Glue any self-connections on 072.",
+      "requires_human": false,
+      "depends_on": ["c-350"],
+      "ui": {
+        "highlight_pieces": ["072"],
+        "action_label": "Glue self-connections on 072"
+      }
+    },
+
+    {
+      "id": "c-370",
+      "type": "lock-shape",
+      "piece": "072",
+      "description": "Lock 072's shape.",
+      "requires_human": false,
+      "depends_on": ["c-360"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock 072's shape?",
+        "popup_body": "Like letting the glue dry — folds and self-connections set.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-380",
+      "type": "pin",
+      "piece": "072",
+      "contact_pieces": ["018", "019"],
+      "description": "Install piece 072 (blade) onto the back of the framework via a horizontal pin through its hole. The blade rests on top of pieces 018 and 019, pinched between them.",
+      "source_section": "§II.C",
+      "source_quote": "The blade, piece 72, is held in place by a horizontal pin passing through the hole drawn on the blade, and resting on top of pieces 18 and 19 on the back of the frame. Pieces 18 and 19 should pinch the blade between themselves.",
+      "requires_human": true,
+      "human_note": "The blade is NOT glued — it is held by pin and friction only. Pinch must be firm enough to hold the blade upright but allow the pendulum to swing freely below it.",
+      "depends_on": ["c-370"],
+      "ui": {
+        "highlight_pieces": ["072", "018", "019"],
+        "action_label": "Pin 072 to framework"
+      }
+    },
+
+    {
+      "id": "c-390",
+      "type": "add-piece",
+      "piece": "070",
+      "description": "Bring piece 070 (pendulum rod) into the field.",
+      "source_section": "§II.C",
+      "source_quote": "Squeeze the lower end of the blade into the slot on the upper end of the pendulum rod, piece 70, and glue securely.",
+      "requires_human": false,
+      "depends_on": ["c-380"],
+      "ui": {
+        "highlight_pieces": ["070"],
+        "action_label": "Add piece 070 (pendulum rod)"
+      }
+    },
+
+    {
+      "id": "c-400",
+      "type": "fold",
+      "piece": "070",
+      "folds": "all",
+      "fold_ids": null,
+      "angle_deg": null,
+      "description": "Apply all folds on piece 070.",
+      "requires_human": true,
+      "human_note": "Fold angles not specified.",
+      "depends_on": ["c-390"],
+      "ui": {
+        "highlight_pieces": ["070"],
+        "action_label": "Set folds on 070",
+        "opens": "fold-panel"
+      }
+    },
+
+    {
+      "id": "c-410",
+      "type": "glue-self",
+      "piece": "070",
+      "description": "Glue any self-connections on 070.",
+      "requires_human": false,
+      "depends_on": ["c-400"],
+      "ui": {
+        "highlight_pieces": ["070"],
+        "action_label": "Glue self-connections on 070"
+      }
+    },
+
+    {
+      "id": "c-420",
+      "type": "lock-shape",
+      "piece": "070",
+      "description": "Lock 070's shape.",
+      "requires_human": false,
+      "depends_on": ["c-410"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock 070's shape?",
+        "popup_body": "Like letting the glue dry — folds and self-connections set.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-430",
+      "type": "glue-cross",
+      "pieces": ["072", "070"],
+      "description": "Glue the lower end of blade 072 into the slot on the upper end of pendulum rod 070. This joint is permanent.",
+      "source_section": "§II.C",
+      "source_quote": "Squeeze the lower end of the blade into the slot on the upper end of the pendulum rod, piece 70, and glue securely.",
+      "requires_human": true,
+      "human_note": "The blade slot and rod slot must align cleanly before gluing. This joint takes the full weight of the pendulum — glue securely.",
+      "depends_on": ["c-380", "c-420"],
+      "ui": {
+        "highlight_pieces": ["072", "070"],
+        "action_label": "Glue 072 blade into 070 slot"
+      }
+    },
+
+    {
+      "id": "c-440",
+      "type": "lock-shape",
+      "pieces": ["072", "070"],
+      "description": "Lock the 072+070 joint.",
+      "requires_human": false,
+      "depends_on": ["c-430"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock the blade+rod joint?",
+        "popup_body": "Like letting the glue dry. The blade and pendulum rod are now one piece. This joint carries the full weight of the pendulum bob.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-450",
+      "type": "check",
+      "description": "Verify pendulum rod (070) passes freely through the prongs of fork (068) without binding.",
+      "source_section": "§II.C",
+      "source_quote": "The pendulum rod passes through the end of the fork, piece 68. It must fit between the prongs of the fork without binding. If it binds, widen the gap in the fork with your X-acto knife.",
+      "requires_human": true,
+      "human_note": "Thread the rod through the fork prongs. If it binds: the fork gap needs to be widened physically (X-acto knife on the real build). In the digital model, flag the fold angle on 068 as too tight and adjust before locking.",
+      "depends_on": ["c-440", "c-330"],
+      "ui": {
+        "highlight_pieces": ["070", "068"],
+        "action_label": "Check rod-through-fork fit",
+        "opens": "check-panel"
+      }
+    },
+
+    {
+      "id": "c-460",
+      "type": "add-piece",
+      "piece": "071",
+      "description": "Bring piece 071 (square ring) into the field. This will receive the pendulum hook.",
+      "source_section": "§II.C",
+      "source_quote": "To the bottom of the pendulum rod, glue the square ring, piece 71, which will receive the pendulum hook.",
+      "requires_human": false,
+      "depends_on": ["c-450"],
+      "ui": {
+        "highlight_pieces": ["071"],
+        "action_label": "Add piece 071 (square ring)"
+      }
+    },
+
+    {
+      "id": "c-470",
+      "type": "fold",
+      "piece": "071",
+      "folds": "all",
+      "fold_ids": null,
+      "angle_deg": null,
+      "description": "Apply all folds on piece 071 to form the ring shape.",
+      "requires_human": true,
+      "human_note": "Fold angles not specified.",
+      "depends_on": ["c-460"],
+      "ui": {
+        "highlight_pieces": ["071"],
+        "action_label": "Set folds on 071",
+        "opens": "fold-panel"
+      }
+    },
+
+    {
+      "id": "c-480",
+      "type": "glue-cross",
+      "pieces": ["071", "070"],
+      "description": "Glue square ring 071 to the bottom of pendulum rod 070.",
+      "source_section": "§II.C",
+      "requires_human": false,
+      "depends_on": ["c-470"],
+      "ui": {
+        "highlight_pieces": ["071", "070"],
+        "action_label": "Glue 071 to bottom of 070"
+      }
+    },
+
+    {
+      "id": "c-490",
+      "type": "lock-shape",
+      "pieces": ["071", "070"],
+      "description": "Lock the 071+070 joint.",
+      "requires_human": false,
+      "depends_on": ["c-480"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock the ring+rod joint?",
+        "popup_body": "Like letting the glue dry. The square ring at the base of the pendulum rod is set.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "_note": "Bob casing sub-assembly. The book says 'six pieces designated 93' — six copies of piece 93 in print, formed into three braces. In our repo, 093 was split into 093a + 093b (two distinct shapes). Verify against plate scan which shapes make up the braces before authoring.",
+      "id": "c-500",
+      "type": "add-piece",
+      "piece": "093",
+      "quantity": 6,
+      "description": "Bring six copies of piece 093 into the field. These will be paired to make three separate braces that hold piece 094's shape.",
+      "source_section": "§II.C",
+      "source_quote": "Glue the six pieces designated 93 together to form three separate braces, which will establish and maintain the shape of piece 94.",
+      "requires_human": false,
+      "depends_on": ["c-490"],
+      "ui": {
+        "highlight_pieces": ["093"],
+        "action_label": "Add 6× piece 093"
+      }
+    },
+
+    {
+      "id": "c-510",
+      "type": "glue-cross",
+      "pieces": ["093"],
+      "description": "Pair the six 093 pieces into three separate braces (glue each pair together). Three distinct brace units result.",
+      "source_section": "§II.C",
+      "source_quote": "Glue the six pieces designated 93 together to form three separate braces.",
+      "requires_human": false,
+      "depends_on": ["c-500"],
+      "ui": {
+        "highlight_pieces": ["093"],
+        "action_label": "Glue 093 pairs into 3 braces"
+      }
+    },
+
+    {
+      "id": "c-520",
+      "type": "lock-shape",
+      "pieces": ["093"],
+      "description": "Lock all three braces. They must be fully dry before being glued inside 094.",
+      "source_section": "§II.C",
+      "source_quote": "After the glue has dried, glue these braces inside piece 94.",
+      "requires_human": false,
+      "depends_on": ["c-510"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock the three braces?",
+        "popup_body": "Like letting the glue dry. The three braces must be fully set before going inside piece 094.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-530",
+      "type": "add-piece",
+      "piece": "094",
+      "description": "Bring piece 094 (pendulum bob casing) into the field. This is the long tube that forms the visible pendulum rod.",
+      "source_section": "§II.C",
+      "requires_human": false,
+      "depends_on": ["c-520"],
+      "ui": {
+        "highlight_pieces": ["094"],
+        "action_label": "Add piece 094 (bob casing)"
+      }
+    },
+
+    {
+      "id": "c-540",
+      "type": "fold",
+      "piece": "094",
+      "folds": "all",
+      "fold_ids": null,
+      "angle_deg": null,
+      "description": "Apply all folds on piece 094 to form the tube/rod shape.",
+      "requires_human": true,
+      "human_note": "Fold angles not specified. 094 should form a long flat rod or tube shape. Do not fully close it yet — braces must be glued inside before sealing with 095.",
+      "depends_on": ["c-530"],
+      "ui": {
+        "highlight_pieces": ["094"],
+        "action_label": "Set folds on 094",
+        "opens": "fold-panel"
+      }
+    },
+
+    {
+      "id": "c-550",
+      "type": "glue-cross",
+      "pieces": ["093", "094"],
+      "brace_positions": [
+        { "brace": 1, "position": "midpoint" },
+        { "brace": 2, "position": "5 inches above midpoint" },
+        { "brace": 3, "position": "5 inches below midpoint" }
+      ],
+      "description": "Glue the three 093 braces inside piece 094: one at midpoint, one 5 inches above, one 5 inches below. These establish and maintain 094's shape.",
+      "source_section": "§II.C",
+      "source_quote": "Glue these braces inside piece 94, one in the middle, one five inches above the middle, and one five inches below.",
+      "requires_human": true,
+      "human_note": "The 5-inch spacing is the only physical measurement given in the book. Verify against the actual length of piece 094 — the measurements are from the midpoint of 094's usable length.",
+      "depends_on": ["c-520", "c-540"],
+      "ui": {
+        "highlight_pieces": ["093", "094"],
+        "action_label": "Glue braces inside 094 (3 positions)"
+      }
+    },
+
+    {
+      "id": "c-560",
+      "type": "lock-shape",
+      "pieces": ["093", "094"],
+      "description": "Lock the 093-braced 094 assembly. Braces must be dry before 095 closes the casing.",
+      "source_section": "§II.C",
+      "source_quote": "After assembling pieces 94 and 95, glue piece 95 to piece 94.",
+      "requires_human": false,
+      "depends_on": ["c-550"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock 094 with braces?",
+        "popup_body": "Like letting the glue dry. The internal braces are set. Next step closes the casing with piece 095.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-570",
+      "type": "add-piece",
+      "piece": "095",
+      "description": "Bring piece 095 into the field. This closes and completes the bob casing.",
+      "source_section": "§II.C",
+      "source_quote": "After assembling pieces 94 and 95, glue piece 95 to piece 94.",
+      "requires_human": false,
+      "depends_on": ["c-560"],
+      "ui": {
+        "highlight_pieces": ["095"],
+        "action_label": "Add piece 095"
+      }
+    },
+
+    {
+      "id": "c-580",
+      "type": "fold",
+      "piece": "095",
+      "folds": "all",
+      "fold_ids": null,
+      "angle_deg": null,
+      "description": "Apply all folds on piece 095.",
+      "requires_human": true,
+      "human_note": "Fold angles not specified.",
+      "depends_on": ["c-570"],
+      "ui": {
+        "highlight_pieces": ["095"],
+        "action_label": "Set folds on 095",
+        "opens": "fold-panel"
+      }
+    },
+
+    {
+      "id": "c-590",
+      "type": "glue-cross",
+      "pieces": ["095", "094"],
+      "description": "Glue piece 095 to piece 094, closing and completing the bob casing.",
+      "source_section": "§II.C",
+      "requires_human": false,
+      "depends_on": ["c-580", "c-560"],
+      "ui": {
+        "highlight_pieces": ["095", "094"],
+        "action_label": "Glue 095 onto 094"
+      }
+    },
+
+    {
+      "id": "c-600",
+      "type": "lock-shape",
+      "pieces": ["094", "095"],
+      "description": "Lock the completed bob casing (094+095).",
+      "requires_human": false,
+      "depends_on": ["c-590"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock the bob casing?",
+        "popup_body": "Like letting the glue dry. The pendulum bob casing (094+095) is complete.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "id": "c-610",
+      "type": "add-piece",
+      "piece": "097",
+      "description": "Bring piece 097 into the field. This holds the pendulum bob in position on the rod.",
+      "source_section": "§II.C",
+      "source_quote": "Piece 98 should be bowed when glued onto piece 97, so it will hold the pendulum bob in place on the pendulum rod, piece 94.",
+      "requires_human": false,
+      "depends_on": ["c-600"],
+      "ui": {
+        "highlight_pieces": ["097"],
+        "action_label": "Add piece 097"
+      }
+    },
+
+    {
+      "id": "c-620",
+      "type": "add-piece",
+      "piece": "098",
+      "description": "Bring piece 098 into the field. This piece must be bowed (curved) before gluing — the spring tension holds the bob on the rod.",
+      "source_section": "§II.C",
+      "source_quote": "Piece 98 should be bowed when glued onto piece 97.",
+      "requires_human": false,
+      "depends_on": ["c-610"],
+      "ui": {
+        "highlight_pieces": ["098"],
+        "action_label": "Add piece 098"
+      }
+    },
+
+    {
+      "id": "c-630",
+      "type": "fold",
+      "piece": "098",
+      "folds": "bow",
+      "fold_ids": null,
+      "angle_deg": null,
+      "description": "Introduce a deliberate bow (curve) into piece 098 before gluing. The bow creates spring tension.",
+      "source_section": "§II.C",
+      "source_quote": "Piece 98 should be bowed when glued onto piece 97.",
+      "requires_human": true,
+      "human_note": "The bow amount is not specified. It should create enough spring force to keep the bob from sliding on the rod, but not so much that the bob is impossible to slip on or reposition. Calibrate by feel.",
+      "depends_on": ["c-620"],
+      "ui": {
+        "highlight_pieces": ["098"],
+        "action_label": "Bow piece 098",
+        "opens": "fold-panel"
+      }
+    },
+
+    {
+      "id": "c-640",
+      "type": "glue-cross",
+      "pieces": ["098", "097"],
+      "description": "Glue bowed piece 098 onto piece 097. Maintain the bow while gluing.",
+      "source_section": "§II.C",
+      "requires_human": true,
+      "human_note": "Hold the bow in place while the glue sets — releasing too early will flatten 098 and eliminate the spring function.",
+      "depends_on": ["c-630"],
+      "ui": {
+        "highlight_pieces": ["098", "097"],
+        "action_label": "Glue 098 (bowed) onto 097"
+      }
+    },
+
+    {
+      "id": "c-650",
+      "type": "lock-shape",
+      "pieces": ["097", "098"],
+      "description": "Lock the 097+098 bob-holder unit.",
+      "requires_human": false,
+      "depends_on": ["c-640"],
+      "ui": {
+        "shows_popup": true,
+        "popup_title": "Lock the bob holder?",
+        "popup_body": "Like letting the glue dry. The bowed spring (098) is set onto 097. The bob will clip onto the rod using this spring.",
+        "popup_confirm": "Lock it",
+        "popup_cancel": "Keep editing"
+      }
+    },
+
+    {
+      "_note": "Escapement geometry check — the functional heart of the clock. This check can only be done once the full framework (§II.A) and mechanism (§II.B) are in place, and the anchor is installed on its axle in the framework. The check is included here as the closing step of §II.C.",
+      "id": "c-660",
+      "type": "check",
+      "description": "With clock upright and pendulum stationary, apply slight CCW pressure to the motor wheel. Anchor point 'a' must engage escapement tooth 'd' no more than 1.0–1.5mm from the tooth tip.",
+      "source_section": "§II.C",
+      "source_quote": "With the clock upright and facing you, and holding the pendulum stationary, apply a slight pressure to turn the motor wheel counterclockwise. Point 'a' of the anchor should engage tooth 'd' no more than 1 to 1.5 mm from the point of the tooth.",
+      "requires_human": true,
+      "human_note": "This is a visual measurement — 1.0–1.5mm from tooth tip. If engagement is wrong (too deep or too shallow), adjust the anchor axle height using the cardboard-square method described in §II.B mounting, then re-check.",
+      "depends_on": ["c-330"],
+      "ui": {
+        "highlight_pieces": ["067", "068"],
+        "action_label": "Check escapement engagement depth",
+        "opens": "check-panel"
+      }
+    },
+
+    {
+      "id": "c-670",
+      "type": "check",
+      "description": "Remove pendulum. Slowly move fork (068) side to side by hand. One escapement wheel tooth should pass anchor point 'a' for every complete arc (left → right → left).",
+      "source_section": "§II.C",
+      "source_quote": "Verify proper operation of the escapement by removing the pendulum and slowly moving the fork from side to side. One point of the escapement wheel should pass point 'a' on the anchor every time the pendulum makes a complete circuit.",
+      "requires_human": true,
+      "human_note": "This is the escapement timing verification. One tooth per circuit = correct. If timing is off, raise or lower the anchor axle. This may require multiple iterations.",
+      "depends_on": ["c-660"],
+      "ui": {
+        "highlight_pieces": ["067", "068"],
+        "action_label": "Check escapement timing (one tooth per circuit)",
+        "opens": "check-panel"
+      }
+    }
+
+  ]
+}
