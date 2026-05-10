@@ -230,9 +230,87 @@ A row per decision. Each row captures:
 - **Downstream:** CODE_PROMPT to be drafted next session for the `find_partner_feature` extension in `build_assembly_graph.py` plus the parallel resolver in `preview.html`. LAYER-CONVENTIONS.md updated in this pass: Parser-rules section gains the new lookup steps, Patterns section adds 066 as worked exemplar showing the chain end-to-end. Connection-graph regenerates after the script lands; expect 094/095, 097/099, 097/098, 093/093a edges to shift their `matched via` from panel-substring to marks-anchored. Open follow-up tracked separately: 097's period-suffix `attach-a99.{1..5}` pattern is parked for a post-Option-A read; if multi-instance attach-points-as-set covers the registration ambiguity it solves, the period-suffix may not be needed.
 - **Reopen?** closed in v1. Reopens if the marks-layer lookup introduces resolution conflicts the tiebreaker can't settle.
 
+### #13 — Three-mode preview.html (Bench / Cluster / Wall) + sidecar `assembled.transform` for piece pose in cluster-local space
+
+- **Date:** 2026-05-09
+- **Decision:** preview.html grows three explicit modes corresponding to the three authoring tiers the project actually has — single-piece fold-and-orient, multi-piece subassembly relating, multi-subassembly clock composition. The first two are the active scope of this decision; the third is deferred until enough subassemblies exist to make it useful.
+
+  **Modes.**
+
+  | Mode | Active scope | What's loaded | What's editable | What saves |
+  |---|---|---|---|---|
+  | **Bench** | This decision | Single piece | Fold sliders + per-piece transform sliders (translation, rotation), all numeric, all with text-entry | `assembled.folds` + `assembled.transform` written to `work/pieces/NNN/NNN.json` |
+  | **Cluster** | This decision | Multiple pieces from one subassembly (cluster identity from `connection-graph.json` `pivot_clusters`) | Selected piece's transform sliders only; live distance readouts between paired (attach, landing) connection points | Each touched piece's `assembled.transform` writes back to its own sidecar |
+  | **Wall** | **Deferred** — not useful until enough subassemblies are built. When it lands: wall+hook geometry as primary reference + per-cluster JSON at `work/assemblies/<cluster-id>.json` for cluster-level world poses | Multiple subassemblies | Per-subassembly world transform | New file type at `work/assemblies/` |
+
+  **Sidecar `assembled.transform`** — new optional block parallel to `assembled.folds`:
+
+  ```json
+  {
+    "assembled": {
+      "folds": { ... },
+      "transform": {
+        "translation": [x_mm, y_mm, z_mm],
+        "rotation_deg": [rx, ry, rz],
+        "rotation_order": "XYZ",
+        "frame": "cluster",
+        "origin": "pivot-anchor"
+      }
+    }
+  }
+  ```
+
+  Rules:
+
+  1. **Frame field.** `cluster` (default for any piece in a cluster per `connection-graph.json` `pivot_clusters`) or `world` (loose pieces). Cluster-frame transforms are interpreted relative to the cluster's pivot point. World-frame transforms are interpreted in absolute world space (used only when no cluster applies — rare).
+  2. **Origin auto-detect.** Records which point the rotation pivots about: `pivot-anchor` (a `pivot-anchor` mark on the piece) > `axles[0]` (first axle line) > `centroid` (piece's authored 2D centroid). Each piece picks the highest-priority origin available; the field records which was chosen so reload is exact.
+  3. **Coordinate convention.** +Y up, +X right when facing the wall, +Z forward (out of the wall toward viewer). Within a cluster frame, +Y/+X/+Z are the cluster's local axes (cluster origin = pivot point); within world frame, the same directions are world-absolute (world origin = wall+hook position, deferred until Wall mode ships).
+  4. **Independent of `folds`.** A piece's `transform` and `folds` blocks are independently optional. A piece at authored pose has no `transform`; a piece with no folds has no `folds`.
+
+  **Per-mode coordinate frame.** Each mode has its own world origin for the piece(s) being authored:
+
+  | Mode | World origin (during authoring) | Reference geometry |
+  |---|---|---|
+  | Bench | Piece's natural origin (`pivot-anchor` > `axles[0]` > centroid) | RGB axes at piece origin + corner gizmo |
+  | Cluster | Cluster's pivot point | RGB axes at cluster origin + corner gizmo |
+  | Wall *(deferred)* | Hook position (top of wall) | Wall+hook geometry primary; RGB axes optional |
+
+  Same `assembled.transform` data interpreted in different reference frames depending on the active mode: a piece in Bench mode is centered on its own origin; the same piece in Cluster mode shifts to its cluster-local position.
+
+  **Interaction patterns** (universal across modes):
+
+  - **Camera lock + toggle.** Default camera looks head-on at the active piece (Bench) or cluster (Cluster). A toggle button unlocks orbit; per-session memory; default reset on next session.
+  - **Click-drag-on-piece manipulates the piece, not the camera.** TransformControls handles (3 colored translate arrows + 3 colored rotate rings) on the active piece. OrbitControls is gated behind the camera toggle. Inverts the current preview.html default.
+  - **Slider + numeric text-entry for every numeric input.** Fold angles, transform translations, transform rotations, thickness — all bidirectional (typing snaps slider; dragging slider updates number).
+  - **Cutouts render as Shape holes.** `<g id="cutouts">` paths attach as `shape.holes = []` on the front and back ShapeGeometry. Closes the unfinished feature flagged at preview.html:1435.
+  - **Worktable backdrop** in Bench and Cluster (dark contrasting plane, no grid initially). Wall+hook geometry deferred to Wall mode (PR D).
+
+- **Why:** Decision #11 deliberately punted on inter-piece transforms ("M4 assembly-transform work; lives separately; likely shape: SE(3) on connection-graph edges or top-level `assembled.json`"). Two things have changed since #11. First, Alan's authoring workflow surfaced that pieces load in their authored 2D orientation, which is meaningless in world space — there's no way to look at a piece and see "this is how it sits in the assembled clock." Second, the natural unit of intermediate authoring is the *subassembly* (anchor cluster, pendulum bob, motor wheel — what the book calls Mechanism, Anchor and Pendulum, etc.), not per-edge. The right primitive is per-piece transforms in cluster-local space, not per-edge transforms in world space; cluster-level placement happens in Wall mode at a separate hierarchical tier. This is hierarchically cleaner than #11's anticipated shape — pieces compose into clusters compose into the clock, each tier authoring its own transforms — and it matches how Alan actually thinks about the build (fold a piece at the bench; assemble the cluster at the worktable; mount the clock to the wall).
+
+  Three modes lock this hierarchy into the UI: Bench is the per-piece tier, Cluster is the per-subassembly tier, Wall is the per-clock tier. The wall+hook backdrop only appears in Wall mode because the wall is *only* meaningful when something's being mounted to it. Until enough subassemblies exist to mount, the wall is decorative; deferring it keeps PR A's geometry work focused on what's needed now (worktable only).
+
+- **Type:** Co-authored. Sidecar shape and authoring workflow both touch the seam Alan and Claude work across.
+- **Supersedes:** Decision #11's "Out of scope (deliberately)" speculation about per-edge SE(3) transforms or a top-level `assembled.json`. The actual shape that landed is per-piece `assembled.transform` in cluster-local space, not per-edge. #11's `assembled.folds` block stays exactly as shipped; `transform` is parallel to it, not a replacement.
+- **Downstream:**
+  - `LAYER-CONVENTIONS.md` "Per-piece JSON sidecar" section gains a `transform` subsection (next pass).
+  - Three CODE_PROMPTs to draft:
+    - **PR A** — foundational interaction + cutouts (cutouts as Shape holes; slider+text-entry pattern; camera-lock-with-toggle; click-drag-on-piece via TransformControls; RGB axes gizmos at origin + corner; worktable backdrop; Bench/Cluster mode toggle UI with Bench functional and Cluster stubbed).
+    - **PR B** — Bench mode transform capture (per-piece transform UI; sidecar load + save extended for `transform`; combined save emits folds + transform together; pose capture for the pendulum cluster resumes here).
+    - **PR C** — Cluster mode (multi-piece independent manipulation; selected-piece state; distance readouts between paired (attach, landing) connection points; per-piece save in cluster context).
+  - **PR D — deferred** until subassembly authoring proceeds far enough to need it. Adds wall+hook geometry, Wall mode functionality, `work/assemblies/<cluster>.json` file type, and expands the mode toggle to Bench/Cluster/Wall.
+- **Explicit non-goals (deliberate, this pass):**
+  - Realistic wall textures (start flat gray when wall lands; wood/realism is later).
+  - Auto-snap from authored attach-points to landings (constraint solving — M4 territory).
+  - Inter-piece edge data in sidecars (per-piece is canonical; M4 territory).
+  - Camera animation between modes (just snap).
+  - Multi-monitor / large-format UI scaling.
+- **Reopen?** closed in v1. Reopens if (a) authoring surfaces a piece type that breaks the cluster-local frame model, (b) per-piece save semantics in Cluster mode prove confusing in practice, or (c) a future M4 design surfaces a need for per-edge transform data the sidecar doesn't carry.
+
 ---
 
-*Last updated: 2026-05-07 (evening) — Decision #12 closed: parser will consult `marks` for cross-piece feature lookup, codifying the mark-first attach pattern that LAYER-CONVENTIONS.md already documented. CODE_PROMPT pending. Surfaced from a sweep of 093/066/094-100/110 attach-point conventions; full report in session note `2026-05-07-2200_cowork_attach-convention-sweep.md` (forthcoming).*
+*Last updated: 2026-05-09 — Decision #13 closed: three-mode preview.html (Bench / Cluster / Wall) + sidecar `assembled.transform` block for per-piece pose in cluster-local space. Wall mode deferred until subassembly authoring is far enough along to make it useful. Supersedes #11's anticipated per-edge SE(3) shape with per-piece-in-cluster-local-space. Three CODE_PROMPTs (PR A foundational, PR B Bench transform capture, PR C Cluster mode) to draft next; PR D Wall mode deferred. Pose capture for the pendulum cluster resumes against PR B once it ships.*
+
+*Earlier 2026-05-07 (evening) — Decision #12 closed: parser will consult `marks` for cross-piece feature lookup, codifying the mark-first attach pattern that LAYER-CONVENTIONS.md already documented. CODE_PROMPT pending. Surfaced from a sweep of 093/066/094-100/110 attach-point conventions; full report in session note `2026-05-07-2200_cowork_attach-convention-sweep.md` (forthcoming).*
 
 *Earlier 2026-05-07 — Decision #4 closed: Option B (clean separation). `preview.html` stays as permanent authoring/QA tool; `claude-work/viewer/` deferred until M3 is imminent and will be built fresh in TypeScript + Vite. See session note `2026-05-07-1700_cowork_architecture-and-attach-convention.md`.*
 
