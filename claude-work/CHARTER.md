@@ -78,12 +78,11 @@ The existing `sessions/` convention carries forward. Both Alan and Claude contin
 ```
 z-paper-clock/
 ├── source/                  ← read-only for both. The book; the scans; the transcriptions.
-├── work/                    ← FROZEN as of this charter. Read-only for both. Pre-charter build artifacts.
-├── alan-work/               ← NEW. Clean. Alan's authoring zone going forward.
+├── work/                    ← Active piece authoring zone (amended A3 2026-05-10 — was "frozen").
 │   ├── pieces/              ← per-piece working folders (NNN.af, NNN.svg, NNN.json)
-│   ├── pieces.csv           ← master index (copied from work/ as needed)
-│   └── ...                  ← whatever else Alan needs; populated lazily by what we copy out of work/
-├── claude-work/             ← NEW. Claude's lead zone.
+│   ├── pieces.csv           ← master index
+│   └── ...                  ← pipeline scripts, audit outputs, state.json, etc.
+├── claude-work/             ← Claude's lead zone.
 │   ├── CHARTER.md           ← this document
 │   ├── (further structure detailed in §5)
 ├── site/                    ← NEW (charter A2 2026-05-09). Co-owned outward-facing zone:
@@ -99,15 +98,15 @@ z-paper-clock/
 **Read/write rules:**
 
 - `claude-work/` — Claude writes; Alan reads.
-- `alan-work/` — Alan writes; Claude reads.
-- `work/` — frozen. Read-only for both. Existing artifacts that need to live on go to `alan-work/` or `claude-work/` via an explicit copy.
+- `work/pieces/` — Alan writes piece authoring files (NNN.af, NNN.svg); Claude writes sidecars (NNN.json) and pipeline outputs. Both read. _(amended A3 2026-05-10 — `alan-work/` retired; `work/` unfrozen for piece work)_
+- `work/` (everything outside `work/pieces/`) — both read; Claude writes pipeline + tooling outputs (state.json, scripts); Alan writes pieces.csv as needed.
 - `source/` — neither writes (study side is stable).
 - `sessions/` — both write, in their respective modes.
 - `LAYER-CONVENTIONS.md` at repo root — both write (co-authored).
 - `site/` — co-owned. Both write. Claude leads on strategy, structure, code, and the collaboration-side narrative; Alan leads on personal-arc content and on voice-on-Alan's-behalf (any copy putting words in Alan's voice needs Alan's sign-off before it goes live).
 - All other root-level docs — read-only for Claude. Alan can edit (and may, e.g. to update README for the public face).
 
-**Rename policy: clean break.** The existing `work/` folder is archived in place as a frozen reference. `alan-work/` is a fresh folder, created from scratch. We copy out of `work/` whatever we want to reuse — pieces.csv, individual piece folders, the preview.html source-of-truth pattern, scripts worth carrying forward — and bring it into `alan-work/` or `claude-work/` deliberately. This avoids the find/replace pain of renaming a folder referenced in dozens of docs, and it gives the pivot a clean substrate to work on rather than picking up implicit history.
+~~**Rename policy: clean break.**~~ _(Retired by amendment A3 2026-05-10. The `alan-work/` folder was never created; all piece authoring, sidecars, and tooling continued in `work/pieces/` through charter sign-off. The clean-break approach was agreed informally to be unnecessary and is formally retired here. `work/pieces/` is the canonical authoring location going forward.)_
 
 The one carve-out is **this charter document**: we co-author v0/v1 right now during the kick-off conversation. After sign-off, it becomes a `claude-work/` doc and Claude maintains it. Alan can propose edits via chat; Claude makes them.
 
@@ -126,7 +125,7 @@ Initial structure. Not all need to exist on day one; Claude builds them out as w
 - **pipeline/** — successor to `work/pipeline/` and `work/scripts/`. Pipeline scripts and tooling Claude will iterate move here when needed; the M1 archive in `work/_archive/` stays put as a decision record (and `work/` is frozen anyway).
 - **standards/** — successor home for new tooling-side standards docs as they emerge (sidecar schema versions, viewer manifest schema, audit-script rule reference, the build-environment doc). `LAYER-CONVENTIONS.md` is the explicit exception — it stays at repo root, co-authored. **First resident:** `standards/ENVIRONMENT.md` (2026-05-05) — canonical install + configuration reference for Alan's Mac + Windows benches and the Cowork sandbox's capabilities/constraints.
 
-**Sidecar JSON colocation.** Per-piece JSON lives at `alan-work/pieces/NNN/NNN.json`, alongside the SVG. Claude is the author; the file lives in Alan's tree because that's where the piece lives. Claude writes there as a one-line carve-out from "Claude doesn't write to alan-work/." (If this gets messy in practice, revisit.)
+**Sidecar JSON colocation.** Per-piece JSON lives at `work/pieces/NNN/NNN.json`, alongside the SVG and authoring file. Claude is the author. _(Path updated by amendment A3 2026-05-10 — was `alan-work/pieces/NNN/NNN.json`.)_
 
 ---
 
@@ -267,6 +266,17 @@ Substantive amendments stack here per §12. The original §10 table stays as the
 - **Why:** A public face is a real scope addition the original charter doesn't speak to. Touches §3 (role boundaries — a new co-ownership zone), §4 (folder split — new co-owned location at root), and §6 (ship list — a new deliverable beyond the viewer). Per §12's test cases, substantive — explicit amendment, both sides initial.
 - **Initials:** Alan ☑ (agreed in chat 2026-05-09) / Claude ☑ (drafted + committed same session)
 
+### A3 — `alan-work/` retired; `work/pieces/` accepted as canonical authoring location (§4, §5)
+
+- **Date:** 2026-05-10
+- **What changed:**
+  - **`alan-work/` folder is retired.** It was never created. All piece authoring (NNN.af, NNN.svg), sidecars (NNN.json), and tooling paths continued in `work/pieces/` through and after charter sign-off. The "clean break" rename policy in §4 is struck through and retired.
+  - **`work/` is unfrozen for piece work.** `work/pieces/` is the canonical per-piece authoring zone going forward — same as it was before the charter. The rest of `work/` (pipeline scripts, audit outputs, state.json, pieces.csv) is also active, not frozen.
+  - **Read/write rules updated** (§4): `work/pieces/` is Alan-writes (af, svg) + Claude-writes (json, pipeline outputs). The `alan-work/` rule is removed.
+  - **Sidecar JSON path updated** (§5): was `alan-work/pieces/NNN/NNN.json`; now `work/pieces/NNN/NNN.json`.
+- **Why:** The agreement to keep pieces in `work/` rather than migrating to a new `alan-work/` folder was made in chat but never recorded in the charter. Alan confirmed this in session 2026-05-10. Migrating now would be disruptive with no practical benefit — everything works, all tooling paths are correct, the spirit of the charter (Alan leads on authoring, Claude leads on tooling) is fully intact.
+- **Initials:** Alan ☑ (confirmed in chat 2026-05-10) / Claude ☑ (drafted same session)
+
 ---
 
-*Last updated: 2026-05-09 (amendment A2: `site/` folder added, outward-facing storytelling track opened, co-owned). Earlier 2026-05-05 (amendment A1: tool-acquisition directive strengthened in §9). Earlier 2026-05-04 (signed v1.0; effective. Amendment policy added as §12. Both Alan and Claude signed at kick-off.)*
+*Last updated: 2026-05-10 (amendment A3: `alan-work/` retired; `work/pieces/` accepted as canonical authoring location; §4 folder tree, read/write rules, rename policy, and §5 sidecar path updated). Earlier 2026-05-10 (amendment A2: `site/` folder added, outward-facing storytelling track opened, co-owned). Earlier 2026-05-05 (amendment A1: tool-acquisition directive strengthened in §9). Earlier 2026-05-04 (signed v1.0; effective. Amendment policy added as §12. Both Alan and Claude signed at kick-off.)*

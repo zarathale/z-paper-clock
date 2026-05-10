@@ -26,9 +26,19 @@ partner highlighting + snapPair / snapAllPairs (median translation) + rigid-grou
 lock + `assembled.snapped_connections` save payload all landed. Prompt moved to
 `_archive/code-prompts/`. See `sessions/2026-05-10-1127_code_preview-html-snap.md`.
 
-Now #2 is the only remaining concurrent item.
+### 1. Guided assembly stepper — send to Code (`CODE_PROMPT_preview-html-guided-stepper.md`)
 
-### 4. Fix 068 fold authoring — missing pane→c1 fold line
+`CODE_PROMPT_preview-html-guided-stepper.md` is at repo root, `ready-for-code`. 12 tasks:
+"Guide" toggle button in cluster controls, guided panel section in `#cluster-panel` (above
+Measurements), sequence loader fetching `claude-work/state/guided_sequence_anchor.json`, step
+card with type-badge color map, `applyGuidedStepBehavior` (snap-connection auto-activates
+snap tool; fold auto-selects piece), `highlightGuidedPieces` (amber emissive on current
+step's pieces), lock-shape confirm modal, auto-advance hooks in `snapAllPairs` and
+`loadClusterPieces`. 10-step browser manual test.
+
+No blockers. Snap (PR #25) and bridge-save (PR #26) are the substrate; both merged.
+
+### 2. Fix 068 fold authoring — missing pane→c1 fold line
 
 068's fold graph has two disconnected components: the main pane chain (pane1–pane8, flap1, flap2, taba, tabb, tabff, b, g) and the slot cluster (c1, c2, sidel, sider) are not connected. A fold line is missing on the boundary between the slot panels and the adjacent pane.
 
@@ -113,7 +123,9 @@ Post-tagging follow-on: merge `character` + `subtype` from `work/piece_character
 
 ---
 
-*Last updated: 2026-05-10 (fifth pass) — preview-bridge-save shipped. Now #2 struck through; the prompt moved from repo root to `_archive/code-prompts/CODE_PROMPT_preview-bridge-save.md`. Save buttons now POST directly to the bridge → copy-paste sidecar merge eliminated; copy modal preserved as offline fallback; Bench-mode piece switch auto-saves the outgoing piece. Recently shipped tail bumped.*
+*Last updated: 2026-05-10 (sixth pass) — guided stepper CODE_PROMPT drafted, added as Now #1. `CODE_PROMPT_preview-html-guided-stepper.md` ready-for-code at repo root. 12 tasks: Guide toggle, guided panel, sequence loader, step card + type badges, step behavior dispatch, piece highlighting, lock-shape modal, auto-advance hooks. Charter amendment A3 recorded (alan-work/ retired; work/pieces/ canonical).*
+
+*Earlier 2026-05-10 (fifth pass) — preview-bridge-save shipped. Now #2 struck through; the prompt moved from repo root to `_archive/code-prompts/CODE_PROMPT_preview-bridge-save.md`. Save buttons now POST directly to the bridge → copy-paste sidecar merge eliminated; copy modal preserved as offline fallback; Bench-mode piece switch auto-saves the outgoing piece. Recently shipped tail bumped.*
 
 *Earlier 2026-05-10 (fourth pass) — two new CODE_PROMPTs drafted after Alan flagged assembly workflow as a blocker: `CODE_PROMPT_preview-bridge-save.md` (direct sidecar save, fixes persistence) and `CODE_PROMPT_preview-html-snap.md` (smart snap with auto-partner detection from connection graph, snap-all median translation, rigid group lock). Both ready-for-code; can go to Code concurrently. Now renumbered to 1–5; PR C cluster-mode added to Recently shipped.*
 
