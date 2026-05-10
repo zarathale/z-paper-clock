@@ -236,6 +236,39 @@ body:not(.mode-cluster) #conn-toggle-row { display:flex; }
 #cluster-controls button#snapToggleBtn.active {
   background:#3a4a5a; color:#e8e3da; border-color:#5a7090;
 }
+#cluster-controls button#guidedToggleBtn.active {
+  background:#3a5a3a; color:#c8e8c8; border-color:#5a8a5a;
+}
+
+/* Guided stepper */
+#guided-step-card { font-size:11px; line-height:1.5; }
+#guided-step-card .step-type-badge {
+  display:inline-block; font-size:10px; padding:1px 5px; border-radius:3px;
+  font-family:monospace; margin-bottom:4px;
+}
+#guided-step-card .step-desc    { color:#ddd; margin-bottom:4px; }
+#guided-step-card .step-human   { color:#fa8; font-size:10px; margin-bottom:3px; }
+#guided-step-card .step-quote   { color:#777; font-size:10px; font-style:italic;
+                                   border-left:2px solid #333; padding-left:5px;
+                                   margin-top:3px; }
+#guided-step-card .step-action-btn {
+  font-size:11px; padding:2px 8px; margin-top:4px; display:block; width:100%;
+  text-align:left; background:#2a3a2a; border:1px solid #4a6a4a; color:#c8e8c8;
+  cursor:pointer; border-radius:3px;
+}
+/* Type badge color map */
+.badge-add-piece      { background:#2a4a2a; color:#8c8; }
+.badge-fold           { background:#2a2a4a; color:#88c; }
+.badge-glue-self      { background:#4a3a1a; color:#ca8; }
+.badge-glue-cross     { background:#4a2a1a; color:#c88; }
+.badge-glue-no        { background:#4a1a1a; color:#f88; }
+.badge-lock-shape     { background:#3a1a4a; color:#b8c; }
+.badge-snap-connection{ background:#1a3a4a; color:#8bc; }
+.badge-check          { background:#4a4a1a; color:#cc8; }
+.badge-install-bearing,
+.badge-insert-axle,
+.badge-orient,
+.badge-pin            { background:#2a2a2a; color:#aaa; }
 #conn-toggle-row { display:none; align-items:center; gap:6px; font-size:12px; color:#aaa;
   border:1px solid #333; border-radius:4px; padding:6px 8px; }
 
@@ -271,6 +304,7 @@ body:not(.mode-cluster) #conn-toggle-row { display:flex; }
     <button id="loadClusterBtn">Load</button>
     <button id="measureToggleBtn" title="Click two connection points on different pieces to pin a distance measurement">Measure</button>
     <button id="snapToggleBtn" title="Click a connection point to highlight its known partners; [Snap] translates the tab piece onto its landing.">Snap</button>
+    <button id="guidedToggleBtn" title="Walk through the guided assembly sequence step by step">Guide</button>
   </span>
   <span style="flex:1"></span>
 </div>
@@ -338,6 +372,20 @@ body:not(.mode-cluster) #conn-toggle-row { display:flex; }
       <button id="saveSelectedBtn" class="saveSelectedBtn"
               title="Capture selected piece's pose into a JSON snippet for sidecar merge">Save selected piece</button>
       <button id="deselectBtn" style="font-size:11px; padding:3px 8px;" title="Clear selection">Deselect</button>
+    </div>
+    <!-- Guided assembly stepper. Hidden unless guided mode is active. -->
+    <div id="guided-panel-section" hidden>
+      <div style="font-size:11px;color:#aaa;border-top:1px solid #2a2a2a;padding-top:6px;
+                  display:flex;justify-content:space-between;align-items:baseline;">
+        <strong>Assembly guide</strong>
+        <span id="guided-counter" style="color:#666;font-weight:normal;"></span>
+      </div>
+      <div id="guided-step-card" style="margin-top:4px;"></div>
+      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+        <button id="guidedPrevBtn"  style="font-size:11px;padding:2px 8px;">← Prev</button>
+        <button id="guidedDoneBtn"  style="font-size:11px;padding:2px 8px;">Done ✓</button>
+        <button id="guidedSkipBtn"  style="font-size:11px;padding:2px 8px;color:#888;">Skip</button>
+      </div>
     </div>
     <div style="font-size:11px;color:#aaa;border-top:1px solid #2a2a2a;padding-top:6px;">
       <strong>Measurements</strong>
@@ -1296,6 +1344,11 @@ const rigidGroups = [];
 // only — cluster pieces carry their own spheres independently.
 let benchConnectionPoints = [];
 
+// ── Guided stepper state ──────────────────────────────────────────────────────
+let guidedMode       = false;
+let guidedSequence   = null;   // parsed guided_sequence_<cluster>.json or null
+let guidedStepIndex  = 0;      // index into guidedSequence.steps for current step
+
 // ─── Banner helpers ───────────────────────────────────────────────────────────
 function clearBanners() { bannersEl.innerHTML = ''; }
 function addBanner(text, type = 'warn') {
@@ -1723,6 +1776,13 @@ async function loadClusterPieces(pieceIds, clusterName) {
 
   refreshClusterPanel();
   refreshTransformPanel();
+
+  // Guided stepper: if guided mode is on, re-render the panel (add-piece step may
+  // now be completable / show "in scene" state) and re-apply step behavior.
+  if (guidedMode && guidedSequence) {
+    renderGuidedPanel();
+    applyGuidedStepBehavior(currentGuidedStep());
+  }
 }
 
 // Apply per-piece assembled.folds map to that piece's hinges in pathHingeMap.
@@ -1895,6 +1955,8 @@ function teardownClusterScene() {
   teardownSnapVisuals();
   refreshSnapPanel();
   refreshClusterPanel();
+  // Clear guided state when cluster is torn down.
+  if (guidedMode) setGuidedMode(false);
   requestRender();
 }
 
@@ -1988,6 +2050,282 @@ function setMeasureMode(on) {
 
 function setSnapMode(on) {
   setClusterTool(on ? 'snap' : 'select');
+}
+
+// ── Guided stepper ──────────────────────────────────────────────────────────
+async function loadGuidedSequence(clusterName) {
+  const path = `claude-work/state/guided_sequence_${clusterName}.json`;
+  try {
+    const r = await fetch(path + '?t=' + Date.now());
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    guidedSequence = await r.json();
+    guidedStepIndex = 0;
+    return true;
+  } catch (e) {
+    addBanner(`Guided: could not load sequence for "${clusterName}": ${e.message}`, 'warn');
+    guidedSequence = null;
+    return false;
+  }
+}
+
+async function setGuidedMode(on) {
+  if (on === guidedMode) return;
+  guidedMode = on;
+  const btn = document.getElementById('guidedToggleBtn');
+  const sec = document.getElementById('guided-panel-section');
+  if (!btn || !sec) return;
+
+  if (on) {
+    if (!currentClusterName || currentClusterName === '<ad-hoc>') {
+      addBanner('Guided: load a named cluster first (e.g., anchor).', 'warn');
+      guidedMode = false;
+      return;
+    }
+    const ok = await loadGuidedSequence(currentClusterName);
+    if (!ok) { guidedMode = false; return; }
+    btn.classList.add('active');
+    sec.hidden = false;
+    renderGuidedPanel();
+    applyGuidedStepBehavior(currentGuidedStep());
+  } else {
+    btn.classList.remove('active');
+    sec.hidden = true;
+    clearGuidedHighlights();
+    guidedSequence = null;
+  }
+}
+
+function currentGuidedStep() {
+  if (!guidedSequence) return null;
+  return guidedSequence.steps[guidedStepIndex] || null;
+}
+
+function guidedTotalSteps() {
+  return guidedSequence ? guidedSequence.steps.length : 0;
+}
+
+function advanceGuidedStep() {
+  if (!guidedSequence) return;
+  const n = guidedSequence.steps.length;
+  if (guidedStepIndex < n - 1) {
+    guidedStepIndex++;
+    renderGuidedPanel();
+    applyGuidedStepBehavior(currentGuidedStep());
+  } else {
+    addBanner('Guided: all steps complete! 🎉', 'ok');
+  }
+}
+
+function retreatGuidedStep() {
+  if (!guidedSequence || guidedStepIndex === 0) return;
+  guidedStepIndex--;
+  renderGuidedPanel();
+  applyGuidedStepBehavior(currentGuidedStep());
+}
+
+function markGuidedStepDone(stepId) {
+  advanceGuidedStep();
+}
+
+function renderGuidedPanel() {
+  if (!guidedSequence) return;
+  const step    = currentGuidedStep();
+  const total   = guidedTotalSteps();
+  const counter = document.getElementById('guided-counter');
+  const card    = document.getElementById('guided-step-card');
+  const prevBtn = document.getElementById('guidedPrevBtn');
+  const doneBtn = document.getElementById('guidedDoneBtn');
+  if (!step || !card || !prevBtn || !doneBtn) return;
+
+  counter.textContent = `${guidedStepIndex + 1} / ${total}`;
+  prevBtn.disabled = (guidedStepIndex === 0);
+
+  // For add-piece steps where the piece isn't in the scene yet, grey out Done ✓
+  // so the primary action is clearly the "Add piece" button.
+  if (step.type === 'add-piece') {
+    const pid = step.piece;
+    const inScene = pid && clusterPieces.has(String(parseInt(pid, 10)).padStart(3, '0'));
+    doneBtn.disabled = !inScene;
+    doneBtn.title = inScene ? '' : 'Add the piece to the scene first';
+  } else {
+    doneBtn.disabled = false;
+    doneBtn.title = '';
+  }
+
+  // Badge class: 'badge-' + type (hyphens preserved, e.g. 'badge-snap-connection')
+  const badgeClass = 'badge-' + step.type;
+  const typeLabel  = step.type.replace(/-/g, '‑'); // non-breaking hyphens for badge
+
+  // Build piece label for context header.
+  // snap-connection steps use "from → to"; all others join with " + ".
+  const piecesArr = [step.piece, step.from_piece, step.to_piece, ...(step.pieces || [])]
+    .filter(Boolean);
+  const piecesLabel = step.type === 'snap-connection'
+    ? [step.from_piece, step.to_piece].filter(Boolean).join(' → ')
+    : piecesArr.join(' + ');
+
+  // Source quote block (omit if absent)
+  const quoteHtml = step.source_quote
+    ? `<div class="step-quote">${escHtml(step.source_quote)}</div>`
+    : '';
+
+  // Human-judgment note (shown only when requires_human: true)
+  const humanHtml = step.requires_human && step.human_note
+    ? `<div class="step-human">⚠ ${escHtml(step.human_note)}</div>`
+    : '';
+
+  // Action button for add-piece steps only (other types use Done ✓).
+  // Note: doneBtn.disabled is already set above for add-piece steps.
+  let actionBtnHtml = '';
+  if (step.type === 'add-piece') {
+    const pid = step.piece;
+    const inScene = pid && clusterPieces.has(
+      String(parseInt(pid, 10)).padStart(3, '0')
+    );
+    actionBtnHtml = inScene
+      ? `<div style="color:#5c5;font-size:10px;margin-top:4px;">✓ ${pid} is in the scene</div>`
+      : `<button class="step-action-btn" id="guided-add-piece-btn"
+           data-piece="${escHtml(pid)}">Add piece ${pid} to scene</button>`;
+  }
+
+  card.innerHTML = `
+    <span class="step-type-badge ${badgeClass}">${typeLabel}</span>
+    ${piecesLabel ? `<span style="color:#888;font-size:10px;margin-left:5px;">${escHtml(piecesLabel)}</span>` : ''}
+    <div class="step-desc">${escHtml(step.description)}</div>
+    ${humanHtml}
+    ${quoteHtml}
+    ${actionBtnHtml}
+  `;
+
+  // Wire the add-piece button if present
+  const addBtn = card.querySelector('#guided-add-piece-btn');
+  if (addBtn) {
+    addBtn.addEventListener('click', async () => {
+      const pid = addBtn.dataset.piece;
+      const normId = String(parseInt(pid, 10)).padStart(3, '0');
+      const currentIds = [...clusterPieces.keys()];
+      if (!currentIds.includes(normId)) {
+        await loadClusterPieces([...currentIds, normId], currentClusterName);
+      }
+      renderGuidedPanel();
+      applyGuidedStepBehavior(currentGuidedStep());
+    });
+  }
+}
+
+// Minimal HTML escaper for user-visible strings from the JSON.
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function applyGuidedStepBehavior(step) {
+  if (!step || !guidedMode) return;
+
+  // 1. Highlight relevant pieces in the scene.
+  const highlights = (step.ui && step.ui.highlight_pieces) || [];
+  highlightGuidedPieces(highlights);
+
+  // 2. Type-specific tool activations.
+  if (step.type === 'snap-connection') {
+    // Activate snap tool so the snap panel is ready.
+    setClusterTool('snap');
+    // Pre-highlight the from_piece's connection spheres if it's in the scene.
+    // (The user still clicks to initiate the snap; we just put them in snap mode.)
+  } else if (step.type === 'fold') {
+    // Snap tool stays off; user works in the fold sliders on the selected piece.
+    // Select the piece in the cluster if it's loaded, so the transform panel shows it.
+    const pid = step.piece;
+    if (pid) {
+      const normId = String(parseInt(pid, 10)).padStart(3, '0');
+      if (clusterPieces.has(normId) && selectedClusterPieceId !== normId) {
+        selectClusterPiece(normId);
+      }
+    }
+  } else {
+    // For non-snap steps: exit snap mode if it was left active by an auto-advance.
+    // (Manual snap activation by the user is also cleared — guided mode controls the tool.)
+    if (clusterInteractionMode === 'snap') setClusterTool('select');
+  }
+}
+
+// Set a warm amber emissive on highlighted pieces; zero-emissive on the rest.
+function highlightGuidedPieces(pieceIds) {
+  const normSet = new Set(
+    (pieceIds || []).map(id => String(parseInt(id, 10)).padStart(3, '0'))
+  );
+  for (const [id, cp] of clusterPieces) {
+    const emissive = normSet.has(id)
+      ? new THREE.Color(0.18, 0.14, 0.02)   // warm amber
+      : new THREE.Color(0, 0, 0);
+    cp.pieceGroup.traverse(obj => {
+      if (obj.isMesh && obj.material && 'emissive' in obj.material) {
+        obj.material.emissive.copy(emissive);
+      }
+    });
+  }
+  requestRender();
+}
+
+function clearGuidedHighlights() {
+  for (const cp of clusterPieces.values()) {
+    cp.pieceGroup.traverse(obj => {
+      if (obj.isMesh && obj.material && 'emissive' in obj.material) {
+        obj.material.emissive.set(0, 0, 0);
+      }
+    });
+  }
+  requestRender();
+}
+
+// Promise-based confirm modal for lock-shape steps.
+// Resolves true if user clicks confirm, false if cancel or closes.
+function showGuidedConfirmModal(title, body, confirmLabel, cancelLabel) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = [
+      'position:fixed;inset:0;background:rgba(0,0,0,0.65);',
+      'display:flex;align-items:center;justify-content:center;z-index:9999;'
+    ].join('');
+
+    const box = document.createElement('div');
+    box.style.cssText = [
+      'background:#1a1e22;border:1px solid #3a4a5a;border-radius:6px;',
+      'padding:20px 24px;max-width:360px;font-size:13px;color:#ddd;',
+      'display:flex;flex-direction:column;gap:12px;'
+    ].join('');
+
+    const h = document.createElement('strong');
+    h.style.fontSize = '14px';
+    h.textContent = title;
+
+    const p = document.createElement('p');
+    p.style.cssText = 'margin:0;color:#aaa;font-size:12px;line-height:1.5;';
+    p.textContent = body;
+
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = cancelLabel;
+    cancelBtn.style.cssText = 'font-size:12px;padding:4px 12px;';
+    cancelBtn.addEventListener('click', () => { overlay.remove(); resolve(false); });
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = confirmLabel;
+    confirmBtn.style.cssText = [
+      'font-size:12px;padding:4px 12px;',
+      'background:#3a5a3a;color:#c8e8c8;border-color:#5a8a5a;'
+    ].join('');
+    confirmBtn.addEventListener('click', () => { overlay.remove(); resolve(true); });
+
+    btnRow.append(cancelBtn, confirmBtn);
+    box.append(h, p, btnRow);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    confirmBtn.focus();
+  });
 }
 
 function pinMeasurement(a, b) {
@@ -2691,6 +3029,18 @@ function snapAllPairs(tabPieceId, landingPieceId, partners) {
   updateMeasurementVisuals();
   refreshSnapPanel();
   requestRender();
+
+  // Guided stepper: auto-advance if the current step is a snap-connection for this pair.
+  if (guidedMode) {
+    const step = currentGuidedStep();
+    if (step && step.type === 'snap-connection') {
+      const sFrom = String(parseInt(step.from_piece, 10)).padStart(3, '0');
+      const sTo   = String(parseInt(step.to_piece,   10)).padStart(3, '0');
+      if (sFrom === snapNormId(tabPieceId) && sTo === snapNormId(landingPieceId)) {
+        markGuidedStepDone(step.id);
+      }
+    }
+  }
 }
 
 // Custom snap: align two arbitrary spheres regardless of graph knowledge.
@@ -7102,6 +7452,32 @@ function logFaceGraphSummary(diag) {
     requestRender();
   });
   if (deselectBtn) deselectBtn.addEventListener('click', () => deselectClusterPiece());
+  // Guided stepper button wiring.
+  const guidedBtn  = document.getElementById('guidedToggleBtn');
+  const guidedPrev = document.getElementById('guidedPrevBtn');
+  const guidedDone = document.getElementById('guidedDoneBtn');
+  const guidedSkip = document.getElementById('guidedSkipBtn');
+  if (guidedBtn) guidedBtn.addEventListener('click', () => setGuidedMode(!guidedMode));
+  if (guidedPrev) guidedPrev.addEventListener('click', retreatGuidedStep);
+  if (guidedDone) guidedDone.addEventListener('click', async () => {
+    const step = currentGuidedStep();
+    if (!step) return;
+    if (step.type === 'lock-shape') {
+      const ui = step.ui || {};
+      const confirmed = await showGuidedConfirmModal(
+        ui.popup_title || `Lock ${step.piece || (step.pieces || []).join('+')}?`,
+        ui.popup_body  || 'Like letting the glue dry — shape is set from here.',
+        ui.popup_confirm || 'Lock it',
+        ui.popup_cancel  || 'Keep editing'
+      );
+      if (!confirmed) return;
+    }
+    markGuidedStepDone(step.id);
+  });
+  if (guidedSkip) guidedSkip.addEventListener('click', () => {
+    const step = currentGuidedStep();
+    if (step) advanceGuidedStep();
+  });
   if (showConnCb) showConnCb.addEventListener('change', () => {
     if (showConnCb.checked) showBenchConnectionPoints();
     else                    hideBenchConnectionPoints();
