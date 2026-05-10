@@ -107,8 +107,8 @@ next_action: 087 export landing in `work/pieces/087/` (reduction-gear disc — f
 
 ```yaml
 status: active
-last_updated: 2026-05-09
-next_action: Three CODE_PROMPTs queued at repo root implementing DECISIONS #13 (three-mode Bench/Cluster/Wall + sidecar `assembled.transform`). PR A `CODE_PROMPT_preview-html-bench-cluster-foundation.md` is ready-for-code (foundational interaction + cutouts as Shape holes); PR B `CODE_PROMPT_preview-html-bench-transform.md` is draft, blocked-by PR A (Bench transform capture; pose capture for pendulum cluster resumes here); PR C `CODE_PROMPT_preview-html-cluster-mode.md` is draft, blocked-by PR B (Cluster mode multi-piece). PR D Wall mode deferred until subassembly authoring is far enough along to need it.
+last_updated: 2026-05-10
+next_action: PR A shipped 2026-05-10 (`_archive/code-prompts/CODE_PROMPT_preview-html-bench-cluster-foundation.md`) — foundational interaction substrate + cutouts as Shape holes. PR B `CODE_PROMPT_preview-html-bench-transform.md` (Bench transform capture; pose capture for pendulum cluster resumes here) is now unblocked at repo root. PR C `CODE_PROMPT_preview-html-cluster-mode.md` is draft, blocked-by PR B (Cluster mode multi-piece). PR D Wall mode deferred until subassembly authoring is far enough along to need it. Alan: manual eyes-on confirmation for the visual elements (corner gizmo, TC handles, worktable, cutout holes) noted in the PR A session note before pulling PR B.
 ```
 
 **Hypothesis.** A single-file HTML preview tool is the right substrate for testing SVG authoring conventions while the eventual viewer is still upstream. Each new capability gets its own CODE_PROMPT and ships independently. Architecture call (DECISIONS #4) deferred until enough capabilities pile up to force the question.
