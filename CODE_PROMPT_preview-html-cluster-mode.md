@@ -1,9 +1,8 @@
 ---
-status: draft
+status: ready-for-code
 started: 2026-05-09
 owner: Zarathale (Alan)
 target: preview-html-cluster-mode
-blocked_by: CODE_PROMPT_preview-html-bench-transform.md (PR B must ship first)
 ---
 
 # CODE_PROMPT — preview.html Cluster mode multi-piece (PR C of three)
@@ -29,7 +28,7 @@ PR C does NOT introduce wall+hook geometry (deferred to PR D / Wall mode), inter
 - PR A and PR B have shipped and merged to `main`. preview.html has: cutouts as Shape holes, slider+text-entry, camera-lock-toggle, click-drag-on-piece via TransformControls, RGB axes, worktable, mode toggle UI, per-piece transform sliders, sidecar `assembled.transform` read+write, origin auto-detect, frame auto-detect, cluster lookup from connection-graph.json.
 - DECISIONS #13 is closed. Cluster mode's design is documented there.
 - `claude-work/state/connection-graph.json` exists with valid `pivot_clusters`.
-- At least one cluster (e.g., `anchor`) has multiple pieces with saved `assembled.transform` blocks in their sidecars (Alan will have captured these via PR B's Bench mode prior to PR C shipping).
+- At least one piece in the anchor cluster has a saved `assembled.transform` sidecar (e.g., `work/pieces/069/069.json` — captured via PR B). Others without sidecars will load at default position with a banner warning; that is expected behaviour for the Code verification pass.
 
 ## Read These Files First
 
@@ -56,8 +55,8 @@ No new files. Sidecars get incremental updates as Alan captures cluster-relative
 **Implementation.**
 
 1. **UI in Cluster mode.** Replace the "Cluster mode lands in PR C" stub from PR A with an input + Load button. Placeholder text: "Cluster id (e.g., anchor)".
-2. **Resolve cluster.** On Load click, fetch `connection-graph.json` (already cached from PR B), find the cluster by name, get its `pieces` array.
-3. **Load each piece.** For each piece id in the cluster, fetch `work/pieces/NNN/NNN.svg` and `work/pieces/NNN/NNN.json` (sidecar). Parse via the existing parsing pipeline (same code path Bench mode uses).
+2. **Resolve cluster — transitive edge walk.** On Load click, fetch `connection-graph.json` (already cached from PR B). Find the cluster by name in `pivot_clusters` — this gives a seed list (e.g., `anchor` currently yields [067, 069]). **Do not stop at the seed list.** Walk the `edges` array transitively: for each piece in the current set, add any piece connected to it via a valid edge (`valid: true`) in either direction. Repeat until no new pieces are added. This expands the anchor seed [067, 069] to the full cluster [065, 066, 067, 068, 069] via authored tab/landing edges. Cap at 50 pieces and banner-warn if exceeded (guards against a bug producing an infinite walk). The seed list in `pivot_clusters` anchors the cluster-local frame (its first element's pivot-anchor is world origin); the transitive walk populates the full member list.
+3. **Load each piece.** For each piece id discovered, fetch `work/pieces/NNN/NNN.svg` and `work/pieces/NNN/NNN.json` (sidecar). Parse via the existing parsing pipeline (same code path Bench mode uses). For split pieces (e.g., 093a/093b), try `NNN.svg` first, then `NNNa.svg`, `NNNb.svg`.
 4. **Build per-piece groups.** Each piece gets its own `pieceGroup` (the wrapping group from PR A Task 4). Apply that piece's `assembled.transform` (Translation + Euler rotation, XYZ order) to its `pieceGroup`.
 5. **Add to scene.** All `pieceGroup`s added to the same `THREE.Scene`. Pieces share the cluster-local frame: world origin = the cluster's pivot point.
 6. **Banner on load.** "Cluster `anchor` loaded — 5 pieces." If a piece has no saved transform, banner-warn with that piece id (it'll sit at default position which may overlap others).
