@@ -169,6 +169,10 @@ body.mode-cluster #reloadPieceBtn { opacity:0.4; pointer-events:none; }
   padding:4px 14px; border-radius:20px; pointer-events:none;
   transition:opacity .3s;
 }
+
+/* ── "→ Claude" bridge button feedback states ──────────────────────────────── */
+#bridge-btn.btn-ok  { background:#0a2a0a; color:#7fc97f; border-color:#4a8a4a; }
+#bridge-btn.btn-err { background:#2a0a0a; color:#cf7f7f; border-color:#8a3a3a; }
 </style>
 </head>
 <body>
@@ -199,6 +203,15 @@ body.mode-cluster #reloadPieceBtn { opacity:0.4; pointer-events:none; }
       <button id="loadSceneBtn" style="font-size:12px; padding:2px 6px;">Load</button>
     </div>
     <div id="sidecar-block"></div>
+    <div id="bridge-row" style="margin:6px 0 2px;">
+      <button id="bridge-btn"
+              title="Send current piece state to Claude via local bridge (run preview_bridge.py first)"
+              style="width:100%; padding:5px 8px; font-size:12px; cursor:pointer;
+                     background:#1a2a1a; color:#7fc97f; border:1px solid #3a5a3a;
+                     border-radius:3px;">
+        <span class="bridge-label">→ Claude</span>
+      </button>
+    </div>
   </div>
 
   <div id="dropzone" tabindex="0" role="button"
@@ -452,6 +465,11 @@ let currentPieceId = null;
 // when building per-fold sliders. Scene mode skips this — assembled poses
 // across multiple pieces in a scene is a follow-up.
 let currentAssembledFolds = null;
+
+// Full sidecar JSON for the currently-loaded piece, or null. Set by
+// maybeLoadSidecar; read by buildBridgePayload so the "→ Claude" button can
+// forward function/assembled blocks alongside parsed state.
+let currentSidecar = null;
 
 // ─── Scene mode state ─────────────────────────────────────────────────────────
 // Scene mode loads N panels-first pieces into the same scene and positions
@@ -1032,6 +1050,7 @@ function loadSvgFromString(text, opts = {}) {
   if (source === 'drag-drop' || source === 'file-picker' || source === 'cached-reload') {
     currentAssembledFolds = null;
     currentAssembledTransform = null;
+    currentSidecar = null;
   }
 
   // Drag-drop / file-picker paths flip the dropzone to a "loaded" state with
@@ -1158,6 +1177,7 @@ async function loadScene(rawIds) {
   currentPieceId = null;
   currentAssembledFolds = null;
   currentAssembledTransform = null;
+  currentSidecar = null;
   currentPieceOrigin = null;
   currentPieceOrigin3js = null;
   currentPieceCluster = null;
@@ -1419,11 +1439,13 @@ async function renderSceneMulti(parsedArray) {
 async function maybeLoadSidecar(id) {
   currentAssembledFolds = null;       // reset before any async work
   currentAssembledTransform = null;
+  currentSidecar = null;
   const path = `work/pieces/${id}/${id}.json`;
   try {
     const r = await fetch(path + '?t=' + Date.now());
     if (!r.ok) { hideSidecarBlock(); return; }
     const json = await r.json();
+    currentSidecar = json;
     if (json && json.function) renderFunctionBlock(json.function);
     else hideSidecarBlock();
     if (json && json.assembled && json.assembled.folds &&
@@ -4758,6 +4780,130 @@ document.getElementById('savePoseBtn').addEventListener('click', () => {
     return;
   }
   showAssembledPoseModal(currentPieceId, payload);
+});
+
+// ─── "→ Claude" bridge button ────────────────────────────────────────────────
+// Local-loopback HTTP bridge between preview.html and Claude's filesystem.
+// Run `python3.12 claude-work/scripts/preview_bridge.py` once per session;
+// pressing the button POSTs current piece state to /dump → bridge writes it
+// to claude-work/state/preview-dump.json, where Claude reads it directly
+// instead of asking Alan to copy-paste console output.
+function buildBridgePayload() {
+  const payload = {
+    piece: currentPieceId || null,
+    panelsFirst: null,
+    cutouts: null,
+    foldState: {},
+    sidecar: null,
+  };
+
+  if (parsed) {
+    if (parsed.panelsFirst) {
+      const pf = parsed.panelsFirst;
+      const panels = pf.panels
+        ? [...pf.panels.entries()].map(([id, p]) => ({
+            id, polygon: p.polygon, bbox: p.bbox, centroid: p.centroid
+          }))
+        : [];
+      // hingeTree.nodes is a Map with values { parent, fold, children: [{childId, fold}] }.
+      // Drop the inline fold object (folds[] already carries it) and reduce to ids.
+      let hingeTree = null;
+      if (pf.hingeTree) {
+        const ht = pf.hingeTree;
+        hingeTree = {
+          root: ht.root || null,
+          subRoots: Array.isArray(ht.subRoots) ? [...ht.subRoots] : [],
+          nodes: ht.nodes
+            ? Object.fromEntries([...ht.nodes.entries()].map(([id, n]) => [id, {
+                parent: n.parent || null,
+                foldId: n.fold ? n.fold.id : null,
+                children: Array.isArray(n.children)
+                  ? n.children.map(c => ({ childId: c.childId, foldId: c.fold ? c.fold.id : null }))
+                  : []
+              }]))
+            : {},
+          descriptiveFoldIds: Array.isArray(ht.descriptiveFolds)
+            ? ht.descriptiveFolds.map(f => f.id)
+            : [],
+          cycleFoldIds: Array.isArray(ht.cycleFolds)
+            ? ht.cycleFolds.map(f => f.id)
+            : []
+        };
+      }
+      payload.panelsFirst = {
+        panels,
+        folds: Array.isArray(pf.folds) ? pf.folds : [],
+        hingeTree,
+        attachPoints: Array.isArray(pf.attachPoints) ? pf.attachPoints : [],
+        closureAttaches: Array.isArray(pf.closureAttaches) ? pf.closureAttaches : [],
+        marks: Array.isArray(pf.marks) ? pf.marks : []
+      };
+    }
+    if (Array.isArray(parsed.cutouts) && parsed.cutouts.length > 0) {
+      payload.cutouts = parsed.cutouts;
+    }
+  }
+
+  // Per-fold slider state. dataset.pathId lives on the slider-row, not the
+  // input — match savePoseBtn's traversal so the keys agree.
+  document.querySelectorAll('#per-fold-sliders .slider-row').forEach(row => {
+    const pid = row.dataset.pathId;
+    if (!pid) return;
+    const slider = row.querySelector('input[type=range]');
+    if (!slider) return;
+    const val = Number(slider.value);
+    if (Number.isFinite(val)) payload.foldState[pid] = val;
+  });
+
+  if (currentSidecar) payload.sidecar = currentSidecar;
+
+  return payload;
+}
+
+async function sendToClaude(payload, name = 'preview') {
+  const btn = document.getElementById('bridge-btn');
+  const label = btn ? btn.querySelector('.bridge-label') : null;
+  const flash = (txt, cls) => {
+    if (!btn) return;
+    btn.disabled = true;
+    if (label) label.textContent = txt;
+    btn.classList.remove('btn-ok', 'btn-err');
+    if (cls) btn.classList.add(cls);
+    setTimeout(() => {
+      btn.disabled = false;
+      if (label) label.textContent = '→ Claude';
+      btn.classList.remove(cls);
+    }, 2000);
+  };
+  try {
+    const res = await fetch(`http://localhost:7777/dump/${name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) flash('Sent ✓', 'btn-ok');
+    else flash('Error ' + res.status, 'btn-err');
+  } catch {
+    flash('Bridge offline', 'btn-err');
+  }
+}
+
+document.getElementById('bridge-btn').addEventListener('click', () => {
+  sendToClaude(buildBridgePayload());
+});
+
+// One-time ping at load. If the bridge isn't running, dim the button and
+// update the title so Alan knows what to do. Reload the page to recheck —
+// we don't poll.
+fetch('http://localhost:7777/ping').then(r => {
+  if (!r.ok) throw new Error('bridge ping non-ok');
+}).catch(() => {
+  const btn = document.getElementById('bridge-btn');
+  if (!btn) return;
+  btn.title = 'Bridge offline — run: python3.12 claude-work/scripts/preview_bridge.py';
+  btn.style.opacity = '0.45';
+  const label = btn.querySelector('.bridge-label');
+  if (label) label.textContent = '→ Claude (offline)';
 });
 
 // ─── Thickness slider ─────────────────────────────────────────────────────────
