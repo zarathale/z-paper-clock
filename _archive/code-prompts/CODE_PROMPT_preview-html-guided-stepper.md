@@ -1,9 +1,12 @@
 ---
-status: ready-for-code
+status: shipped
 started: 2026-05-10
+shipped: 2026-05-10
 owner: Zarathale (Alan)
 target: preview-html-guided-stepper
 ---
+
+_Shipped 2026-05-10; paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / ROADMAP.md / claude-work/STATUS.md for current state._
 
 ## What You Are Doing and Why
 
