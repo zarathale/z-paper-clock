@@ -10,12 +10,14 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 
 ~~`CODE_PROMPT_preview-bridge-button.md` is at repo root, `ready-for-code`. Small, self-contained, no blockers.~~ Shipped via PR `claude/preview-bridge-button`. The "→ Claude" button now lives in `preview.html` between the sidecar block and the dropzone; pressing it POSTs the current piece's parsed state to `http://localhost:7777/dump/preview` (the bridge server `claude-work/scripts/preview_bridge.py` writes it to `claude-work/state/preview-dump.json`). The page-load ping detects offline state and dims the button. Prompt archived to `_archive/code-prompts/CODE_PROMPT_preview-bridge-button.md`. See `sessions/2026-05-10-0915_code_preview-bridge-button.md`.
 
-### 2. Direct save via bridge — send to Code (`CODE_PROMPT_preview-bridge-save.md`)
+### ~~2. Direct save via bridge — send to Code (`CODE_PROMPT_preview-bridge-save.md`)~~
 
-Fixes persistence. Save button POSTs assembled pose to `localhost:7777/save`; bridge merges
-it into the sidecar JSON and writes it back. No more copy-paste. Falls back to copy modal
-if bridge is offline. Auto-saves on piece switch in Bench mode. Small change to two files
-(`preview_bridge.py` + `preview.html`). No dependencies; ships independently.
+→ **Closed 2026-05-10** by the preview-bridge-save ship. `POST /save` endpoint added
+to `preview_bridge.py`; bench + cluster save buttons POST `payload.assembled` directly
+and fall back to the existing copy modal when the bridge is offline; Bench-mode piece
+switch auto-saves the outgoing piece silently. Prompt archived to
+`_archive/code-prompts/CODE_PROMPT_preview-bridge-save.md`. See
+`sessions/2026-05-10-1546_code_preview-bridge-save.md`.
 
 ### ~~3. Snap-to-connection-point in Cluster mode — send to Code (`CODE_PROMPT_preview-html-snap.md`)~~
 
@@ -89,6 +91,7 @@ Post-tagging follow-on: merge `character` + `subtype` from `work/piece_character
 
 ## Recently shipped
 
+- ~~**Direct sidecar save via bridge**~~ → `claude/preview-bridge-save`, 2026-05-10. `POST /save` on `preview_bridge.py` merges `{piece, assembled}` into `work/pieces/NNN/<id>.json`, preserving other top-level fields. Bench + cluster save buttons POST directly with copy-modal fallback when the bridge is offline. Bench-mode piece switch auto-saves the outgoing piece silently. See `sessions/2026-05-10-1546_code_preview-bridge-save.md`.
 - ~~**Snap-to-connection-point in Cluster mode**~~ → `claude/preview-html-snap`, 2026-05-10. Snap tool added to Cluster mode (Select/Measure/Snap mutex). Click a sphere → graph-driven partner lookup highlights partners gold; [Snap] / [Snap all] translates tab piece to landing (median per-axis translation for "snap all"); large-residual yellow banner; rigid-group lock; persistent green confirmation lines; `assembled.snapped_connections` recorded in save payload. See `sessions/2026-05-10-1127_code_preview-html-snap.md`.
 - ~~**Parser-marks-lookup (DECISIONS #12)**~~ → `claude/parser-marks-lookup`, 2026-05-10. 8-step marks-aware cross-piece resolution in `build_assembly_graph.py`; split-piece globbing. Graph now at 30 valid authored edges; 093b→093a resolves; 094→095 and 097→099 shift to mark-anchored. See `sessions/2026-05-10-0820_code_parser-marks-lookup.md`.
 - ~~**PR A — foundational interaction + cutouts (DECISIONS #13)**~~ → `claude/preview-html-bench-cluster-foundation`, 2026-05-10. Cutouts as Shape holes, slider+number-entry, camera lock, TC click-drag, RGB axes + corner gizmo, worktable, Bench/Cluster scaffold. See `sessions/2026-05-10-0335_code_preview-html-bench-cluster-foundation.md`.
@@ -110,7 +113,9 @@ Post-tagging follow-on: merge `character` + `subtype` from `work/piece_character
 
 ---
 
-*Last updated: 2026-05-10 (fourth pass) — two new CODE_PROMPTs drafted after Alan flagged assembly workflow as a blocker: `CODE_PROMPT_preview-bridge-save.md` (direct sidecar save, fixes persistence) and `CODE_PROMPT_preview-html-snap.md` (smart snap with auto-partner detection from connection graph, snap-all median translation, rigid group lock). Both ready-for-code; can go to Code concurrently. Now renumbered to 1–5; PR C cluster-mode added to Recently shipped.*
+*Last updated: 2026-05-10 (fifth pass) — preview-bridge-save shipped. Now #2 struck through; the prompt moved from repo root to `_archive/code-prompts/CODE_PROMPT_preview-bridge-save.md`. Save buttons now POST directly to the bridge → copy-paste sidecar merge eliminated; copy modal preserved as offline fallback; Bench-mode piece switch auto-saves the outgoing piece. Recently shipped tail bumped.*
+
+*Earlier 2026-05-10 (fourth pass) — two new CODE_PROMPTs drafted after Alan flagged assembly workflow as a blocker: `CODE_PROMPT_preview-bridge-save.md` (direct sidecar save, fixes persistence) and `CODE_PROMPT_preview-html-snap.md` (smart snap with auto-partner detection from connection graph, snap-all median translation, rigid group lock). Both ready-for-code; can go to Code concurrently. Now renumbered to 1–5; PR C cluster-mode added to Recently shipped.*
 
 *Earlier 2026-05-10 (third pass) — bridge button shipped. Now #1 struck through; the prompt moved from repo root to `_archive/code-prompts/CODE_PROMPT_preview-bridge-button.md`. The copy-paste console-dump workflow replaced — Claude reads `claude-work/state/preview-dump.json` whenever Alan presses the button.*
 

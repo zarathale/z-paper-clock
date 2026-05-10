@@ -12,6 +12,7 @@ Endpoints:
     GET  /ping             → health check (preview.html uses this to detect bridge)
     POST /dump             → write payload to claude-work/state/preview-dump.json
     POST /dump/<name>      → write to claude-work/state/<name>-dump.json
+    POST /save             → merge {piece, assembled} into work/pieces/NNN/NNN.json
 
 Handles CORS for file:// origin so preview.html can fetch without a dev server.
 """
@@ -55,6 +56,11 @@ class BridgeHandler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self):
         parts = self.path.strip("/").split("/")
+
+        if parts[0] == "save":
+            self._handle_save()
+            return
+
         if parts[0] != "dump":
             self.send_response(404)
             self.end_headers()
@@ -91,6 +97,69 @@ class BridgeHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps({"ok": True, "file": str(out_path)}).encode())
+
+    def _handle_save(self):
+        """POST /save — merge {piece, assembled} into work/pieces/NNN/NNN.json.
+
+        Reads the existing sidecar (if any), replaces the `assembled` block
+        verbatim, preserves every other top-level field, and writes back. Also
+        stamps `_savedAt` for diff legibility. Letter variants like 092a or
+        093b live under the numeric folder (work/pieces/092/092a.json).
+        """
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length)
+
+        try:
+            payload = json.loads(body)
+        except Exception as e:
+            self.send_response(400)
+            self._send_cors()
+            self.end_headers()
+            self.wfile.write(f"bad json: {e}".encode())
+            return
+
+        piece_id = payload.get("piece", "")
+        assembled = payload.get("assembled")
+        if not piece_id or assembled is None:
+            self.send_response(400)
+            self._send_cors()
+            self.end_headers()
+            self.wfile.write(b"missing piece or assembled")
+            return
+
+        # Letter-variant pieces (092a, 093b) live under the numeric folder.
+        numeric = "".join(c for c in piece_id if c.isdigit())
+        if not numeric:
+            self.send_response(400)
+            self._send_cors()
+            self.end_headers()
+            self.wfile.write(b"piece id has no digits")
+            return
+        sidecar_path = REPO_ROOT / "work" / "pieces" / numeric / f"{piece_id}.json"
+        sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if sidecar_path.exists():
+            try:
+                existing = json.loads(sidecar_path.read_text())
+            except Exception:
+                existing = {}
+        else:
+            existing = {}
+
+        existing["assembled"] = assembled
+        existing["_savedAt"] = datetime.datetime.now().isoformat()
+
+        sidecar_path.write_text(json.dumps(existing, indent=2))
+        size_kb = sidecar_path.stat().st_size / 1024
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
+        rel = sidecar_path.relative_to(REPO_ROOT)
+        print(f"[bridge] {ts}  saved {rel}  ({size_kb:.1f} KB)")
+
+        self.send_response(200)
+        self._send_cors()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({"ok": True, "file": str(sidecar_path)}).encode())
 
     def log_message(self, format, *args):
         pass  # suppress default per-request log lines; we print our own above
