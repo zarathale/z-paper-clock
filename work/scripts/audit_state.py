@@ -702,7 +702,7 @@ def build_svg_analysis(ps: PieceState, repo_root: Path) -> Optional[dict]:
 
 def run_audit(repo_root: Path) -> dict:
     master = load_master(repo_root)
-    assert len(master) == 123, f"Expected 123 pieces in master list, got {len(master)}"
+    assert len(master) == 124, f"Expected 124 pieces in master list, got {len(master)}"
 
     pieces, repo_anomalies = walk_repo(master, repo_root)
 
