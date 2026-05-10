@@ -191,6 +191,51 @@ body.mode-cluster #cluster-panel { display:flex; }
 #cluster-panel .show-conn-row { display:none; }   /* shown only in bench */
 body:not(.mode-cluster) #cluster-panel { display:none; }
 body:not(.mode-cluster) #conn-toggle-row { display:flex; }
+
+/* Snap-mode sidebar — connection progress (Zone A) + active snap (Zone B) +
+   locked groups (Zone C). Hidden unless snap tool is active. */
+#snap-progress-list { display:flex; flex-direction:column; gap:2px; margin-top:2px; }
+#snap-progress-list .conn-row {
+  display:flex; align-items:center; gap:6px; padding:3px 4px; font-size:11px;
+  border-radius:3px; cursor:pointer; color:#ddd;
+}
+#snap-progress-list .conn-row:hover { background:#2a2a2a; }
+#snap-progress-list .conn-row .dot      { color:#777; width:10px; text-align:center; }
+#snap-progress-list .conn-row.snapped   .dot { color:#5c5; }
+#snap-progress-list .conn-row.locked    .dot { color:#fc6; }
+#snap-progress-list .conn-row .pair     { flex:1; font-family:monospace; }
+#snap-progress-list .conn-row .npairs   { color:#888; font-size:10px; }
+
+#snap-partners-list { display:flex; flex-direction:column; gap:2px; margin-top:2px; }
+#snap-partners-list .partner-row {
+  display:flex; align-items:center; gap:6px; padding:2px 4px;
+  font-size:11px; font-family:monospace; color:#ddd;
+}
+#snap-partners-list .partner-row .label  { flex:1; min-width:0; }
+#snap-partners-list .partner-row .via    { color:#888; font-size:10px; }
+#snap-partners-list .partner-row button  { font-size:10px; padding:2px 6px; }
+
+#snap-bulk-row, #snap-custom-row { margin-top:4px; }
+#snap-bulk-row button, #snap-custom-row button {
+  font-size:11px; padding:3px 8px; width:100%;
+}
+#snap-custom-row .label { font-size:11px; font-family:monospace; color:#ddd; margin-bottom:2px; }
+
+#snap-locked-list { display:flex; flex-direction:column; gap:2px; margin-top:2px; }
+#snap-locked-list .locked-row {
+  display:flex; align-items:center; gap:6px; padding:2px 4px;
+  font-size:11px; font-family:monospace; color:#ddd;
+}
+#snap-locked-list .locked-row .members { flex:1; }
+#snap-locked-list .locked-row button   { font-size:10px; padding:2px 6px; }
+
+#snap-log-list .log-line { padding:1px 0; }
+#snap-log-list .log-line.ok    { color:#9d9; }
+#snap-log-list .log-line.warn  { color:#fc6; }
+
+#cluster-controls button#snapToggleBtn.active {
+  background:#3a4a5a; color:#e8e3da; border-color:#5a7090;
+}
 #conn-toggle-row { display:none; align-items:center; gap:6px; font-size:12px; color:#aaa;
   border:1px solid #333; border-radius:4px; padding:6px 8px; }
 
@@ -225,6 +270,7 @@ body:not(.mode-cluster) #conn-toggle-row { display:flex; }
     <input id="clusterInput" type="text" placeholder="Cluster id (e.g., anchor)" autocomplete="off" spellcheck="false">
     <button id="loadClusterBtn">Load</button>
     <button id="measureToggleBtn" title="Click two connection points on different pieces to pin a distance measurement">Measure</button>
+    <button id="snapToggleBtn" title="Click a connection point to highlight its known partners; [Snap] translates the tab piece onto its landing.">Snap</button>
   </span>
   <span style="flex:1"></span>
 </div>
@@ -298,6 +344,45 @@ body:not(.mode-cluster) #conn-toggle-row { display:flex; }
       <span style="color:#666; font-weight:normal;"> (click two points)</span>
     </div>
     <div id="measurements-list"></div>
+
+    <!-- Snap mode panels. Hidden unless Snap tool is active. Zone A = always-
+         visible connection progress for the loaded cluster; Zone B = active
+         snap interaction (partners + custom-snap); Zone C = locked rigid
+         groups. CODE_PROMPT preview-html-snap Task 4. -->
+    <div id="snap-panel-section" hidden>
+      <div style="font-size:11px;color:#aaa;border-top:1px solid #2a2a2a;padding-top:6px;">
+        <strong>Connections</strong>
+        <span id="snap-cluster-name" style="color:#666; font-weight:normal;"></span>
+      </div>
+      <div id="snap-progress-list"></div>
+
+      <div id="snap-active-zone" hidden>
+        <div style="font-size:11px;color:#aaa;border-top:1px solid #2a2a2a;padding-top:6px;">
+          <strong>Snap</strong>
+          <span id="snap-active-label" style="color:#8cf;font-weight:normal;"></span>
+        </div>
+        <div id="snap-partners-list"></div>
+        <div id="snap-bulk-row"></div>
+        <div id="snap-custom-row"></div>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <button id="snapClearBtn" style="font-size:11px;padding:2px 8px;">Clear</button>
+        </div>
+      </div>
+
+      <div id="snap-locked-zone" hidden>
+        <div style="font-size:11px;color:#aaa;border-top:1px solid #2a2a2a;padding-top:6px;">
+          <strong>Locked groups</strong>
+        </div>
+        <div id="snap-locked-list"></div>
+      </div>
+
+      <div id="snap-log-zone" hidden>
+        <div style="font-size:11px;color:#aaa;border-top:1px solid #2a2a2a;padding-top:6px;">
+          <strong>Snap log</strong>
+        </div>
+        <div id="snap-log-list" style="max-height:120px;overflow-y:auto;font-size:10px;font-family:monospace;color:#bbb;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- PR C: Bench-mode toggle to render connection-point spheres on the loaded
@@ -1127,6 +1212,10 @@ function onTransformSliderInput() {
     (parseFloat(transformSliders.rz.value) || 0) * Math.PI / 180,
     'XYZ'
   );
+  // Rigid-group sync: if this piece is locked to siblings, shift them by the
+  // same translation delta. Slider sets absolute position, so the helper uses
+  // its own snapshot to derive the delta.
+  if (ctx.mode === 'cluster' && ctx.pieceId) syncRigidGroupFromActivePiece(ctx.pieceId);
   if (ctx.mode === 'bench') positionWorktableForPiece();
   if (ctx.mode === 'cluster') updateMeasurementVisuals();
   requestRender();
@@ -1143,6 +1232,9 @@ function onTransformControlsChange() {
     _xformSyncPending = false;
     const ctx = getActivePieceContext();
     if (!ctx || !transformSliders || !transformSliders.tx) return;
+    // Rigid-group sync runs BEFORE slider write so siblings are updated for
+    // the same frame. Snapshot baseline gets refreshed inside the helper.
+    if (ctx.mode === 'cluster' && ctx.pieceId) syncRigidGroupFromActivePiece(ctx.pieceId);
     const p = ctx.pieceGroup.position;
     const r = ctx.pieceGroup.rotation;
     setSliderValueQuiet(transformSliders.tx, p.x);
@@ -1171,13 +1263,35 @@ const clusterPieces = new Map();
 let currentClusterName = null;     // 'anchor', or '<ad-hoc>' for cross-cluster comma-list
 let selectedClusterPieceId = null; // or null when nothing is selected
 // Mode within cluster mode: 'select' (default) drives raycast→pieceGroup;
-// 'measure' drives raycast→connection-point spheres for distance pinning.
+// 'measure' drives raycast→connection-point spheres for distance pinning;
+// 'snap' drives raycast→connection-point spheres + graph-partner lookup
+// (CODE_PROMPT preview-html-snap). Only one of select/measure/snap is active.
 let clusterInteractionMode = 'select';
 // Pending first click during measurement pin (waits for second click).
 let pendingMeasurementPoint = null; // { pieceId, pointId, kind } | null
 // Pinned distance measurements. Each: { fromPieceId, fromPointId, toPieceId,
 // toPointId, line: THREE.Line, label: THREE.Sprite, labelTex }.
 const measurements = [];
+
+// ── Snap-mode state ──────────────────────────────────────────────────────────
+// Click selection for snap mode. `snapFrom` = the first-clicked sphere;
+// `snapPartners` = list of partners derived from the connection graph for
+// that point. `snapCustomB` = a second-clicked sphere with no graph match
+// (custom snap path). Cleared on tool change or [Clear] click.
+let snapFrom        = null;   // { pieceId, pointId, pointKind }
+let snapPartners    = [];     // result of findPartners(snapFrom)
+let snapCustomB     = null;   // { pieceId, pointId, pointKind }
+// Snap result log: every successful pair-snap. Saved into sidecar payload.
+// Shape: { tabPieceId, tabRawId, landingPieceId, landingRawId, letter, residual_mm }
+const snappedPairs = [];
+// Persistent green confirmation lines, one per successful pair. We keep
+// references so they can be disposed on teardown.
+const snapConfirmLines = [];
+// Rigid groups: array of Set<pieceId>. Pieces in the same group translate
+// together when any member is moved (TC or sliders). Implemented as a
+// sibling-position-delta sync, NOT scene-graph re-parenting (TC owns the
+// pieceGroup transform, so re-parenting fights TC).
+const rigidGroups = [];
 // Bench-mode connection-point overlay (toggled in side panel). Single-piece
 // only — cluster pieces carry their own spheres independently.
 let benchConnectionPoints = [];
@@ -1597,6 +1711,10 @@ async function loadClusterPieces(pieceIds, clusterName) {
   }
   console.log('[cluster]', clusterName, 'loaded:', [...clusterPieces.keys()].join(', '));
 
+  // Seed rigid-group baselines now that all pieceGroups are positioned. They
+  // get refreshed on every TC drag and after every snap.
+  snapshotRigidBaselines();
+
   refreshClusterPanel();
   refreshTransformPanel();
 }
@@ -1677,10 +1795,17 @@ function makeConnectionSphere(radiusMm, color, pieceId, pointId, kind) {
   const geo = new THREE.SphereGeometry(radiusMm, 12, 12);
   const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 });
   const mesh = new THREE.Mesh(geo, mat);
+  // `type: 'connection-point'` is the stable predicate used by snap-mode
+  // traversal (CODE_PROMPT preview-html-snap, Task 1). `connection: true` is
+  // kept as the legacy flag the measure-mode hit handler reads.
+  mesh.userData.type      = 'connection-point';
   mesh.userData.connection = true;
-  mesh.userData.pieceId = pieceId;
-  mesh.userData.pointId = pointId;
-  mesh.userData.kind    = kind;
+  mesh.userData.pieceId   = pieceId;
+  mesh.userData.pointId   = pointId;
+  mesh.userData.kind      = kind;
+  mesh.userData.pointKind = kind;     // alias used by snap-mode code
+  mesh.userData.baseColor = color;    // for restoring after snap highlight
+  mesh.userData.baseRadius = radiusMm;
   mesh.renderOrder = 10;   // draw on top of slabs
   mat.depthTest = false;   // visible even when behind a slab
   return mesh;
@@ -1761,6 +1886,8 @@ function teardownClusterScene() {
   currentClusterName = null;
   pathHingeMap = new Map();
   document.getElementById('per-fold-sliders').innerHTML = '';
+  teardownSnapVisuals();
+  refreshSnapPanel();
   refreshClusterPanel();
   requestRender();
 }
@@ -1805,17 +1932,56 @@ function refreshClusterPanel() {
   if (saveBtn) saveBtn.disabled = !sel;
   if (deselBtn) deselBtn.disabled = !sel;
   refreshMeasurementsList();
-  // Measure-button state.
+  // Measure / Snap button states.
   const mb = document.getElementById('measureToggleBtn');
   if (mb) mb.classList.toggle('active', clusterInteractionMode === 'measure');
+  const sb = document.getElementById('snapToggleBtn');
+  if (sb) sb.classList.toggle('active', clusterInteractionMode === 'snap');
+  // Canvas cursor (crosshair while a connection-point tool is active).
+  const canvas = renderer ? renderer.domElement : null;
+  if (canvas) {
+    canvas.style.cursor =
+      (clusterInteractionMode === 'measure' || clusterInteractionMode === 'snap')
+        ? 'crosshair' : '';
+  }
 }
 
 // ── Distance measurements ────────────────────────────────────────────────────
 
-function setMeasureMode(on) {
-  clusterInteractionMode = on ? 'measure' : 'select';
-  pendingMeasurementPoint = null;
+// Tool-mutex setter for cluster mode. Tools are: 'select' (default, pieceGroup
+// raycast), 'measure' (sphere raycast for distance pinning), 'snap' (sphere
+// raycast for graph-partner snap). Only one active at a time.
+function setClusterTool(tool) {
+  if (tool !== 'select' && tool !== 'measure' && tool !== 'snap') tool = 'select';
+  if (clusterInteractionMode === tool) return;
+  // Tear down previous tool's transient state.
+  if (clusterInteractionMode === 'measure') pendingMeasurementPoint = null;
+  if (clusterInteractionMode === 'snap') {
+    clearSnapHighlights();
+    snapFrom = null;
+    snapPartners = [];
+    snapCustomB = null;
+  }
+  clusterInteractionMode = tool;
+  // Set up new tool.
+  if (tool === 'snap') {
+    showSnapPanel(true);
+    brightenAllConnectionSpheres(true);
+    refreshSnapPanel();
+  } else {
+    showSnapPanel(false);
+    brightenAllConnectionSpheres(false);
+  }
   refreshClusterPanel();
+  requestRender();
+}
+
+function setMeasureMode(on) {
+  setClusterTool(on ? 'measure' : 'select');
+}
+
+function setSnapMode(on) {
+  setClusterTool(on ? 'snap' : 'select');
 }
 
 function pinMeasurement(a, b) {
@@ -2039,6 +2205,19 @@ function onClusterPointerUp(e) {
     return;
   }
 
+  if (clusterInteractionMode === 'snap') {
+    const sphereTargets = [];
+    for (const cp of clusterPieces.values()) sphereTargets.push(...cp.attachMeshes);
+    const hits = _raycaster.intersectObjects(sphereTargets, false);
+    if (hits.length === 0) {
+      // Click in empty space → clear any active snap state.
+      if (snapFrom) { clearSnapActive(); refreshSnapPanel(); requestRender(); }
+      return;
+    }
+    onSnapSphereClick(hits[0].object);
+    return;
+  }
+
   // Selection mode: raycast against pieceGroups (slabs).
   const pieceTargets = [];
   for (const cp of clusterPieces.values()) pieceTargets.push(cp.pieceGroup);
@@ -2055,6 +2234,794 @@ function onClusterPointerUp(e) {
     obj = obj.parent;
   }
   if (pieceId) selectClusterPiece(pieceId);
+}
+
+// ── Snap mode (CODE_PROMPT preview-html-snap) ────────────────────────────────
+//
+// Snap reads the connection graph at claude-work/state/connection-graph.json
+// (already loaded into module-level `connectionGraph`) and lets the user
+// translate one cluster piece onto another via known partner pairings. Active
+// only when clusterInteractionMode === 'snap'. Translation-only in v1; if
+// pieces need rotation alignment, the user uses the rotation/transform sliders
+// after snapping (a large residual banner fires when this is likely needed).
+
+// Color constants for highlight states.
+const SNAP_COLOR_PARTNER = 0xffd34d; // gold — known partner
+const SNAP_COLOR_SNAPPED = 0x00cc66; // green — confirmed snapped
+const SNAP_COLOR_DIM     = 0x444444; // dimmed — non-partner during active snap
+const SNAP_HIGHLIGHT_SCALE = 1.8;    // partner spheres scale up when highlighted
+
+// 3-digit zero-pad piece id normalization. Graph mostly stores zero-padded,
+// but some older invalid edges may be bare ("66" vs "066") — always normalize.
+function snapNormId(id) {
+  return String(id == null ? '' : id).padStart(3, '0');
+}
+
+// Extract the letter regardless of edge kind. For `kind:"attach"` it lives in
+// `letter` and `tab` is null; for `kind:"landing"` it lives in `tab` and
+// `letter` is null. This asymmetry is intentional in build_assembly_graph.py.
+function snapEdgeLetter(edge) {
+  return edge.kind === 'attach' ? edge.letter : edge.tab;
+}
+
+// Strip the `attach-`/`landing-`/`back-` prefix and any trailing-digit suffix
+// to get just the connection letter. Mirrors how raw_ids are constructed:
+// `attach-b66` → "b"; `landing-h65` → "h"; `back-attach-c70` → "c".
+function snapLetterFromRawId(rawId) {
+  if (!rawId) return null;
+  let s = String(rawId).replace(/^back-/, '');
+  const m = s.match(/^(?:attach|landing|tab)-([a-z]+)/);
+  if (!m) return null;
+  // Strip trailing piece-id digits (`b66` → `b`). Some raw_ids are letter-only
+  // (`tab-c`) so the digit strip is a no-op there.
+  return m[1].replace(/\d+$/, '');
+}
+
+// Find graph partners for a click on (pieceId, rawPointId). Walks `edges`
+// looking for any edge whose `raw_id` matches the clicked sphere; then finds
+// the symmetric edge on the partner piece (same letter, reversed direction)
+// to derive the partner's raw_id. Returns an array of partner objects.
+//
+// Each partner: { partnerPieceId, partnerRawId, tabPieceId, landingPieceId,
+//                 letter, matchedVia, edge, partnerEdge }
+function findPartners(pieceId, rawPointId) {
+  if (!connectionGraph || !connectionGraph.graph || !Array.isArray(connectionGraph.graph.edges)) return [];
+  const edges = connectionGraph.graph.edges;
+  pieceId = snapNormId(pieceId);
+  const out = [];
+  const seen = new Set();
+
+  for (const e of edges) {
+    if (!e || !e.valid) continue;
+    if (e.raw_id !== rawPointId) continue;
+    if (snapNormId(e.from) !== pieceId) continue;
+
+    const ourLetter = snapEdgeLetter(e);
+    if (!ourLetter) continue;
+    const partnerPieceId = snapNormId(e.to);
+
+    // Find symmetric partner edge (from=partner, to=us, same letter).
+    let partnerEdge = null;
+    for (const e2 of edges) {
+      if (!e2 || !e2.valid) continue;
+      if (snapNormId(e2.from) !== partnerPieceId) continue;
+      if (snapNormId(e2.to)   !== pieceId) continue;
+      if (snapEdgeLetter(e2) !== ourLetter) continue;
+      partnerEdge = e2;
+      break;
+    }
+    if (!partnerEdge) {
+      // No symmetric edge — partner piece may not have authored its side yet.
+      // Still surface the partner so the user knows something exists; use a
+      // synthesized expected raw_id so a sphere lookup can attempt to find it.
+      const guess = e.kind === 'attach'
+        ? `landing-${ourLetter}${pieceId.replace(/^0+/, '') || '0'}`
+        : `attach-${ourLetter}${pieceId.replace(/^0+/, '') || '0'}`;
+      const dedupKey = `${partnerPieceId}:${ourLetter}`;
+      if (!seen.has(dedupKey)) {
+        seen.add(dedupKey);
+        out.push({
+          partnerPieceId,
+          partnerRawId: guess,
+          tabPieceId:     e.kind === 'attach' ? snapNormId(e.from) : snapNormId(e.to),
+          landingPieceId: e.kind === 'attach' ? snapNormId(e.to)   : snapNormId(e.from),
+          letter: ourLetter,
+          matchedVia: e.matched_via,
+          edge: e,
+          partnerEdge: null,
+          partnerEdgeMissing: true,
+        });
+      }
+      continue;
+    }
+
+    const dedupKey = `${partnerPieceId}:${ourLetter}`;
+    if (seen.has(dedupKey)) continue;
+    seen.add(dedupKey);
+
+    out.push({
+      partnerPieceId,
+      partnerRawId: partnerEdge.raw_id,
+      tabPieceId:     e.kind === 'attach' ? snapNormId(e.from) : snapNormId(e.to),
+      landingPieceId: e.kind === 'attach' ? snapNormId(e.to)   : snapNormId(e.from),
+      letter: ourLetter,
+      matchedVia: partnerEdge.matched_via || e.matched_via,
+      edge: e,
+      partnerEdge,
+    });
+  }
+  return out;
+}
+
+// Resolve a sphere mesh on a cluster piece by its raw_id. Used by both
+// highlight-rendering and the snap translation math. Returns null if not
+// found.
+function findSphereByRawId(pieceId, rawId) {
+  const cp = clusterPieces.get(snapNormId(pieceId));
+  if (!cp) return null;
+  return cp.attachMeshes.find(m => m.userData && m.userData.pointId === rawId) || null;
+}
+
+// All-connections-in-cluster lister, grouped by piece-pair. Dedups bidirectional
+// edges (066↔065 stored as both 065→066 and 066→065). Returns array of
+// { keyA, keyB, pairs: [edge, ...] } sorted by piece id.
+function listClusterConnectionPairs() {
+  if (!connectionGraph || !connectionGraph.graph || !Array.isArray(connectionGraph.graph.edges)) return [];
+  const present = new Set([...clusterPieces.keys()].map(snapNormId));
+  const groups = new Map(); // key "AAA-BBB" (sorted) → { keyA, keyB, pairs }
+
+  for (const e of connectionGraph.graph.edges) {
+    if (!e || !e.valid) continue;
+    const a = snapNormId(e.from), b = snapNormId(e.to);
+    if (!present.has(a) || !present.has(b)) continue;
+    const [keyA, keyB] = a < b ? [a, b] : [b, a];
+    const k = `${keyA}-${keyB}`;
+    if (!groups.has(k)) groups.set(k, { keyA, keyB, pairs: [] });
+    groups.get(k).pairs.push(e);
+  }
+
+  // Dedup: each piece-pair stores both directions, halve.
+  const out = [];
+  for (const g of groups.values()) {
+    const letterSet = new Set();
+    for (const e of g.pairs) {
+      const L = snapEdgeLetter(e);
+      if (L) letterSet.add(L);
+    }
+    out.push({ keyA: g.keyA, keyB: g.keyB, letters: [...letterSet].sort(), nPairs: letterSet.size });
+  }
+  out.sort((u, v) => u.keyA.localeCompare(v.keyA) || u.keyB.localeCompare(v.keyB));
+  return out;
+}
+
+// Decide whether a piece-pair is fully snapped (all letters snapped) or
+// partially snapped. Reads snappedPairs for matches.
+function pairSnapState(keyA, keyB, letters) {
+  let snapped = 0;
+  for (const L of letters) {
+    if (snappedPairs.some(p =>
+      ((p.tabPieceId === keyA && p.landingPieceId === keyB) ||
+       (p.tabPieceId === keyB && p.landingPieceId === keyA)) &&
+      p.letter === L)) snapped++;
+  }
+  if (snapped === 0) return 'unsnapped';
+  if (snapped < letters.length) return 'partial';
+  return 'snapped';
+}
+
+function pairIsLocked(keyA, keyB) {
+  return rigidGroups.some(g => g.has(keyA) && g.has(keyB));
+}
+
+// ── Sphere highlight state ───────────────────────────────────────────────────
+
+// Dim every connection sphere across the cluster (used when entering snap
+// mode and a point is selected) or brighten them all (when in snap mode but
+// no point clicked yet).
+function brightenAllConnectionSpheres(on) {
+  for (const cp of clusterPieces.values()) {
+    for (const m of cp.attachMeshes) {
+      if (!m.material) continue;
+      m.material.opacity = on ? 1.0 : 0.9;
+      const r = m.userData.baseRadius || 0.5;
+      m.scale.setScalar(on ? 1.25 : 1.0);
+      // restore baseColor unless it's been promoted to a snapped/partner color
+      if (m.userData._snapHighlight !== 'snapped' && m.userData._snapHighlight !== 'partner') {
+        m.material.color.setHex(m.userData.baseColor || 0xff5555);
+      }
+    }
+  }
+}
+
+// Restore the snap-highlight state for one sphere to its base color/scale.
+function restoreSphereBase(mesh) {
+  if (!mesh) return;
+  mesh.material.color.setHex(mesh.userData.baseColor || 0xff5555);
+  mesh.scale.setScalar(clusterInteractionMode === 'snap' ? 1.25 : 1.0);
+  mesh.userData._snapHighlight = null;
+}
+
+// Color a sphere with a snap-mode highlight (partner, snapped, dim).
+function setSnapHighlight(mesh, kind) {
+  if (!mesh) return;
+  if (kind === 'partner') {
+    mesh.material.color.setHex(SNAP_COLOR_PARTNER);
+    mesh.scale.setScalar(SNAP_HIGHLIGHT_SCALE);
+    mesh.userData._snapHighlight = 'partner';
+  } else if (kind === 'snapped') {
+    mesh.material.color.setHex(SNAP_COLOR_SNAPPED);
+    mesh.scale.setScalar(1.4);
+    mesh.userData._snapHighlight = 'snapped';
+  } else if (kind === 'dim') {
+    mesh.material.color.setHex(SNAP_COLOR_DIM);
+    mesh.scale.setScalar(0.9);
+    mesh.userData._snapHighlight = 'dim';
+  }
+}
+
+// Clear all snap highlights (after [Clear] or snap-mode exit). Snapped
+// spheres keep their green state via _snapHighlight === 'snapped'.
+function clearSnapHighlights() {
+  for (const cp of clusterPieces.values()) {
+    for (const m of cp.attachMeshes) {
+      if (m.userData._snapHighlight === 'snapped') continue; // preserve
+      restoreSphereBase(m);
+    }
+  }
+  requestRender();
+}
+
+function clearSnapActive() {
+  snapFrom = null;
+  snapPartners = [];
+  snapCustomB = null;
+  clearSnapHighlights();
+}
+
+// ── Sphere click handler (snap mode) ─────────────────────────────────────────
+
+function onSnapSphereClick(mesh) {
+  const ud = mesh && mesh.userData;
+  if (!ud || ud.type !== 'connection-point') return;
+  const pieceId = snapNormId(ud.pieceId);
+  const pointId = ud.pointId;
+
+  if (!snapFrom) {
+    // First click — set snapFrom and look up partners.
+    snapFrom = { pieceId, pointId, pointKind: ud.kind };
+    snapPartners = findPartners(pieceId, pointId);
+    snapCustomB = null;
+
+    // Dim all spheres; brighten known partner spheres in gold.
+    for (const cp of clusterPieces.values()) {
+      for (const m of cp.attachMeshes) {
+        if (m.userData._snapHighlight === 'snapped') continue;
+        setSnapHighlight(m, 'dim');
+      }
+    }
+    // Source sphere = keep base color but bigger.
+    mesh.material.color.setHex(mesh.userData.baseColor || 0xff5555);
+    mesh.scale.setScalar(SNAP_HIGHLIGHT_SCALE);
+    mesh.userData._snapHighlight = 'partner';
+
+    let highlighted = 0;
+    for (const p of snapPartners) {
+      const partnerMesh = findSphereByRawId(p.partnerPieceId, p.partnerRawId);
+      if (partnerMesh) {
+        setSnapHighlight(partnerMesh, 'partner');
+        highlighted++;
+      }
+    }
+
+    if (snapPartners.length === 0) {
+      addBanner(`Snap: no known partners for ${pieceId}:${pointId} — click another sphere to custom-snap.`, 'warn');
+    } else if (highlighted < snapPartners.length) {
+      addBanner(`Snap: ${snapPartners.length} partner(s) in graph; ${highlighted} sphere(s) located in scene.`, 'warn');
+    }
+    refreshSnapPanel();
+    requestRender();
+    return;
+  }
+
+  // Second click — guard against clicking the same point.
+  if (pieceId === snapFrom.pieceId && pointId === snapFrom.pointId) return;
+
+  // Is it a known partner? If yes, snapping is offered via the [Snap] button
+  // in the partner row, not via the second click. The second click is reserved
+  // for custom-snap to a non-partner sphere.
+  const partnerHit = snapPartners.find(p => p.partnerPieceId === pieceId && p.partnerRawId === pointId);
+  if (partnerHit) {
+    // Treat second-click on a known partner as a confirmation: execute that snap.
+    snapPair(partnerHit);
+    return;
+  }
+
+  // Custom snap target: any second sphere becomes the custom-B endpoint.
+  snapCustomB = { pieceId, pointId, pointKind: ud.kind };
+  refreshSnapPanel();
+}
+
+// ── Snap execution ───────────────────────────────────────────────────────────
+
+function snapPair(partner) {
+  const tabSphere     = findSphereByRawId(partner.tabPieceId,     partner.edge.kind === 'attach' ? partner.edge.raw_id : partner.partnerRawId);
+  const landingSphere = findSphereByRawId(partner.landingPieceId, partner.edge.kind === 'attach' ? partner.partnerRawId : partner.edge.raw_id);
+
+  if (!tabSphere || !landingSphere) {
+    addBanner('Snap: could not locate one of the connection spheres in the scene.', 'warn');
+    return;
+  }
+
+  const tabWorld     = tabSphere.getWorldPosition(new THREE.Vector3());
+  const landingWorld = landingSphere.getWorldPosition(new THREE.Vector3());
+  const delta        = landingWorld.clone().sub(tabWorld);
+
+  // Convention: TAB piece moves onto LANDING piece. Apply delta to the tab
+  // piece's pieceGroup. Rigid-group siblings move along via the TC sync.
+  const tabCp = clusterPieces.get(partner.tabPieceId);
+  if (!tabCp) {
+    addBanner(`Snap: tab piece ${partner.tabPieceId} not in cluster.`, 'warn');
+    return;
+  }
+  tabCp.pieceGroup.position.add(delta);
+
+  // Rigid-group sync: if the tab piece is in a locked group, propagate the
+  // delta to its rigid-group siblings (sibling positions also shift by
+  // `delta`, preserving relative pose).
+  applyRigidDelta(partner.tabPieceId, delta);
+
+  // Refresh _rigidLastPos baselines so the next TC drag computes deltas
+  // against the post-snap positions.
+  snapshotRigidBaselines();
+
+  // Visual feedback.
+  setSnapHighlight(tabSphere, 'snapped');
+  setSnapHighlight(landingSphere, 'snapped');
+  drawSnapLine(tabWorld.clone().add(delta), landingWorld);
+
+  const distMm = delta.length();
+  appendSnapLog(`✓ Snapped: ${partner.tabPieceId}:${tabSphere.userData.pointId} → ` +
+    `${partner.landingPieceId}:${landingSphere.userData.pointId} (Δ = ${distMm.toFixed(2)} mm)`, 'ok');
+
+  snappedPairs.push({
+    tabPieceId:     partner.tabPieceId,
+    tabRawId:       tabSphere.userData.pointId,
+    landingPieceId: partner.landingPieceId,
+    landingRawId:   landingSphere.userData.pointId,
+    letter:         partner.letter,
+    residual_mm:    0,
+  });
+
+  updateMeasurementVisuals();
+  refreshSnapPanel();
+  requestRender();
+}
+
+// Snap all known partners between a given (tabPiece, landingPiece) pair using
+// the median per-axis translation. More robust against one outlier point
+// (e.g. piece 065↔066 has 7 letters; one might be slightly off).
+function snapAllPairs(tabPieceId, landingPieceId, partners) {
+  tabPieceId     = snapNormId(tabPieceId);
+  landingPieceId = snapNormId(landingPieceId);
+  const filtered = partners.filter(p => p.tabPieceId === tabPieceId && p.landingPieceId === landingPieceId);
+  if (filtered.length === 0) {
+    addBanner('Snap all: no pairs in graph for that direction.', 'warn');
+    return;
+  }
+
+  const deltas = [];
+  const located = [];
+  for (const p of filtered) {
+    const tabRaw     = p.edge.kind === 'attach' ? p.edge.raw_id : p.partnerRawId;
+    const landingRaw = p.edge.kind === 'attach' ? p.partnerRawId : p.edge.raw_id;
+    const tabSphere     = findSphereByRawId(tabPieceId, tabRaw);
+    const landingSphere = findSphereByRawId(landingPieceId, landingRaw);
+    if (!tabSphere || !landingSphere) continue;
+    located.push({ p, tabSphere, landingSphere, tabRaw, landingRaw });
+    const tw = tabSphere.getWorldPosition(new THREE.Vector3());
+    const lw = landingSphere.getWorldPosition(new THREE.Vector3());
+    deltas.push(lw.clone().sub(tw));
+  }
+
+  if (deltas.length === 0) {
+    addBanner('Snap all: no sphere pairs could be located in the scene.', 'warn');
+    return;
+  }
+
+  // Median per-component — robust against one outlier pair.
+  const med = arr => [...arr].sort((a, b) => a - b)[Math.floor(arr.length / 2)];
+  const medX = med(deltas.map(d => d.x));
+  const medY = med(deltas.map(d => d.y));
+  const medZ = med(deltas.map(d => d.z));
+  const medianDelta = new THREE.Vector3(medX, medY, medZ);
+
+  const tabCp = clusterPieces.get(tabPieceId);
+  if (!tabCp) return;
+  tabCp.pieceGroup.position.add(medianDelta);
+  applyRigidDelta(tabPieceId, medianDelta);
+  snapshotRigidBaselines();
+
+  // Compute post-snap residuals and find worst.
+  const residuals = [];
+  let maxResidual = 0;
+  let worstLetter = null;
+  for (const r of located) {
+    const tw = r.tabSphere.getWorldPosition(new THREE.Vector3());
+    const lw = r.landingSphere.getWorldPosition(new THREE.Vector3());
+    const mm = tw.distanceTo(lw);
+    residuals.push({ letter: r.p.letter, mm });
+    if (mm > maxResidual) { maxResidual = mm; worstLetter = r.p.letter; }
+    setSnapHighlight(r.tabSphere, 'snapped');
+    setSnapHighlight(r.landingSphere, 'snapped');
+    drawSnapLine(tw, lw);
+  }
+
+  appendSnapLog(
+    `Snapped all ${located.length} pairs: ${tabPieceId} → ${landingPieceId}. ` +
+    `Max residual: ${maxResidual.toFixed(2)} mm (${worstLetter || '?'})`,
+    maxResidual > 1.5 ? 'warn' : 'ok'
+  );
+
+  if (maxResidual > 1.5) {
+    addBanner(
+      `Snap: large residual ${maxResidual.toFixed(1)} mm on letter-${worstLetter || '?'}. ` +
+      `Usually means ${tabPieceId} needs rotation adjustment before connections seat cleanly. ` +
+      `Use the rotation/transform sliders, then re-snap.`,
+      'warn'
+    );
+  }
+
+  for (const r of located) {
+    snappedPairs.push({
+      tabPieceId,
+      tabRawId:       r.tabRaw,
+      landingPieceId,
+      landingRawId:   r.landingRaw,
+      letter:         r.p.letter,
+      residual_mm:    residuals.find(x => x.letter === r.p.letter)?.mm ?? null,
+    });
+  }
+
+  updateMeasurementVisuals();
+  refreshSnapPanel();
+  requestRender();
+}
+
+// Custom snap: align two arbitrary spheres regardless of graph knowledge.
+// The piece owning the FIRST clicked sphere is the one that moves.
+function snapCustom(a, b) {
+  if (!a || !b) return;
+  const aSphere = findSphereByRawId(a.pieceId, a.pointId);
+  const bSphere = findSphereByRawId(b.pieceId, b.pointId);
+  if (!aSphere || !bSphere) {
+    addBanner('Snap: could not locate one of the custom-snap spheres.', 'warn');
+    return;
+  }
+  const aWorld = aSphere.getWorldPosition(new THREE.Vector3());
+  const bWorld = bSphere.getWorldPosition(new THREE.Vector3());
+  const delta  = bWorld.clone().sub(aWorld);
+  const aCp = clusterPieces.get(snapNormId(a.pieceId));
+  if (!aCp) return;
+  aCp.pieceGroup.position.add(delta);
+  applyRigidDelta(a.pieceId, delta);
+  snapshotRigidBaselines();
+
+  setSnapHighlight(aSphere, 'snapped');
+  setSnapHighlight(bSphere, 'snapped');
+  drawSnapLine(aWorld.clone().add(delta), bWorld);
+
+  appendSnapLog(`✓ Custom-snapped: ${a.pieceId}:${a.pointId} → ${b.pieceId}:${b.pointId} (Δ = ${delta.length().toFixed(2)} mm)`, 'ok');
+
+  snappedPairs.push({
+    tabPieceId:     snapNormId(a.pieceId),
+    tabRawId:       a.pointId,
+    landingPieceId: snapNormId(b.pieceId),
+    landingRawId:   b.pointId,
+    letter:         null,
+    residual_mm:    0,
+    custom:         true,
+  });
+
+  updateMeasurementVisuals();
+  refreshSnapPanel();
+  requestRender();
+}
+
+// ── Rigid groups (lock-together) ─────────────────────────────────────────────
+// Two pieces are "locked" when they should move as a rigid body. Implemented
+// as sibling-position-delta sync (NOT scene-graph re-parenting, which fights
+// TransformControls). The sync is fired from onTransformControlsChange and
+// onTransformSliderInput; baselines are seeded by snapshotRigidBaselines.
+
+function rigidGroupOf(pieceId) {
+  pieceId = snapNormId(pieceId);
+  return rigidGroups.find(g => g.has(pieceId)) || null;
+}
+
+function lockTogether(pieceIdA, pieceIdB) {
+  pieceIdA = snapNormId(pieceIdA);
+  pieceIdB = snapNormId(pieceIdB);
+  if (pieceIdA === pieceIdB) return;
+  const groupA = rigidGroupOf(pieceIdA);
+  const groupB = rigidGroupOf(pieceIdB);
+  if (groupA && groupB && groupA !== groupB) {
+    for (const id of groupB) groupA.add(id);
+    const idx = rigidGroups.indexOf(groupB);
+    if (idx >= 0) rigidGroups.splice(idx, 1);
+  } else if (groupA) {
+    groupA.add(pieceIdB);
+  } else if (groupB) {
+    groupB.add(pieceIdA);
+  } else {
+    rigidGroups.push(new Set([pieceIdA, pieceIdB]));
+  }
+  snapshotRigidBaselines();
+}
+
+function unlockGroup(group) {
+  const idx = rigidGroups.indexOf(group);
+  if (idx >= 0) rigidGroups.splice(idx, 1);
+  snapshotRigidBaselines();
+}
+
+// Apply a translation delta to every rigid-group sibling of movedPieceId
+// (excluding the moved piece itself, which the caller has already moved).
+function applyRigidDelta(movedPieceId, deltaVec3) {
+  const group = rigidGroupOf(movedPieceId);
+  if (!group || group.size <= 1) return;
+  const movedNorm = snapNormId(movedPieceId);
+  for (const id of group) {
+    if (id === movedNorm) continue;
+    const cp = clusterPieces.get(id);
+    if (!cp) continue;
+    cp.pieceGroup.position.add(deltaVec3);
+  }
+}
+
+// Record the current position of every cluster piece as the rigid-sync baseline.
+// Called whenever positions are set programmatically (snap, lock, reset) so
+// the next TC-driven sync computes delta against the post-update positions.
+function snapshotRigidBaselines() {
+  for (const cp of clusterPieces.values()) {
+    cp.pieceGroup.userData._rigidLastPos = cp.pieceGroup.position.clone();
+  }
+}
+
+// Called from onTransformControlsChange / onTransformSliderInput after the
+// selected piece has been moved. Computes delta from last snapshot and
+// applies to rigid-group siblings.
+function syncRigidGroupFromActivePiece(pieceId) {
+  if (!pieceId) return;
+  const group = rigidGroupOf(pieceId);
+  if (!group || group.size <= 1) return;
+  const movedNorm = snapNormId(pieceId);
+  const cp = clusterPieces.get(movedNorm);
+  if (!cp) return;
+  const last = cp.pieceGroup.userData._rigidLastPos;
+  if (!last) {
+    cp.pieceGroup.userData._rigidLastPos = cp.pieceGroup.position.clone();
+    return;
+  }
+  const delta = cp.pieceGroup.position.clone().sub(last);
+  if (delta.lengthSq() < 1e-10) return;
+  for (const id of group) {
+    if (id === movedNorm) continue;
+    const sib = clusterPieces.get(id);
+    if (!sib) continue;
+    sib.pieceGroup.position.add(delta);
+    sib.pieceGroup.userData._rigidLastPos = sib.pieceGroup.position.clone();
+  }
+  cp.pieceGroup.userData._rigidLastPos = cp.pieceGroup.position.clone();
+}
+
+// ── Confirmation lines (persistent green) ────────────────────────────────────
+
+function drawSnapLine(a, b) {
+  const geo = new THREE.BufferGeometry().setFromPoints([a.clone(), b.clone()]);
+  const mat = new THREE.LineBasicMaterial({ color: SNAP_COLOR_SNAPPED, transparent: true, opacity: 0.85, depthTest: false });
+  const line = new THREE.Line(geo, mat);
+  line.renderOrder = 9;
+  scene.add(line);
+  snapConfirmLines.push(line);
+}
+
+function teardownSnapVisuals() {
+  for (const line of snapConfirmLines) {
+    scene.remove(line);
+    if (line.geometry) line.geometry.dispose();
+    if (line.material) line.material.dispose();
+  }
+  snapConfirmLines.length = 0;
+  snappedPairs.length = 0;
+  rigidGroups.length = 0;
+  snapFrom = null;
+  snapPartners = [];
+  snapCustomB = null;
+}
+
+// ── Snap log ─────────────────────────────────────────────────────────────────
+
+function appendSnapLog(text, kind = 'ok') {
+  const host = document.getElementById('snap-log-list');
+  if (!host) return;
+  const row = document.createElement('div');
+  row.className = 'log-line ' + (kind === 'warn' ? 'warn' : 'ok');
+  row.textContent = text;
+  host.appendChild(row);
+  host.scrollTop = host.scrollHeight;
+  const logZone = document.getElementById('snap-log-zone');
+  if (logZone) logZone.hidden = false;
+}
+
+// ── Panel rendering ──────────────────────────────────────────────────────────
+
+function showSnapPanel(on) {
+  const sec = document.getElementById('snap-panel-section');
+  if (sec) sec.hidden = !on;
+}
+
+function refreshSnapPanel() {
+  if (clusterInteractionMode !== 'snap') return;
+  renderSnapProgressList();
+  renderSnapActiveZone();
+  renderSnapLockedZone();
+}
+
+function renderSnapProgressList() {
+  const host = document.getElementById('snap-progress-list');
+  if (!host) return;
+  host.innerHTML = '';
+  const nameEl = document.getElementById('snap-cluster-name');
+  if (nameEl) {
+    nameEl.textContent = currentClusterName && currentClusterName !== '<ad-hoc>'
+      ? `— ${currentClusterName}` : '';
+  }
+
+  const pairs = listClusterConnectionPairs();
+  if (pairs.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'color:#666;font-style:italic;font-size:11px;padding:4px 2px;';
+    empty.textContent = 'No valid connections among the loaded pieces.';
+    host.appendChild(empty);
+    return;
+  }
+  for (const g of pairs) {
+    const state = pairSnapState(g.keyA, g.keyB, g.letters);
+    const locked = pairIsLocked(g.keyA, g.keyB);
+    const row = document.createElement('div');
+    row.className = 'conn-row' + (locked ? ' locked' : state === 'snapped' ? ' snapped' : '');
+    row.innerHTML =
+      `<span class="dot">${locked ? '🔒' : state === 'snapped' ? '●' : state === 'partial' ? '◐' : '○'}</span>` +
+      `<span class="pair">${g.keyA} ↔ ${g.keyB}</span>` +
+      `<span class="npairs">${g.nPairs} pair${g.nPairs === 1 ? '' : 's'}</span>`;
+    row.title = `Letters: ${g.letters.join(', ')}`;
+    row.addEventListener('click', () => {
+      // Highlight both pieces by selecting one (no-op if same as current).
+      selectClusterPiece(g.keyA);
+    });
+    host.appendChild(row);
+  }
+}
+
+function renderSnapActiveZone() {
+  const zone = document.getElementById('snap-active-zone');
+  const partnersHost = document.getElementById('snap-partners-list');
+  const bulkHost = document.getElementById('snap-bulk-row');
+  const customHost = document.getElementById('snap-custom-row');
+  const label = document.getElementById('snap-active-label');
+  if (!zone || !partnersHost || !bulkHost || !customHost) return;
+
+  if (!snapFrom) { zone.hidden = true; return; }
+  zone.hidden = false;
+  if (label) label.textContent = `: ${snapFrom.pieceId} / ${snapFrom.pointId}`;
+
+  partnersHost.innerHTML = '';
+  bulkHost.innerHTML = '';
+  customHost.innerHTML = '';
+
+  if (snapPartners.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'color:#666;font-style:italic;font-size:11px;';
+    empty.textContent = 'No known partners — click another sphere to custom-snap.';
+    partnersHost.appendChild(empty);
+  } else {
+    for (const p of snapPartners) {
+      const row = document.createElement('div');
+      row.className = 'partner-row';
+      const label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = `→ ${p.partnerPieceId} / ${p.partnerRawId}`;
+      label.title = `tab=${p.tabPieceId}, landing=${p.landingPieceId}`;
+      const via = document.createElement('span');
+      via.className = 'via';
+      via.textContent = p.partnerEdgeMissing ? '(symmetric edge missing)' : `(${p.matchedVia || '?'})`;
+      const btn = document.createElement('button');
+      btn.textContent = 'Snap';
+      btn.disabled = !!p.partnerEdgeMissing && !findSphereByRawId(p.partnerPieceId, p.partnerRawId);
+      btn.addEventListener('click', () => snapPair(p));
+      row.appendChild(label);
+      row.appendChild(via);
+      row.appendChild(btn);
+      partnersHost.appendChild(row);
+    }
+
+    // "Snap all N pairs → P" buttons, one per (tabPiece, landingPiece) direction.
+    const byDir = new Map();
+    for (const p of snapPartners) {
+      const k = `${p.tabPieceId}>${p.landingPieceId}`;
+      if (!byDir.has(k)) byDir.set(k, []);
+      byDir.get(k).push(p);
+    }
+    for (const [k, list] of byDir.entries()) {
+      if (list.length < 2) continue;
+      const [tab, landing] = k.split('>');
+      const btn = document.createElement('button');
+      btn.textContent = `Snap all ${list.length} pairs: ${tab} → ${landing}`;
+      btn.addEventListener('click', () => snapAllPairs(tab, landing, list));
+      bulkHost.appendChild(btn);
+    }
+  }
+
+  // Lock-together button: appears when at least one pair between snapFrom's
+  // piece and any other piece has been snapped.
+  const lockCandidates = new Set();
+  for (const sp of snappedPairs) {
+    if (sp.tabPieceId === snapFrom.pieceId)     lockCandidates.add(sp.landingPieceId);
+    if (sp.landingPieceId === snapFrom.pieceId) lockCandidates.add(sp.tabPieceId);
+  }
+  for (const otherId of lockCandidates) {
+    if (rigidGroupOf(snapFrom.pieceId)?.has(otherId)) continue; // already locked
+    const btn = document.createElement('button');
+    btn.textContent = `Lock together: ${snapFrom.pieceId} + ${otherId}`;
+    btn.style.cssText = 'background:#2a3a2a;border-color:#4a6a4a;';
+    btn.addEventListener('click', () => {
+      lockTogether(snapFrom.pieceId, otherId);
+      appendSnapLog(`🔒 Locked: ${snapFrom.pieceId} + ${otherId}`, 'ok');
+      refreshSnapPanel();
+    });
+    bulkHost.appendChild(btn);
+  }
+
+  // Custom-snap row: appears when a non-partner second sphere has been clicked.
+  if (snapCustomB) {
+    const row = document.createElement('div');
+    row.style.cssText = 'border-top:1px dashed #333;padding-top:4px;margin-top:4px;';
+    const lab = document.createElement('div');
+    lab.className = 'label';
+    lab.textContent = `Custom snap: ${snapFrom.pieceId} / ${snapFrom.pointId} → ${snapCustomB.pieceId} / ${snapCustomB.pointId}`;
+    const btn = document.createElement('button');
+    btn.textContent = 'Snap (custom)';
+    btn.addEventListener('click', () => snapCustom(snapFrom, snapCustomB));
+    row.appendChild(lab);
+    row.appendChild(btn);
+    customHost.appendChild(row);
+  }
+}
+
+function renderSnapLockedZone() {
+  const zone = document.getElementById('snap-locked-zone');
+  const host = document.getElementById('snap-locked-list');
+  if (!zone || !host) return;
+  if (rigidGroups.length === 0) { zone.hidden = true; host.innerHTML = ''; return; }
+  zone.hidden = false;
+  host.innerHTML = '';
+  for (const g of rigidGroups) {
+    const row = document.createElement('div');
+    row.className = 'locked-row';
+    const members = document.createElement('span');
+    members.className = 'members';
+    members.textContent = '🔒 [' + [...g].sort().join(', ') + ']';
+    const btn = document.createElement('button');
+    btn.textContent = 'Unlock';
+    btn.addEventListener('click', () => {
+      unlockGroup(g);
+      refreshSnapPanel();
+      requestRender();
+    });
+    row.appendChild(members);
+    row.appendChild(btn);
+    host.appendChild(row);
+  }
 }
 
 // ── Bench-mode connection-points overlay (toggle in side panel) ──────────────
@@ -5509,8 +6476,24 @@ if (saveSelectedBtnEl) saveSelectedBtnEl.addEventListener('click', () => {
       origin: sel.origin ? sel.origin.kind : 'centroid'
     };
   }
-  if (!payload.assembled.folds && !payload.assembled.transform) {
-    addBanner('Save selected piece: no folds and no transform to capture.', 'warn');
+  // Snap-mode (CODE_PROMPT preview-html-snap Task 8): record connections that
+  // touch this piece. Future reloads can pre-populate the snap-progress panel.
+  const snapsForPiece = snappedPairs.filter(p =>
+    p.tabPieceId === sel.id || p.landingPieceId === sel.id
+  );
+  if (snapsForPiece.length > 0) {
+    payload.assembled.snapped_connections = snapsForPiece.map(p => ({
+      letter:         p.letter,
+      tab_piece:      p.tabPieceId,
+      tab_raw_id:     p.tabRawId,
+      landing_piece:  p.landingPieceId,
+      landing_raw_id: p.landingRawId,
+      residual_mm:    p.residual_mm == null ? null : Math.round(p.residual_mm * 100) / 100,
+      ...(p.custom ? { custom: true } : {}),
+    }));
+  }
+  if (!payload.assembled.folds && !payload.assembled.transform && !payload.assembled.snapped_connections) {
+    addBanner('Save selected piece: no folds, transform, or snapped connections to capture.', 'warn');
     return;
   }
   showAssembledPoseModal(sel.id, payload);
@@ -6002,6 +6985,8 @@ function logFaceGraphSummary(diag) {
   const loadClusterBtn = document.getElementById('loadClusterBtn');
   const clusterInput   = document.getElementById('clusterInput');
   const measureBtn     = document.getElementById('measureToggleBtn');
+  const snapBtn        = document.getElementById('snapToggleBtn');
+  const snapClearBtn   = document.getElementById('snapClearBtn');
   const deselectBtn    = document.getElementById('deselectBtn');
   const showConnCb     = document.getElementById('showConnPointsCheckbox');
   if (loadClusterBtn) loadClusterBtn.addEventListener('click', () => {
@@ -6018,6 +7003,14 @@ function logFaceGraphSummary(diag) {
   });
   if (measureBtn) measureBtn.addEventListener('click', () => {
     setMeasureMode(clusterInteractionMode !== 'measure');
+  });
+  if (snapBtn) snapBtn.addEventListener('click', () => {
+    setSnapMode(clusterInteractionMode !== 'snap');
+  });
+  if (snapClearBtn) snapClearBtn.addEventListener('click', () => {
+    clearSnapActive();
+    refreshSnapPanel();
+    requestRender();
   });
   if (deselectBtn) deselectBtn.addEventListener('click', () => deselectClusterPiece());
   if (showConnCb) showConnCb.addEventListener('change', () => {

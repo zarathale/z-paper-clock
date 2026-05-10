@@ -17,16 +17,14 @@ it into the sidecar JSON and writes it back. No more copy-paste. Falls back to c
 if bridge is offline. Auto-saves on piece switch in Bench mode. Small change to two files
 (`preview_bridge.py` + `preview.html`). No dependencies; ships independently.
 
-### 3. Snap-to-connection-point in Cluster mode — send to Code (`CODE_PROMPT_preview-html-snap.md`)
+### ~~3. Snap-to-connection-point in Cluster mode — send to Code (`CODE_PROMPT_preview-html-snap.md`)~~
 
-The assembly centerpiece. In Cluster mode: click any connection sphere → system highlights
-known partner spheres from the connection graph → [Snap] translates tab piece to landing
-point. "Snap all N pairs" uses median translation across all known pairs (robust). Lock-
-together makes snapped pieces move as a rigid group. Green lines confirm snapped pairs.
-Max residual readout shows SVG geometry consistency. System offers pairings — user never
-identifies matching points manually. Depends on PRs A+B+C merged (already done).
+→ **Closed 2026-05-10** by the preview-html-snap ship. Snap toggle + graph-driven
+partner highlighting + snapPair / snapAllPairs (median translation) + rigid-group
+lock + `assembled.snapped_connections` save payload all landed. Prompt moved to
+`_archive/code-prompts/`. See `sessions/2026-05-10-1127_code_preview-html-snap.md`.
 
-Now #2 and #3 are independent — can go to Code concurrently.
+Now #2 is the only remaining concurrent item.
 
 ### 4. Fix 068 fold authoring — missing pane→c1 fold line
 
@@ -91,6 +89,7 @@ Post-tagging follow-on: merge `character` + `subtype` from `work/piece_character
 
 ## Recently shipped
 
+- ~~**Snap-to-connection-point in Cluster mode**~~ → `claude/preview-html-snap`, 2026-05-10. Snap tool added to Cluster mode (Select/Measure/Snap mutex). Click a sphere → graph-driven partner lookup highlights partners gold; [Snap] / [Snap all] translates tab piece to landing (median per-axis translation for "snap all"); large-residual yellow banner; rigid-group lock; persistent green confirmation lines; `assembled.snapped_connections` recorded in save payload. See `sessions/2026-05-10-1127_code_preview-html-snap.md`.
 - ~~**Parser-marks-lookup (DECISIONS #12)**~~ → `claude/parser-marks-lookup`, 2026-05-10. 8-step marks-aware cross-piece resolution in `build_assembly_graph.py`; split-piece globbing. Graph now at 30 valid authored edges; 093b→093a resolves; 094→095 and 097→099 shift to mark-anchored. See `sessions/2026-05-10-0820_code_parser-marks-lookup.md`.
 - ~~**PR A — foundational interaction + cutouts (DECISIONS #13)**~~ → `claude/preview-html-bench-cluster-foundation`, 2026-05-10. Cutouts as Shape holes, slider+number-entry, camera lock, TC click-drag, RGB axes + corner gizmo, worktable, Bench/Cluster scaffold. See `sessions/2026-05-10-0335_code_preview-html-bench-cluster-foundation.md`.
 - ~~**PR B — Bench mode transform capture (DECISIONS #13)**~~ → `claude/preview-html-bench-transform`, 2026-05-09. Transform panel, sidecar `assembled.transform` read+write, TC↔slider sync. See `sessions/2026-05-09-2219_code_preview-html-bench-transform.md`.

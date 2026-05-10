@@ -1,12 +1,15 @@
 ---
-status: ready-for-code
+status: shipped
 started: 2026-05-10
+shipped: 2026-05-10
 owner: Zarathale (Alan)
 target: preview-html-snap
 revised: 2026-05-10 (Cowork session guided-assembly-design — field-name bugs fixed,
          verification checklist corrected, bidirectional lookup added, progress panel added,
          snapped_connections sidecar field added, large-residual banner added)
 ---
+
+_Shipped 2026-05-10; paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / ROADMAP.md / claude-work/STATUS.md for current state._
 
 # CODE_PROMPT — Snap-to-connection-point in Cluster mode
 
