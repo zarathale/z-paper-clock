@@ -1,0 +1,23 @@
+{
+  "assembled": {
+    "folds": {},
+    "captured": "2026-05-10T23:45:02.725Z",
+    "note": "",
+    "transform": {
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        0,
+        -72.6
+      ],
+      "rotation_order": "XYZ",
+      "frame": "world",
+      "origin": "axles[0]"
+    }
+  },
+  "_savedAt": "2026-05-10T16:45:02.729435"
+}
