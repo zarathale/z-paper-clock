@@ -5,6 +5,7 @@
 <title>SVG 3D Preview</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
 <!-- polygon-clipping loaded now; not used in v1a, required by v1b -->
 <script src="https://unpkg.com/polygon-clipping@0.15.7/dist/polygon-clipping.umd.js"></script>
 <style>
@@ -98,12 +99,69 @@ html, body { width:100%; height:100%; overflow:hidden; background:#1a1a1a; color
 .slider-row label { color:#aaa; min-width:70px; }
 .slider-row input[type=range] { flex:1; accent-color:#c9a96e; }
 .slider-row .val { min-width:46px; text-align:right; color:#e8e3da; }
+.slider-row input[type=number] {
+  width:54px; background:#1a1a1a; border:1px solid #444;
+  color:#e8e3da; border-radius:3px; padding:2px 4px;
+  font-size:12px; text-align:right;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  -moz-appearance:textfield;
+}
+.slider-row input[type=number]:focus { outline:none; border-color:#7af; }
+.slider-row input[type=number]::-webkit-outer-spin-button,
+.slider-row input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 
 button {
   background:#2e2e2e; border:1px solid #444; color:#ccc; border-radius:4px;
   padding:6px 10px; cursor:pointer; font-size:12px;
 }
 button:hover { background:#383838; }
+
+/* ── Top bar (mode toggle + camera toggle + transform-mode indicator) ──────── */
+#topbar {
+  position:fixed; top:0; left:320px; right:0; height:36px; z-index:40;
+  display:flex; align-items:center; gap:10px; padding:0 12px;
+  background:rgba(28,28,28,0.92); border-bottom:1px solid #2a2a2a;
+  font-size:12px; color:#aaa;
+}
+#topbar .seg {
+  display:inline-flex; border:1px solid #444; border-radius:4px; overflow:hidden;
+}
+#topbar .seg button {
+  background:#2a2a2a; color:#aaa; border:none; border-radius:0;
+  padding:4px 12px; font-size:12px; cursor:pointer;
+}
+#topbar .seg button + button { border-left:1px solid #444; }
+#topbar .seg button.active { background:#3a4a5a; color:#e8e3da; }
+#topbar .seg button:hover:not(.active) { background:#333; }
+#cameraToggleBtn { font-size:12px; padding:3px 10px; }
+#cameraToggleBtn.free { background:#3a4a5a; color:#e8e3da; border-color:#5a7090; }
+#xformModeIndicator { color:#888; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px; }
+#xformModeIndicator .key { color:#c9a96e; }
+
+#canvas-host { top:36px; }
+
+/* ── Cluster-mode placeholder banner ───────────────────────────────────────── */
+#cluster-stub {
+  position:absolute; inset:0; display:none;
+  align-items:center; justify-content:center;
+  pointer-events:none; color:#aaa; font-size:14px; text-align:center;
+  background:rgba(26,26,26,0.6);
+}
+body.mode-cluster #cluster-stub { display:flex; }
+body.mode-cluster #fold-controls,
+body.mode-cluster #thickness-section,
+body.mode-cluster #rotation-section,
+body.mode-cluster #diagnostics-section,
+body.mode-cluster #piece-section #sceneRow { display:none; }
+body.mode-cluster #pieceInput,
+body.mode-cluster #loadBtn,
+body.mode-cluster #reloadPieceBtn { opacity:0.4; pointer-events:none; }
+
+/* ── Corner axes gizmo (rendered into a fixed bottom-right viewport) ──────── */
+#gizmo-overlay {
+  position:absolute; right:8px; bottom:8px; width:80px; height:80px;
+  pointer-events:none; z-index:5;
+}
 
 #hint {
   position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
@@ -114,6 +172,16 @@ button:hover { background:#383838; }
 </style>
 </head>
 <body>
+
+<div id="topbar">
+  <div class="seg" role="tablist" aria-label="Mode">
+    <button id="modeBenchBtn"   class="active" role="tab" aria-selected="true"  title="Single-piece authoring">Bench</button>
+    <button id="modeClusterBtn"               role="tab" aria-selected="false" title="Multi-piece subassembly (lands in PR C)">Cluster</button>
+  </div>
+  <button id="cameraToggleBtn" title="Toggle camera lock (default = locked, head-on; click to free orbit)">Camera locked</button>
+  <span id="xformModeIndicator" hidden>xform: <strong>translate</strong> · <span class="key">R</span> rotate · <span class="key">T</span> translate · <span class="key">Shift</span> snap</span>
+  <span style="flex:1"></span>
+</div>
 
 <div id="panel">
   <div id="piece-section">
@@ -193,8 +261,12 @@ button:hover { background:#383838; }
   </div>
 </div>
 
-<div id="canvas-host"></div>
-<div id="hint">Drag to orbit · Scroll to zoom · Right-drag to pan</div>
+<div id="canvas-host">
+  <div id="cluster-stub">
+    Cluster mode lands in PR C — load a single piece in Bench mode for now.
+  </div>
+</div>
+<div id="hint">Camera locked · click-drag the piece to translate · <strong>R</strong> rotate · <strong>T</strong> translate · <strong>Shift</strong> snap · toggle <strong>Camera</strong> in top bar to orbit</div>
 
 <script>
 'use strict';
@@ -204,12 +276,95 @@ let renderer, camera, scene, controls;
 let currentSlabPivot = null;
 let currentAxleWires = [];
 
+// PR A interaction substrate (DECISIONS #13).
+// pieceGroup wraps the slab pivot + axle wires together so TransformControls
+// has a single Object3D handle for the whole piece. Cleared and re-created on
+// every fresh single-piece load.
+let currentPieceGroup = null;
+// Permanent scene fixtures (created once in initScene; kept across loads).
+let worktableMesh   = null;
+let worldAxesHelper = null;
+let transformControls = null;
+// Corner-gizmo viewport (its own scene + camera, rendered after main).
+let gizmoScene = null, gizmoCamera = null;
+const GIZMO_SIZE = 80;     // px (CSS pixels) — bottom-right viewport
+const GIZMO_MARGIN = 8;
+// Camera lock + transform-mode interaction state. Per-session only; default
+// reset on every page load. cameraLocked = true → OrbitControls disabled,
+// TransformControls visible+attached. xformMode toggles via R/T keys.
+let cameraLocked = true;
+let xformMode    = 'translate';
+// Mode toggle (Bench / Cluster). Default Bench. Cluster is a stub in PR A.
+let currentMode  = 'bench';
+
 // Render-on-demand: only call renderer.render() when the scene or camera changed.
 // Set true via requestRender() after any scene mutation; OrbitControls' 'change'
 // event also flips it. Damping is preserved because controls.update() returns
 // truthy while damping is still settling, and that path also triggers a render.
 let needsRender = true;
 function requestRender() { needsRender = true; }
+
+// ─── Slider + numeric text-entry pattern (DECISIONS #13) ─────────────────────
+// Augment an existing range slider with a paired number input. Bidirectional:
+// typing snaps the slider, dragging the slider updates the number. Both paths
+// dispatch the slider's `input` event so existing handlers (fold-rotation,
+// thickness rebuild, save-pose capture) keep working unchanged. Returns the
+// number input so callers can insert it elsewhere; default places it
+// immediately after the slider in the DOM.
+function attachNumberInput(slider, opts = {}) {
+  const { insertAfter = true, width } = opts;
+  const num = document.createElement('input');
+  num.type = 'number';
+  if (slider.min)  num.min  = slider.min;
+  if (slider.max)  num.max  = slider.max;
+  if (slider.step) num.step = slider.step;
+  num.value = slider.value;
+  if (width) num.style.width = width;
+  slider.addEventListener('input', () => { num.value = slider.value; });
+  num.addEventListener('input', () => {
+    if (num.value === '' || num.value === '-') return;
+    let v = parseFloat(num.value);
+    if (!Number.isFinite(v)) return;
+    const lo = parseFloat(slider.min);
+    const hi = parseFloat(slider.max);
+    if (Number.isFinite(lo)) v = Math.max(lo, v);
+    if (Number.isFinite(hi)) v = Math.min(hi, v);
+    slider.value = String(v);
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  if (insertAfter && slider.parentNode) {
+    if (slider.nextSibling) slider.parentNode.insertBefore(num, slider.nextSibling);
+    else slider.parentNode.appendChild(num);
+  }
+  return num;
+}
+
+// Convenience wrapper for fully-dynamic rows (per-fold sliders today; future
+// transform sliders in PR B). Builds a complete .slider-row with label +
+// range + number, wires bidirectional binding, and exposes the slider for
+// caller-owned listeners. `dataset` keys are copied onto the row (notably
+// `pathId` + `defaultAngle` for per-fold rows so save-pose + reset-button
+// + global-fold slider keep working).
+function createSliderRow({ label, min, max, step, value, dataset, labelTitle, labelStyle }) {
+  const row = document.createElement('div');
+  row.className = 'slider-row';
+  if (dataset) for (const k of Object.keys(dataset)) row.dataset[k] = String(dataset[k]);
+
+  const lab = document.createElement('label');
+  lab.style.cssText = labelStyle || 'min-width:90px;font-size:11px;overflow:hidden;text-overflow:ellipsis';
+  lab.textContent = label;
+  if (labelTitle) lab.title = labelTitle;
+  row.appendChild(lab);
+
+  const slider = document.createElement('input');
+  slider.type = 'range';
+  slider.min = String(min); slider.max = String(max);
+  slider.step = String(step); slider.value = String(value);
+  row.appendChild(slider);
+
+  const num = attachNumberInput(slider, { insertAfter: true });
+  return { row, slider, num };
+}
 
 // ─── Parsed data (set by parseSVG, read by renderScene) ──────────────────────
 let parsed = null;
@@ -250,6 +405,14 @@ const pieceDropdown   = document.getElementById('piece-dropdown');
 const dumpFaceGraphBtn          = document.getElementById('dumpFaceGraphBtn');
 const toggleFaceGraphOverlayBtn = document.getElementById('toggleFaceGraphOverlayBtn');
 let   allPieceEntries = []; // [{id, notes}] sorted by piece number; populated async
+
+// Augment static-HTML sliders (thickness, rotation, global-fold) with paired
+// number inputs (Task 2 / DECISIONS #13). The existing .val spans stay as
+// unit displays ("0.4 mm", "0°", "0%"); the number input handles direct text
+// entry. Bidirectional binding is wired by attachNumberInput.
+attachNumberInput(thickSlider);
+attachNumberInput(rotateSlider);
+attachNumberInput(document.getElementById('globalFoldSlider'));
 
 // Piece-id loader: tracks the canonical piece currently displayed (set by
 // loadPieceById, cleared back to null by drag-drop / file-picker paths so
@@ -298,7 +461,70 @@ function initScene() {
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
+  // Camera locked by default (DECISIONS #13). Toggle re-enables.
+  controls.enabled = false;
   controls.addEventListener('change', requestRender);
+
+  // ── Bench environment (worktable + world axes) ─────────────────────────────
+  // Worktable is a flat dark plane; positioned per-load against the piece
+  // bbox in positionWorktableForPiece(). World axes always at origin.
+  const worktableGeo = new THREE.PlaneGeometry(1000, 1000);
+  worktableGeo.rotateX(-Math.PI / 2);   // XZ plane, normal = +Y
+  const worktableMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a, roughness: 0.9, metalness: 0
+  });
+  worktableMesh = new THREE.Mesh(worktableGeo, worktableMat);
+  worktableMesh.position.set(0, -50, 0);   // sensible default until first load
+  scene.add(worktableMesh);
+
+  worldAxesHelper = new THREE.AxesHelper(50);   // mm
+  scene.add(worldAxesHelper);
+
+  // ── TransformControls (click-drag-on-piece) ────────────────────────────────
+  // Active only when (a) camera is locked AND (b) a piece is loaded. Visibility
+  // and attach/detach are managed by attachTransformToCurrentPiece /
+  // detachTransform. Drag gates OrbitControls so a free-camera drag on a
+  // gizmo arrow doesn't double-respond.
+  if (typeof THREE.TransformControls === 'function') {
+    transformControls = new THREE.TransformControls(camera, renderer.domElement);
+    transformControls.setSize(0.8);
+    transformControls.setMode('translate');
+    transformControls.visible = false;   // shown after attach
+    transformControls.enabled = false;
+    transformControls.addEventListener('change', requestRender);
+    transformControls.addEventListener('dragging-changed', (ev) => {
+      controls.enabled = !ev.value && !cameraLocked;
+    });
+    scene.add(transformControls);
+  } else {
+    console.warn('[preview.html] THREE.TransformControls not loaded — click-drag-on-piece disabled.');
+  }
+
+  // ── Corner axes gizmo (own scene + camera; rendered after main) ────────────
+  gizmoScene = new THREE.Scene();
+  gizmoScene.add(new THREE.AxesHelper(1));
+  gizmoCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+  gizmoCamera.position.set(0, 0, 3);
+
+  // ── Keybindings (R = rotate, T = translate, Shift = snap) ──────────────────
+  // Snap is held while shift is down; reset on keyup. R/T are one-shots.
+  // Ignored when typing into the piece-id input (or any text field) so users
+  // can type "07R" without flipping the gizmo mode.
+  window.addEventListener('keydown', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    if (e.key === 'r' || e.key === 'R') { setTransformMode('rotate');    e.preventDefault(); }
+    else if (e.key === 't' || e.key === 'T') { setTransformMode('translate'); e.preventDefault(); }
+    else if (e.key === 'Shift' && transformControls) {
+      transformControls.setRotationSnap(THREE.MathUtils.degToRad(15));
+      transformControls.setTranslationSnap(5);
+    }
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'Shift' && transformControls) {
+      transformControls.setRotationSnap(null);
+      transformControls.setTranslationSnap(null);
+    }
+  });
 
   window.addEventListener('resize', onResize);
   onResize();
@@ -308,7 +534,26 @@ function initScene() {
     // controls.update() returns true while damping is still settling.
     const damping = controls.update();
     if (needsRender || damping) {
+      // Main scene
       renderer.render(scene, camera);
+      // Corner gizmo: mirror camera direction (NOT translation), render into
+      // a small bottom-right viewport on top. Scissor keeps clears local.
+      if (gizmoScene && gizmoCamera) {
+        const dir = camera.position.clone().sub(controls.target).normalize();
+        gizmoCamera.position.copy(dir.multiplyScalar(3));
+        gizmoCamera.up.copy(camera.up);
+        gizmoCamera.lookAt(0, 0, 0);
+        const sz  = renderer.getSize(new THREE.Vector2());
+        const sci = renderer.getScissorTest();
+        renderer.setScissorTest(true);
+        renderer.setViewport(sz.x - GIZMO_SIZE - GIZMO_MARGIN, GIZMO_MARGIN, GIZMO_SIZE, GIZMO_SIZE);
+        renderer.setScissor (sz.x - GIZMO_SIZE - GIZMO_MARGIN, GIZMO_MARGIN, GIZMO_SIZE, GIZMO_SIZE);
+        renderer.clearDepth();
+        renderer.render(gizmoScene, gizmoCamera);
+        renderer.setViewport(0, 0, sz.x, sz.y);
+        renderer.setScissor (0, 0, sz.x, sz.y);
+        renderer.setScissorTest(sci);
+      }
       needsRender = false;
     }
   })();
@@ -320,6 +565,150 @@ function onResize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  requestRender();
+}
+
+// ─── PR A interaction helpers (DECISIONS #13) ────────────────────────────────
+
+// Re-parent the just-loaded piece's pivot + axle wires into a single
+// THREE.Group (`currentPieceGroup`) so TransformControls can attach to one
+// handle. Callable at the end of any single-piece render path
+// (renderScene cut-line-first, renderPanelsFirstScene single-piece).
+// Three.js .add() automatically detaches a child from its previous parent,
+// so re-parenting from `scene` to `pg` is safe.
+function wrapForTransform() {
+  if (currentPieceGroup) {
+    scene.remove(currentPieceGroup);
+    currentPieceGroup = null;
+  }
+  if (!currentSlabPivot) return;
+  const pg = new THREE.Group();
+  pg.add(currentSlabPivot);
+  for (const w of currentAxleWires) pg.add(w);
+  scene.add(pg);
+  currentPieceGroup = pg;
+  attachTransformToCurrentPiece();
+  positionWorktableForPiece();
+}
+
+// Position the worktable plane just below the piece's lowest world-space Y.
+// Called after wrapForTransform so the piece is fully in scene + grouped.
+function positionWorktableForPiece() {
+  if (!worktableMesh) return;
+  if (!currentPieceGroup) {
+    worktableMesh.position.set(0, -50, 0);
+    return;
+  }
+  const bbox = new THREE.Box3().setFromObject(currentPieceGroup);
+  if (!isFinite(bbox.min.y)) {
+    worktableMesh.position.set(0, -50, 0);
+    return;
+  }
+  worktableMesh.position.set(0, bbox.min.y - 5, 0);
+  requestRender();
+}
+
+// Attach TransformControls to the current piece group. Visibility +
+// enabled-state are gated on cameraLocked (locked → TC active; free → TC
+// hidden so OrbitControls owns the drag). Called from wrapForTransform on
+// piece load and from setCameraLocked when the toggle flips.
+function attachTransformToCurrentPiece() {
+  if (!transformControls) return;
+  if (!currentPieceGroup || !cameraLocked) {
+    detachTransform();
+    return;
+  }
+  transformControls.attach(currentPieceGroup);
+  transformControls.setMode(xformMode);
+  transformControls.visible = true;
+  transformControls.enabled = true;
+  updateXformIndicator();
+  requestRender();
+}
+
+function detachTransform() {
+  if (!transformControls) return;
+  transformControls.detach();
+  transformControls.visible = false;
+  transformControls.enabled = false;
+  updateXformIndicator();
+  requestRender();
+}
+
+function setTransformMode(mode) {
+  if (mode !== 'translate' && mode !== 'rotate') return;
+  xformMode = mode;
+  if (transformControls && transformControls.object) {
+    transformControls.setMode(mode);
+    requestRender();
+  }
+  updateXformIndicator();
+}
+
+function updateXformIndicator() {
+  const ind = document.getElementById('xformModeIndicator');
+  if (!ind) return;
+  const visible = !!(transformControls && transformControls.object && cameraLocked);
+  ind.hidden = !visible;
+  if (visible) {
+    ind.querySelector('strong').textContent = xformMode;
+  }
+}
+
+// Reset camera to head-on (looking down +Z at the piece origin). Used both
+// at load time and when the camera toggle flips back to locked.
+function resetCameraHeadOn() {
+  // Use existing dist if camera was already framed; otherwise fall back to a
+  // sensible default scaled by the piece bbox.
+  let dist = camera.position.length();
+  if (!Number.isFinite(dist) || dist < 1) {
+    if (currentPieceGroup) {
+      const bb = new THREE.Box3().setFromObject(currentPieceGroup);
+      const sz = bb.getSize(new THREE.Vector3());
+      const diag = Math.hypot(sz.x, sz.y, sz.z) || 100;
+      dist = (diag / 2) / Math.tan(camera.fov * Math.PI / 360) * 1.3;
+    } else {
+      dist = 100;
+    }
+  }
+  camera.position.set(0, 0, dist);
+  camera.up.set(0, 1, 0);
+  controls.target.set(0, 0, 0);
+  camera.lookAt(0, 0, 0);
+  controls.update();
+  requestRender();
+}
+
+function setCameraLocked(locked) {
+  cameraLocked = !!locked;
+  controls.enabled = !cameraLocked;
+  const btn = document.getElementById('cameraToggleBtn');
+  if (btn) {
+    btn.textContent = cameraLocked ? 'Camera locked' : 'Camera free';
+    btn.classList.toggle('free', !cameraLocked);
+  }
+  if (cameraLocked) {
+    resetCameraHeadOn();
+    attachTransformToCurrentPiece();
+  } else {
+    detachTransform();
+  }
+}
+
+function setMode(mode) {
+  if (mode !== 'bench' && mode !== 'cluster') return;
+  currentMode = mode;
+  document.body.classList.toggle('mode-bench', mode === 'bench');
+  document.body.classList.toggle('mode-cluster', mode === 'cluster');
+  const benchBtn = document.getElementById('modeBenchBtn');
+  const clusterBtn = document.getElementById('modeClusterBtn');
+  if (benchBtn)   { benchBtn.classList.toggle('active', mode === 'bench');   benchBtn.setAttribute('aria-selected', mode === 'bench'); }
+  if (clusterBtn) { clusterBtn.classList.toggle('active', mode === 'cluster'); clusterBtn.setAttribute('aria-selected', mode === 'cluster'); }
+  if (mode === 'cluster') {
+    detachTransform();   // hide gizmo over the stub overlay
+  } else {
+    attachTransformToCurrentPiece();
+  }
   requestRender();
 }
 
@@ -548,6 +937,11 @@ async function loadScene(rawIds) {
 // only panels-first pieces participate in scene mode in v0.
 async function renderSceneMulti(parsedArray) {
   // ── 1. Tear down whatever's currently in the scene ────────────────────────
+  // PR A: TransformControls / pieceGroup wrapper teardown. detach() unbinds
+  // the gizmo; scene.remove(pieceGroup) drops the wrapper. The pivot/wires
+  // disposed below traverse from inside the (now-detached) wrapper.
+  if (transformControls) transformControls.detach();
+  if (currentPieceGroup) { scene.remove(currentPieceGroup); currentPieceGroup = null; }
   if (currentSlabPivot) {
     scene.remove(currentSlabPivot);
     currentSlabPivot.traverse(obj => {
@@ -1224,6 +1618,12 @@ function parseSVG(text, filename) {
     }
   }
 
+  // Interior holes from <g id="cutouts">. Empty array if absent. buildSlab
+  // attaches these as THREE.Path holes on the front+back ShapeGeometry,
+  // filtered per-slab by point-in-polygon containment so panels-first pieces
+  // route each cutout into the panel that contains it.
+  const cutouts = extractCutoutsFromLayer({ _svgText: text });
+
   return {
     filename, viewBox,
     scanPng, scanWidth, scanHeight, imageScale,
@@ -1233,6 +1633,7 @@ function parseSVG(text, filename) {
     north,         // {x, y} in viewBox coords, or null if no orientation marker authored
     rootCentroid,
     thicknessMm, thicknessDefault: thicknessMm, thicknessSource,
+    cutouts,          // Array<Polygon> in viewBox coords (settled DECISIONS #13)
     panelsFirst,      // null = cut-line-first; non-null = panels-first parsed bundle
     _svgText: text,   // kept for silhouette fallback path parsing
     _polygons: null,  // cached silhouette polygon array (set by renderScene)
@@ -1432,7 +1833,9 @@ function derivePPM(p, callback) {
 //     id="cutaway"   or id="cutaway-N"  → silhouette polygon
 //     id="mask"      or id="mask-N"     → visual authoring frame, ignored
 //     anything else                     → unrecognised, console.warn
-//   <g id="cutouts"> is a SIBLING layer (interior holes); v1a-fix does NOT consume it.
+//   <g id="cutouts"> is a SIBLING layer (interior holes); PR A consumes it as
+//   THREE.Shape holes on the front+back ShapeGeometry — see DECISIONS #13 +
+//   extractCutoutsFromLayer below.
 //
 // Returns array of polygon arrays ([[vx,vy][])[]) or null if layer absent / no cutaways found.
 function extractSilhouetteFromLayer(p) {
@@ -1488,6 +1891,61 @@ function extractSilhouetteFromLayer(p) {
                 'simplified, area', polyArea(s).toFixed(0), 'units² (source: layer)');
     return s;
   });
+}
+
+// Tier-1 interior holes: the authored <g id="cutouts"> SIBLING layer.
+// Convention (settled 2026-05-02; consumed PR A per DECISIONS #13):
+//   inside <g id="cutouts">:
+//     id="cutout"                          → single interior hole
+//     id="cutout-1", id="cutout-2", ...    → multi-hole; one polygon per id
+// Polygons are returned in the same SVG (viewBox) coords as the silhouette;
+// buildSlab applies the same Y-flip + MM_PER_UNIT scaling when attaching them
+// as THREE.Path holes on the front/back ShapeGeometry.
+//
+// Returns an array of polygon arrays ([[vx,vy], ...]). Empty array if the
+// layer is absent or contains nothing parseable. Banner-warns on partial
+// failures so authoring misses surface; clean absence is silent.
+function extractCutoutsFromLayer(p) {
+  const dom = new DOMParser().parseFromString(p._svgText, 'image/svg+xml');
+  const layer = dom.querySelector('g#cutouts');
+  if (!layer) return [];
+
+  const cutoutRe = /^cutout(-\d+)?$/;
+  const polys = [];
+  let unrecognisedCount = 0;
+  let foundAny = false;
+
+  // querySelectorAll('*') walks descendants in document order — transparently
+  // handles Affinity's unnamed wrapper <g> elements.
+  for (const el of layer.querySelectorAll('*')) {
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'g') continue;  // structural wrapper; descendants iterated separately
+
+    const id = el.getAttribute('id') || '';
+    if (cutoutRe.test(id)) {
+      foundAny = true;
+      const poly = shapeToPolygon(el);
+      if (poly && poly.length >= 3) {
+        const s = rdp(poly, 1.0);
+        polys.push({ id, polygon: s });
+        console.log('[preview.html] Cutout: from <g id="cutouts"> #' + id + ',',
+                    poly.length, 'verts →', s.length,
+                    'simplified, area', polyArea(s).toFixed(0), 'units²');
+      } else {
+        addBanner(`<g id="cutouts"> #${id} could not be parsed as a closed polygon — skipping.`, 'warn');
+      }
+    } else {
+      unrecognisedCount++;
+      console.warn('[preview.html] <g id="cutouts"> contains <' + tag + '>' +
+                   (id ? ' id="' + id + '"' : '') +
+                   ' — unrecognised, ignoring. Use id="cutout" / "cutout-N".');
+    }
+  }
+
+  if (!foundAny) {
+    addBanner('<g id="cutouts"> present but no <path id="cutout">/cutout-N inside.', 'warn');
+  }
+  return polys.map(c => c.polygon);
 }
 
 // Convert a leaf shape element to [[vx, vy], ...] in its own local viewBox coords.
@@ -2848,7 +3306,7 @@ async function renderPanelsFirstScene(p, options = {}) {
   // centered at the polygon's bbox center in 3js space).
   const slabMap = new Map();
   for (const [id, panel] of pf.panels) {
-    slabMap.set(id, buildSlab(panel.polygon, T));
+    slabMap.set(id, buildSlab(panel.polygon, T, p.cutouts));
   }
 
   // Group descriptive curved folds by host panel = panel whose centroid is
@@ -3112,30 +3570,31 @@ async function renderPanelsFirstScene(p, options = {}) {
       }
       if (sceneMode && pieceIdPrefix) displayLabel = pieceIdPrefix + ':' + displayLabel;
 
-      const row = document.createElement('div');
-      row.className = 'slider-row';
-      row.dataset.pathId = pid;
-      row.dataset.defaultAngle = defAngle;
-      const curvedBadge = isCurved
-        ? ' <span title="Descriptive curved fold — approximate visual sketch only" ' +
-          'style="color:#fc6;font-size:10px">≈</span>'
-        : '';
-      const initialDisplay = initialValue.toFixed(0);
-      row.innerHTML =
-        '<label style="min-width:90px;font-size:11px;overflow:hidden;text-overflow:ellipsis" ' +
-          'title="' + displayLabel + (isCurved ? ' (curved fold; v0 sketch)' : '') + '">' + displayLabel + '</label>' +
-        '<input type="range" min="-180" max="180" step="1" value="' + initialValue + '">' +
-        '<span class="val">' + initialDisplay + '°</span>' +
-        '<span style="color:#666;font-size:10px;min-width:22px">×' + items.length + '</span>' +
-        '<span title="Assembled angle' + (isAuthored ? ' (authored in id)' : ' (layer default)') +
-          '" style="color:' + (isAuthored ? '#8cf' : '#666') +
-          ';font-size:10px;min-width:36px;text-align:right;flex-shrink:0">→' +
-          (defAngle > 0 ? '+' : '') + defAngle + '°</span>' +
-        curvedBadge;
+      const { row, slider } = createSliderRow({
+        label: displayLabel,
+        labelTitle: displayLabel + (isCurved ? ' (curved fold; v0 sketch)' : ''),
+        min: -180, max: 180, step: 1, value: initialValue,
+        dataset: { pathId: pid, defaultAngle: defAngle }
+      });
+      const xN = document.createElement('span');
+      xN.style.cssText = 'color:#666;font-size:10px;min-width:22px';
+      xN.textContent = '×' + items.length;
+      row.appendChild(xN);
+      const degBadge = document.createElement('span');
+      degBadge.title = 'Assembled angle' + (isAuthored ? ' (authored in id)' : ' (layer default)');
+      degBadge.style.cssText = 'color:' + (isAuthored ? '#8cf' : '#666') +
+        ';font-size:10px;min-width:36px;text-align:right;flex-shrink:0';
+      degBadge.textContent = '→' + (defAngle > 0 ? '+' : '') + defAngle + '°';
+      row.appendChild(degBadge);
+      if (isCurved) {
+        const cb = document.createElement('span');
+        cb.title = 'Descriptive curved fold — approximate visual sketch only';
+        cb.style.cssText = 'color:#fc6;font-size:10px';
+        cb.textContent = '≈';
+        row.appendChild(cb);
+      }
       perFoldSliders.appendChild(row);
 
-      const slider  = row.querySelector('input');
-      const valSpan = row.querySelector('.val');
       // Drive the fold rotation immediately so the piece appears in its
       // assembled (or authored-default) pose at load time. Skip when the
       // initial is exactly 0 — the at-rest pose is already correct.
@@ -3153,7 +3612,6 @@ async function renderPanelsFirstScene(p, options = {}) {
       }
       slider.addEventListener('input', () => {
         const deg = parseFloat(slider.value);
-        valSpan.textContent = deg.toFixed(0) + '°';
         for (const item of items) {
           if (item.mode === 'fold') {
             item.target.quaternion.setFromAxisAngle(
@@ -3249,6 +3707,11 @@ async function renderPanelsFirstScene(p, options = {}) {
   if (dumpFaceGraphBtn)          dumpFaceGraphBtn.disabled = true;
   if (toggleFaceGraphOverlayBtn) toggleFaceGraphOverlayBtn.disabled = true;
 
+  // PR A: wrap pivot + axle wires in a pieceGroup so TransformControls can
+  // grab the whole piece, place the worktable backdrop relative to the
+  // bbox, and re-attach the gizmo. Single-piece mode only.
+  if (!sceneMode) wrapForTransform();
+
   return sceneMode ? sceneGroup : null;
 }
 
@@ -3294,6 +3757,9 @@ async function renderScene(p) {
   // dispose textures shared across pieces). Disposing the material releases
   // the JS-side reference; the GPU upload is freed when the texture itself is
   // disposed (next time the cache is rebuilt with a different scanPng).
+  // PR A: TransformControls / pieceGroup wrapper teardown (DECISIONS #13).
+  if (transformControls) transformControls.detach();
+  if (currentPieceGroup) { scene.remove(currentPieceGroup); currentPieceGroup = null; }
   if (currentSlabPivot) {
     scene.remove(currentSlabPivot);
     currentSlabPivot.traverse(obj => {
@@ -3412,7 +3878,7 @@ async function renderScene(p) {
     // Build one slab per region, then assemble hinge hierarchy.
     const slabMap = new Map(); // regionId → THREE.Group
     for (const [rId, region] of faceGraph.regions) {
-      slabMap.set(rId, buildSlab(region.polygon, T));
+      slabMap.set(rId, buildSlab(region.polygon, T, p.cutouts));
     }
 
     // Position root slab inside the pivot.
@@ -3538,7 +4004,7 @@ async function renderScene(p) {
     // Multi-cutaway: build one flat slab per disconnected piece, positioned at its centroid.
     for (const poly of polys) {
       const bb = polyBbox(poly);
-      const slab = buildSlab(poly, T);
+      const slab = buildSlab(poly, T, p.cutouts);
       slab.position.set(
         (bb.cx - silBbox.cx) * MM_PER_UNIT - (activeAxle3js ? activeAxle3js.x : 0),
         -(bb.cy - silBbox.cy) * MM_PER_UNIT - (activeAxle3js ? activeAxle3js.y : 0),
@@ -3551,7 +4017,7 @@ async function renderScene(p) {
   } else {
     // Single-slab fallback (v1a behaviour)
     const poly = polys[0];
-    const slab = buildSlab(poly, T);
+    const slab = buildSlab(poly, T, p.cutouts);
     if (activeAxle3js) {
       slab.position.set(-activeAxle3js.x, -activeAxle3js.y, 0);
     }
@@ -3618,24 +4084,28 @@ async function renderScene(p) {
         `style="color:${isAuthored ? '#8cf' : '#666'};font-size:10px;min-width:36px;` +
         `text-align:right;flex-shrink:0">→${defAngle > 0 ? '+' : ''}${defAngle}°</span>`;
 
-      const row = document.createElement('div');
-      row.className = 'slider-row';
-      row.dataset.pathId = pid;
-      row.dataset.defaultAngle = defAngle;
-      row.innerHTML =
-        `<label style="min-width:90px;font-size:11px;overflow:hidden;text-overflow:ellipsis" ` +
-        `title="${isAuthored ? 'Assembled angle authored in SVG id' : 'Layer default angle — add fold±N id to author'}">${pid}</label>` +
-        `<input type="range" min="-180" max="180" step="1" value="0">` +
-        `<span class="val">0°</span>` +
-        `<span style="color:#666;font-size:10px;min-width:22px">×${hingeCount}</span>` +
-        assembledBadge;
+      const { row, slider } = createSliderRow({
+        label: pid,
+        labelTitle: isAuthored
+          ? 'Assembled angle authored in SVG id'
+          : 'Layer default angle — add fold±N id to author',
+        min: -180, max: 180, step: 1, value: 0,
+        dataset: { pathId: pid, defaultAngle: defAngle }
+      });
+      const xN = document.createElement('span');
+      xN.style.cssText = 'color:#666;font-size:10px;min-width:22px';
+      xN.textContent = '×' + hingeCount;
+      row.appendChild(xN);
+      // assembledBadge is already an HTML string; wrap in a fragment so we
+      // append a real element rather than mutating innerHTML on the row
+      // (which would discard the listeners attachNumberInput just bound).
+      const badgeWrap = document.createElement('span');
+      badgeWrap.innerHTML = assembledBadge;
+      while (badgeWrap.firstChild) row.appendChild(badgeWrap.firstChild);
       perFoldSliders.appendChild(row);
 
-      const slider = row.querySelector('input');
-      const valSpan = row.querySelector('.val');
       slider.addEventListener('input', () => {
         const deg = parseFloat(slider.value);
-        valSpan.textContent = deg.toFixed(0) + '°';
         const hinges = pathHingeMap.get(pid) || [];
         for (const h of hinges) {
           // signFwd encodes which direction "toward viewer" is for this hinge.
@@ -3714,16 +4184,25 @@ async function renderScene(p) {
   // Re-enable diagnostics buttons if a face graph is now available.
   if (dumpFaceGraphBtn)          dumpFaceGraphBtn.disabled          = !faceGraph;
   if (toggleFaceGraphOverlayBtn) toggleFaceGraphOverlayBtn.disabled = !faceGraph;
+
+  // PR A: pieceGroup wrap + worktable placement + TC attach (DECISIONS #13).
+  wrapForTransform();
 }
 
 // ─── buildSlab ────────────────────────────────────────────────────────────────
 // Takes polygon (array of [vx, vy] in viewBox coords) and thicknessMm.
+// Optional cutoutPolygons: candidate interior-hole polygons (viewBox coords);
+// each is included as a THREE.Path hole on the front+back ShapeGeometry only
+// if its centroid lies inside `polygon` (so panels-first pieces route each
+// cutout to the right panel-slab; cut-line-first single-slab gets all of them).
 // Returns THREE.Group with:
 //   - frontMesh: ShapeGeometry at z=+T/2, scan texture, custom UVs
 //   - backMesh:  ShapeGeometry at z=-T/2, cream, BackSide (visible from -Z, no rotation)
 //   - sideMesh:  custom BufferGeometry connecting front and back edges, cream DoubleSide
-// v1b calls this N times — once per cut panel polygon — without modification.
-function buildSlab(polygon, thicknessMm) {
+//                (interior-hole side walls are NOT generated in v0 — front/back
+//                 holes line up so you see straight through; acceptable on
+//                 cardstock-thin slabs where the side-wall is barely visible.)
+function buildSlab(polygon, thicknessMm, cutoutPolygons) {
   // T is in three.js units (= mm). thicknessMm is already mm; MM_PER_UNIT is
   // the vb-units → mm scale and applies only to the XY conversions below.
   const T = thicknessMm;
@@ -3736,6 +4215,26 @@ function buildSlab(polygon, thicknessMm) {
   for (let i = 1; i < polygon.length; i++) {
     const [vx, vy] = polygon[i];
     shape.lineTo((vx - bb.cx) * MM_PER_UNIT, -(vy - bb.cy) * MM_PER_UNIT);
+  }
+
+  // Interior holes (Task 1 / DECISIONS #13). Filter cutouts to those whose
+  // centroid sits inside this slab's outer polygon — keeps panels-first pieces
+  // from cross-attaching a hole to the wrong panel; on cut-line-first single-
+  // slab pieces every cutout's centroid is inside the silhouette so all match.
+  if (cutoutPolygons && cutoutPolygons.length > 0) {
+    for (const cpoly of cutoutPolygons) {
+      if (!cpoly || cpoly.length < 3) continue;
+      const cbb = polyBbox(cpoly);
+      if (!pointInPolygon(cbb.cx, cbb.cy, polygon)) continue;
+      const hole = new THREE.Path();
+      const [hx0, hy0] = cpoly[0];
+      hole.moveTo((hx0 - bb.cx) * MM_PER_UNIT, -(hy0 - bb.cy) * MM_PER_UNIT);
+      for (let i = 1; i < cpoly.length; i++) {
+        const [hx, hy] = cpoly[i];
+        hole.lineTo((hx - bb.cx) * MM_PER_UNIT, -(hy - bb.cy) * MM_PER_UNIT);
+      }
+      shape.holes.push(hole);
+    }
   }
 
   // Materials
@@ -4276,9 +4775,24 @@ function logFaceGraphSummary(diag) {
   console.groupEnd();
 }
 
+// ─── Top-bar wiring (Bench/Cluster mode toggle + Camera lock toggle) ────────
+// PR A scaffold (DECISIONS #13). Bench is the existing single-piece flow;
+// Cluster is a stub until PR C lands. Camera-lock toggle gates OrbitControls
+// behind a click; default is locked, click-drag-on-piece via TransformControls.
+{
+  const benchBtn   = document.getElementById('modeBenchBtn');
+  const clusterBtn = document.getElementById('modeClusterBtn');
+  const cameraBtn  = document.getElementById('cameraToggleBtn');
+  if (benchBtn)   benchBtn  .addEventListener('click', () => setMode('bench'));
+  if (clusterBtn) clusterBtn.addEventListener('click', () => setMode('cluster'));
+  if (cameraBtn)  cameraBtn .addEventListener('click', () => setCameraLocked(!cameraLocked));
+}
+
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 initScene();
 setupFaceGraphDiagnostics();
+// Initialise mode + camera state to default (Bench, camera locked).
+document.body.classList.add('mode-bench');
 
 // Best-effort autocomplete population (silent on file://).
 populatePieceDatalist();

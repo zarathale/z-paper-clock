@@ -1,9 +1,9 @@
 ---
-status: draft
+status: ready-for-code
 started: 2026-05-09
 owner: Zarathale (Alan)
 target: preview-html-bench-transform
-blocked_by: CODE_PROMPT_preview-html-bench-cluster-foundation.md (PR A must ship first)
+unblocked_by: _archive/code-prompts/CODE_PROMPT_preview-html-bench-cluster-foundation.md (PR A shipped 2026-05-10)
 ---
 
 # CODE_PROMPT — preview.html Bench mode transform capture (PR B of three)
