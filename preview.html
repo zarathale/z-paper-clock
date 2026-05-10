@@ -227,6 +227,18 @@ body.mode-cluster #reloadPieceBtn { opacity:0.4; pointer-events:none; }
     </div>
   </div>
 
+  <!-- PR B (DECISIONS #13): per-piece transform capture. Bench mode only;
+       hidden in cluster mode and while in scene mode. -->
+  <div id="transform-panel" hidden>
+    <div style="font-size:11px;color:#aaa;margin-bottom:4px;">
+      <strong>Transform</strong>
+      <span id="transform-origin-badge" style="margin-left:6px;color:#8cf;"></span>
+      <span id="transform-frame-badge"  style="margin-left:6px;color:#bd8;"></span>
+    </div>
+    <div id="transform-sliders"></div>
+    <button id="resetTransformBtn" style="margin-top:4px;">Reset transform</button>
+  </div>
+
   <div id="thickness-section">
     <div class="slider-row">
       <label>Thickness</label>
@@ -281,6 +293,21 @@ let currentAxleWires = [];
 // has a single Object3D handle for the whole piece. Cleared and re-created on
 // every fresh single-piece load.
 let currentPieceGroup = null;
+// PR B (DECISIONS #13): inner group holds the actual piece geometry (pivot +
+// axle wires) and is offset by -origin3js so the piece's natural rotation
+// origin (pivot-anchor > axles[0] > centroid) sits at pieceGroup's local
+// (0,0,0). TransformControls then rotates/translates pieceGroup around that
+// origin instead of the geometric center. Single-piece mode only.
+let currentPieceInnerGroup = null;
+// {kind: 'pivot-anchor'|'axles[0]'|'centroid', vbX, vbY} for the active piece.
+let currentPieceOrigin = null;
+// 3js-space {x, y} = (vb origin - silBbox center) * MM_PER_UNIT (Y-flipped).
+let currentPieceOrigin3js = null;
+// Cluster name for the active piece, or null if it's not in any pivot_cluster.
+let currentPieceCluster = null;
+// Sidecar-loaded assembled.transform for the active piece, or null. Applied
+// to pieceGroup right after wrapForTransform.
+let currentAssembledTransform = null;
 // Permanent scene fixtures (created once in initScene; kept across loads).
 let worktableMesh   = null;
 let worldAxesHelper = null;
@@ -492,6 +519,10 @@ function initScene() {
     transformControls.visible = false;   // shown after attach
     transformControls.enabled = false;
     transformControls.addEventListener('change', requestRender);
+    // PR B: bidirectional sync — TC drag pushes pieceGroup.pos/rot into the
+    // Transform panel sliders. Slider→TC direction is implicit (slider 'input'
+    // writes pieceGroup, TC re-renders against it on next change/render).
+    transformControls.addEventListener('change', onTransformControlsChange);
     transformControls.addEventListener('dragging-changed', (ev) => {
       controls.enabled = !ev.value && !cameraLocked;
     });
@@ -576,19 +607,36 @@ function onResize() {
 // (renderScene cut-line-first, renderPanelsFirstScene single-piece).
 // Three.js .add() automatically detaches a child from its previous parent,
 // so re-parenting from `scene` to `pg` is safe.
+//
+// PR B (DECISIONS #13): an INNER group sits between pieceGroup and the
+// pivot+wires, offset by -origin3js so pieceGroup's local (0,0,0) IS the
+// piece's natural rotation origin. TransformControls is attached to
+// pieceGroup so its rotate handles emanate from that origin point.
 function wrapForTransform() {
   if (currentPieceGroup) {
     scene.remove(currentPieceGroup);
     currentPieceGroup = null;
+    currentPieceInnerGroup = null;
   }
   if (!currentSlabPivot) return;
   const pg = new THREE.Group();
-  pg.add(currentSlabPivot);
-  for (const w of currentAxleWires) pg.add(w);
+  pg.rotation.order = 'XYZ';
+  const inner = new THREE.Group();
+  inner.add(currentSlabPivot);
+  for (const w of currentAxleWires) inner.add(w);
+  if (currentPieceOrigin3js) {
+    inner.position.set(-currentPieceOrigin3js.x, -currentPieceOrigin3js.y, 0);
+  }
+  pg.add(inner);
   scene.add(pg);
   currentPieceGroup = pg;
+  currentPieceInnerGroup = inner;
   attachTransformToCurrentPiece();
   positionWorktableForPiece();
+  // Apply sidecar-loaded assembled.transform (if any) before refreshing the
+  // panel — the panel reads pieceGroup.position/rotation to seed sliders.
+  applyAssembledTransformIfAny();
+  refreshTransformPanel();
 }
 
 // Position the worktable plane just below the piece's lowest world-space Y.
@@ -709,8 +757,222 @@ function setMode(mode) {
   } else {
     attachTransformToCurrentPiece();
   }
+  refreshTransformPanel();
   requestRender();
 }
+
+// ─── PR B helpers (DECISIONS #13) ────────────────────────────────────────────
+
+// Compute the piece's natural rotation origin in viewBox coords.
+// Precedence: `pivot-anchor` mark in attach-points > first axle line > centroid.
+// Centroid = union bbox center of panels (panels-first) or viewBox center
+// fallback (cut-line-first or no panels). Returns {vbX, vbY, kind}.
+function computePieceOrigin(p) {
+  if (p && p.panelsFirst && Array.isArray(p.panelsFirst.attachPoints)) {
+    const anchor = p.panelsFirst.attachPoints.find(ap => ap.id === 'pivot-anchor');
+    if (anchor && anchor.centroid) {
+      return { vbX: anchor.centroid.x, vbY: anchor.centroid.y, kind: 'pivot-anchor' };
+    }
+  }
+  if (p && Array.isArray(p.axles) && p.axles.length > 0) {
+    const a = p.axles[0];
+    return { vbX: a.cx, vbY: a.cy, kind: 'axles[0]' };
+  }
+  if (p && p.panelsFirst && p.panelsFirst.panels && p.panelsFirst.panels.size > 0) {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const panel of p.panelsFirst.panels.values()) {
+      const bb = panel.bbox;
+      if (bb.minX < minX) minX = bb.minX;
+      if (bb.maxX > maxX) maxX = bb.maxX;
+      if (bb.minY < minY) minY = bb.minY;
+      if (bb.maxY > maxY) maxY = bb.maxY;
+    }
+    return { vbX: (minX + maxX) / 2, vbY: (minY + maxY) / 2, kind: 'centroid' };
+  }
+  if (p && p.viewBox) {
+    return { vbX: p.viewBox.x + p.viewBox.w / 2,
+             vbY: p.viewBox.y + p.viewBox.h / 2, kind: 'centroid' };
+  }
+  return { vbX: 0, vbY: 0, kind: 'centroid' };
+}
+
+// Look up piece in connection-graph.json's pivot_clusters. The shape is
+// {clusterName: [pieceId, ...]} (flat); returns the cluster name or null.
+// Uses the existing connectionGraph cache populated at bootstrap.
+function findPieceCluster(pieceId) {
+  if (!connectionGraph || !connectionGraph.graph || !connectionGraph.graph.pivot_clusters) return null;
+  const pcs = connectionGraph.graph.pivot_clusters;
+  for (const [name, ids] of Object.entries(pcs)) {
+    if (Array.isArray(ids) && ids.includes(pieceId)) return name;
+  }
+  return null;
+}
+
+// Set currentPieceOrigin / currentPieceOrigin3js / currentPieceCluster from
+// the just-parsed piece + its silhouette bbox. Called from inside the render
+// pipeline (panels-first AND cut-line-first) before wrapForTransform runs so
+// the inner-group offset uses the right origin.
+function setCurrentPieceContext(p, silBbox) {
+  const o = computePieceOrigin(p);
+  currentPieceOrigin = { kind: o.kind, vbX: o.vbX, vbY: o.vbY };
+  currentPieceOrigin3js = {
+    x:  (o.vbX - silBbox.cx) * MM_PER_UNIT,
+    y: -(o.vbY - silBbox.cy) * MM_PER_UNIT
+  };
+  currentPieceCluster = currentPieceId ? findPieceCluster(currentPieceId) : null;
+}
+
+// Apply currentAssembledTransform to pieceGroup if loaded from the sidecar.
+// Origin-mismatch warning if the sidecar's `origin` field disagrees with the
+// auto-detected kind. Frame field is informational in Bench mode.
+function applyAssembledTransformIfAny() {
+  if (!currentPieceGroup || !currentAssembledTransform) return;
+  const t = currentAssembledTransform;
+  const tr = Array.isArray(t.translation) ? t.translation : [0, 0, 0];
+  const rd = Array.isArray(t.rotation_deg) ? t.rotation_deg : [0, 0, 0];
+  const order = (typeof t.rotation_order === 'string') ? t.rotation_order : 'XYZ';
+  currentPieceGroup.position.set(
+    Number(tr[0]) || 0, Number(tr[1]) || 0, Number(tr[2]) || 0
+  );
+  currentPieceGroup.rotation.set(
+    (Number(rd[0]) || 0) * Math.PI / 180,
+    (Number(rd[1]) || 0) * Math.PI / 180,
+    (Number(rd[2]) || 0) * Math.PI / 180,
+    order
+  );
+  if (t.origin && currentPieceOrigin && t.origin !== currentPieceOrigin.kind) {
+    addBanner(
+      `assembled.transform.origin "${t.origin}" differs from auto-detected ` +
+      `"${currentPieceOrigin.kind}" — applying transform anyway, but the ` +
+      `rotation pivot may not match what was authored.`,
+      'warn'
+    );
+  }
+  console.log(
+    '[panels-first] assembled.transform applied: translation=[' +
+      tr.join(', ') + '], rotation_deg=[' + rd.join(', ') +
+      '], frame=' + (t.frame || '<none>') + ', origin=' + (t.origin || '<none>')
+  );
+  requestRender();
+}
+
+// Tear down + rebuild the Transform panel's slider rows + badges from the
+// active piece's state. Called on every fresh load (via wrapForTransform),
+// on mode toggle, and when scene mode tears down single-piece state. Slider
+// values are seeded from currentPieceGroup.position/rotation so a sidecar-
+// loaded transform shows up in the inputs immediately.
+function refreshTransformPanel() {
+  const panel = document.getElementById('transform-panel');
+  if (!panel) return;
+  // Visibility: bench mode only, single piece loaded, panel populated.
+  const showPanel = (currentMode === 'bench') && !!currentPieceGroup;
+  panel.hidden = !showPanel;
+  if (!showPanel) return;
+
+  // Origin badge.
+  const ob = document.getElementById('transform-origin-badge');
+  if (ob) ob.textContent = 'Rotates around: ' + (currentPieceOrigin ? currentPieceOrigin.kind : '<unknown>');
+  // Frame badge.
+  const fb = document.getElementById('transform-frame-badge');
+  if (fb) {
+    fb.textContent = currentPieceCluster
+      ? `Frame: cluster (${currentPieceCluster})`
+      : 'Frame: world';
+  }
+
+  // Slider rows. Build once on first call; re-seed values on every refresh.
+  const host = document.getElementById('transform-sliders');
+  if (!host) return;
+  const pos = currentPieceGroup.position;
+  const rot = currentPieceGroup.rotation;
+  const seed = {
+    tx: pos.x, ty: pos.y, tz: pos.z,
+    rx: rot.x * 180 / Math.PI,
+    ry: rot.y * 180 / Math.PI,
+    rz: rot.z * 180 / Math.PI
+  };
+  if (host.children.length === 0) {
+    const specs = [
+      { key: 'tx', label: 'X (mm)',  min: -200, max: 200, step: 0.1 },
+      { key: 'ty', label: 'Y (mm)',  min: -200, max: 200, step: 0.1 },
+      { key: 'tz', label: 'Z (mm)',  min: -200, max: 200, step: 0.1 },
+      { key: 'rx', label: 'rX (°)',  min: -180, max: 180, step: 0.1 },
+      { key: 'ry', label: 'rY (°)',  min: -180, max: 180, step: 0.1 },
+      { key: 'rz', label: 'rZ (°)',  min: -180, max: 180, step: 0.1 }
+    ];
+    transformSliders = {};
+    for (const s of specs) {
+      const { row, slider } = createSliderRow({
+        label: s.label, min: s.min, max: s.max, step: s.step,
+        value: seed[s.key], dataset: { xformKey: s.key }
+      });
+      row.dataset.xformRow = '1';
+      host.appendChild(row);
+      transformSliders[s.key] = slider;
+      slider.addEventListener('input', onTransformSliderInput);
+    }
+  } else {
+    for (const k of Object.keys(transformSliders)) {
+      setSliderValueQuiet(transformSliders[k], seed[k]);
+    }
+  }
+}
+
+// Slider/input writer that does NOT fire 'input' on the slider so we don't
+// loop with TC's 'change' handler. Mirrors the value into the paired number
+// input (created by attachNumberInput in createSliderRow).
+function setSliderValueQuiet(slider, value) {
+  if (!slider) return;
+  const rounded = Math.round(value * 100) / 100;
+  slider.value = String(rounded);
+  // The paired number input is the next sibling per attachNumberInput's default.
+  const num = slider.nextSibling && slider.nextSibling.tagName === 'INPUT' ? slider.nextSibling : null;
+  if (num) num.value = String(rounded);
+}
+
+// Read all 6 transform sliders, push to pieceGroup.position + rotation. Bound
+// to each slider's 'input' event in refreshTransformPanel.
+function onTransformSliderInput() {
+  if (!currentPieceGroup || !transformSliders.tx) return;
+  currentPieceGroup.position.set(
+    parseFloat(transformSliders.tx.value) || 0,
+    parseFloat(transformSliders.ty.value) || 0,
+    parseFloat(transformSliders.tz.value) || 0
+  );
+  currentPieceGroup.rotation.set(
+    (parseFloat(transformSliders.rx.value) || 0) * Math.PI / 180,
+    (parseFloat(transformSliders.ry.value) || 0) * Math.PI / 180,
+    (parseFloat(transformSliders.rz.value) || 0) * Math.PI / 180,
+    'XYZ'
+  );
+  positionWorktableForPiece();
+  requestRender();
+}
+
+// TC drag handler. Throttle reads via requestAnimationFrame to avoid
+// over-rebuilding; setSliderValueQuiet does not re-fire 'input' so this is
+// safe against feedback. Bound to TC's 'change' event in initScene.
+let _xformSyncPending = false;
+function onTransformControlsChange() {
+  if (_xformSyncPending) return;
+  _xformSyncPending = true;
+  requestAnimationFrame(() => {
+    _xformSyncPending = false;
+    if (!currentPieceGroup || !transformSliders || !transformSliders.tx) return;
+    const p = currentPieceGroup.position;
+    const r = currentPieceGroup.rotation;
+    setSliderValueQuiet(transformSliders.tx, p.x);
+    setSliderValueQuiet(transformSliders.ty, p.y);
+    setSliderValueQuiet(transformSliders.tz, p.z);
+    setSliderValueQuiet(transformSliders.rx, r.x * 180 / Math.PI);
+    setSliderValueQuiet(transformSliders.ry, r.y * 180 / Math.PI);
+    setSliderValueQuiet(transformSliders.rz, r.z * 180 / Math.PI);
+    positionWorktableForPiece();
+  });
+}
+
+// Cache of slider DOM nodes built lazily by refreshTransformPanel.
+let transformSliders = {};
 
 // ─── Banner helpers ───────────────────────────────────────────────────────────
 function clearBanners() { bannersEl.innerHTML = ''; }
@@ -764,11 +1026,12 @@ function loadSvgFromString(text, opts = {}) {
   lastFilename = displayName;
 
   // Drag-drop / file-picker / cached-reload paths bypass the piece-id loader,
-  // so the assembled.folds map (loaded only by maybeLoadSidecar in the piece-id
-  // path) must be cleared here too. Otherwise a reload after drag-drop would
-  // leak the prior piece's saved pose into the new SVG's slider defaults.
+  // so sidecar state (loaded only by maybeLoadSidecar in the piece-id path)
+  // must be cleared here too. Otherwise a reload after drag-drop would leak
+  // the prior piece's saved pose into the new SVG's slider defaults.
   if (source === 'drag-drop' || source === 'file-picker' || source === 'cached-reload') {
     currentAssembledFolds = null;
+    currentAssembledTransform = null;
   }
 
   // Drag-drop / file-picker paths flip the dropzone to a "loaded" state with
@@ -894,10 +1157,15 @@ async function loadScene(rawIds) {
   // data.
   currentPieceId = null;
   currentAssembledFolds = null;
+  currentAssembledTransform = null;
+  currentPieceOrigin = null;
+  currentPieceOrigin3js = null;
+  currentPieceCluster = null;
   reloadPieceBtn.disabled = true;
   parsed = null;
   rotationSection.hidden = true;
   hideSidecarBlock();
+  refreshTransformPanel();   // hide the transform panel in scene mode
 
   // Fetch + parse each piece in parallel — the fetches are independent and
   // parseSVG is synchronous (image decode happens later, lazily).
@@ -941,7 +1209,7 @@ async function renderSceneMulti(parsedArray) {
   // the gizmo; scene.remove(pieceGroup) drops the wrapper. The pivot/wires
   // disposed below traverse from inside the (now-detached) wrapper.
   if (transformControls) transformControls.detach();
-  if (currentPieceGroup) { scene.remove(currentPieceGroup); currentPieceGroup = null; }
+  if (currentPieceGroup) { scene.remove(currentPieceGroup); currentPieceGroup = null; currentPieceInnerGroup = null; }
   if (currentSlabPivot) {
     scene.remove(currentSlabPivot);
     currentSlabPivot.traverse(obj => {
@@ -1145,9 +1413,12 @@ async function renderSceneMulti(parsedArray) {
 //   - `function` (gear / pinion metadata, settled 2026-04-30) → side-panel summary
 //   - `assembled.folds` (per-fold assembled pose, DECISIONS #11)  → currentAssembledFolds,
 //     read by renderPanelsFirstScene when building per-fold sliders
-// Silent on any fetch failure; both blocks are optional.
+//   - `assembled.transform` (per-piece pose, DECISIONS #13) → currentAssembledTransform,
+//     applied to pieceGroup right after wrapForTransform
+// Silent on any fetch failure; all blocks are optional.
 async function maybeLoadSidecar(id) {
-  currentAssembledFolds = null;  // reset before any async work
+  currentAssembledFolds = null;       // reset before any async work
+  currentAssembledTransform = null;
   const path = `work/pieces/${id}/${id}.json`;
   try {
     const r = await fetch(path + '?t=' + Date.now());
@@ -1158,6 +1429,10 @@ async function maybeLoadSidecar(id) {
     if (json && json.assembled && json.assembled.folds &&
         typeof json.assembled.folds === 'object') {
       currentAssembledFolds = json.assembled.folds;
+    }
+    if (json && json.assembled && json.assembled.transform &&
+        typeof json.assembled.transform === 'object') {
+      currentAssembledTransform = json.assembled.transform;
     }
   } catch {
     hideSidecarBlock();
@@ -3295,6 +3570,11 @@ async function renderPanelsFirstScene(p, options = {}) {
     };
   }
 
+  // PR B: capture the piece's natural origin + cluster membership for the
+  // transform-capture loop. Single-piece mode only — scene mode places pieces
+  // by cluster pivot in renderSceneMulti and doesn't use these globals.
+  if (!sceneMode) setCurrentPieceContext(p, silBbox);
+
   const pivot = new THREE.Group();
   if (activeAxle3js) pivot.position.set(activeAxle3js.x, activeAxle3js.y, 0);
 
@@ -3759,7 +4039,7 @@ async function renderScene(p) {
   // disposed (next time the cache is rebuilt with a different scanPng).
   // PR A: TransformControls / pieceGroup wrapper teardown (DECISIONS #13).
   if (transformControls) transformControls.detach();
-  if (currentPieceGroup) { scene.remove(currentPieceGroup); currentPieceGroup = null; }
+  if (currentPieceGroup) { scene.remove(currentPieceGroup); currentPieceGroup = null; currentPieceInnerGroup = null; }
   if (currentSlabPivot) {
     scene.remove(currentSlabPivot);
     currentSlabPivot.traverse(obj => {
@@ -3818,6 +4098,11 @@ async function renderScene(p) {
       }
     return { minX, maxX, minY, maxY, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
   })();
+
+  // PR B: capture the piece's natural origin + cluster membership for the
+  // transform-capture loop. Cut-line-first pieces don't have panels-first
+  // attach-points so origin falls through to axles[0] or centroid.
+  setCurrentPieceContext(p, silBbox);
 
   // ── Face graph or single-slab ─────────────────────────────────────────────
   // Build (or reuse cached) face graph when the SVG has fold layers (single-cutaway only).
@@ -4424,10 +4709,6 @@ document.getElementById('savePoseBtn').addEventListener('click', () => {
     return;
   }
   const rows = document.querySelectorAll('#per-fold-sliders .slider-row');
-  if (!rows.length) {
-    addBanner('Save assembled pose: no fold sliders to capture.', 'warn');
-    return;
-  }
   const folds = {};
   for (const row of rows) {
     const slider = row.querySelector('input[type=range]');
@@ -4447,6 +4728,34 @@ document.getElementById('savePoseBtn').addEventListener('click', () => {
       note: ""
     }
   };
+  // PR B (DECISIONS #13): also emit `transform` if pose is non-identity.
+  // Identity = all six values within EPS of 0; identity poses omit the block
+  // to keep the diff small (mirrors folds-default-zero suppression intent).
+  if (currentPieceGroup) {
+    const round2 = v => Math.round(v * 100) / 100;
+    const pos = currentPieceGroup.position;
+    const rot = currentPieceGroup.rotation;
+    const txDeg = rot.x * 180 / Math.PI;
+    const tyDeg = rot.y * 180 / Math.PI;
+    const tzDeg = rot.z * 180 / Math.PI;
+    const EPS = 0.01;
+    const isIdentity =
+      Math.abs(pos.x) < EPS && Math.abs(pos.y) < EPS && Math.abs(pos.z) < EPS &&
+      Math.abs(txDeg) < EPS && Math.abs(tyDeg) < EPS && Math.abs(tzDeg) < EPS;
+    if (!isIdentity) {
+      payload.assembled.transform = {
+        translation: [round2(pos.x), round2(pos.y), round2(pos.z)],
+        rotation_deg: [round2(txDeg), round2(tyDeg), round2(tzDeg)],
+        rotation_order: 'XYZ',
+        frame: currentPieceCluster ? 'cluster' : 'world',
+        origin: currentPieceOrigin ? currentPieceOrigin.kind : 'centroid'
+      };
+    }
+  }
+  if (Object.keys(folds).length === 0 && !payload.assembled.transform) {
+    addBanner('Save assembled pose: no folds and no transform to capture.', 'warn');
+    return;
+  }
   showAssembledPoseModal(currentPieceId, payload);
 });
 
@@ -4786,6 +5095,21 @@ function logFaceGraphSummary(diag) {
   if (benchBtn)   benchBtn  .addEventListener('click', () => setMode('bench'));
   if (clusterBtn) clusterBtn.addEventListener('click', () => setMode('cluster'));
   if (cameraBtn)  cameraBtn .addEventListener('click', () => setCameraLocked(!cameraLocked));
+}
+
+// PR B (DECISIONS #13): Reset transform — snaps pieceGroup.pos/rot back to
+// identity and re-seeds the sliders. Folds and per-axle rotation are handled
+// by their own reset paths.
+{
+  const btn = document.getElementById('resetTransformBtn');
+  if (btn) btn.addEventListener('click', () => {
+    if (!currentPieceGroup) return;
+    currentPieceGroup.position.set(0, 0, 0);
+    currentPieceGroup.rotation.set(0, 0, 0, 'XYZ');
+    refreshTransformPanel();
+    positionWorktableForPiece();
+    requestRender();
+  });
 }
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────

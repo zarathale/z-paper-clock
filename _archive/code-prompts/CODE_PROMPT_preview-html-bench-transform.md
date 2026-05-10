@@ -1,12 +1,15 @@
 ---
-status: ready-for-code
+status: shipped
 started: 2026-05-09
+shipped: 2026-05-09
 owner: Zarathale (Alan)
 target: preview-html-bench-transform
 unblocked_by: _archive/code-prompts/CODE_PROMPT_preview-html-bench-cluster-foundation.md (PR A shipped 2026-05-10)
 ---
 
 # CODE_PROMPT — preview.html Bench mode transform capture (PR B of three)
+
+_Shipped 2026-05-09; paths and concepts in this document reflect the state at ship time. Refer to CLAUDE.md / ROADMAP.md / claude-work/STATUS.md for current state._
 
 ## What You Are Doing and Why
 
