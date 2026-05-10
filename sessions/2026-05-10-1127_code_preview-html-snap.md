@@ -1,7 +1,7 @@
 ---
 date: 2026-05-10
 start_time: "11:27"
-end_time: "TBD"
+end_time: "12:00"
 mode: code
 participant: Zarathale (Alan)
 target: preview-html-snap
