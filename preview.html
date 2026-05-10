@@ -1414,6 +1414,12 @@ async function loadPieceById(rawId, source = 'piece-id') {
     return;
   }
   const id = String(parseInt(m[1], 10)).padStart(3, '0') + m[2];
+  // Auto-save the current Bench-mode piece before switching to a different
+  // one. Silent on success and on bridge-offline; only fires when the new id
+  // differs from currentPieceId so Reload (same-piece refetch) is unaffected.
+  if (id !== currentPieceId) {
+    await maybeSaveCurrent();
+  }
   const path = `work/pieces/${id}/${id}.svg`;
   let resp;
   try {
@@ -6377,11 +6383,45 @@ function showAssembledPoseModal(pieceId, payload) {
   modal.querySelector('#poseClose').addEventListener('click', () => modal.remove());
 }
 
-document.getElementById('savePoseBtn').addEventListener('click', () => {
-  if (!currentPieceId) {
-    addBanner('Save assembled pose: no piece id loaded — use the piece-id loader, not drag-drop.', 'warn');
-    return;
+// Direct-write save path (bridge). POSTs the assembled block to the local
+// preview_bridge.py, which merges it into work/pieces/NNN/NNN.json on disk —
+// no copy-paste step. If the bridge is offline (or the POST fails for any
+// reason), callers fall back to showAssembledPoseModal so the workflow keeps
+// working without the bridge running.
+async function saveViaBridge(assembled, pieceId) {
+  try {
+    const res = await fetch('http://localhost:7777/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ piece: pieceId, assembled }),
+    });
+    return res.ok;
+  } catch {
+    return false;
   }
+}
+
+// Plain-text button flash for save confirmations. Bridge button has its own
+// label-in-span flash inline in sendToClaude — different DOM, kept separate.
+function flashBtn(btn, label, cls) {
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = label;
+  if (cls) btn.classList.add(cls);
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = orig;
+    if (cls) btn.classList.remove(cls);
+  }, 2000);
+}
+
+// Build the `assembled` block for the currently-loaded bench piece. Returns
+// null if no piece is loaded. Otherwise returns { folds, captured, note,
+// [transform] } — the inner block, ready to POST to the bridge or wrap into
+// { assembled } for the modal fallback.
+function buildBenchAssembled() {
+  if (!currentPieceId) return null;
   const rows = document.querySelectorAll('#per-fold-sliders .slider-row');
   const folds = {};
   for (const row of rows) {
@@ -6395,12 +6435,10 @@ document.getElementById('savePoseBtn').addEventListener('click', () => {
     const val = parseFloat(slider.value);
     if (Number.isFinite(val)) folds[foldId] = Math.round(val * 100) / 100;
   }
-  const payload = {
-    assembled: {
-      folds,
-      captured: new Date().toISOString(),
-      note: ""
-    }
+  const assembled = {
+    folds,
+    captured: new Date().toISOString(),
+    note: ""
   };
   // PR B (DECISIONS #13): also emit `transform` if pose is non-identity.
   // Identity = all six values within EPS of 0; identity poses omit the block
@@ -6417,7 +6455,7 @@ document.getElementById('savePoseBtn').addEventListener('click', () => {
       Math.abs(pos.x) < EPS && Math.abs(pos.y) < EPS && Math.abs(pos.z) < EPS &&
       Math.abs(txDeg) < EPS && Math.abs(tyDeg) < EPS && Math.abs(tzDeg) < EPS;
     if (!isIdentity) {
-      payload.assembled.transform = {
+      assembled.transform = {
         translation: [round2(pos.x), round2(pos.y), round2(pos.z)],
         rotation_deg: [round2(txDeg), round2(tyDeg), round2(tzDeg)],
         rotation_order: 'XYZ',
@@ -6426,11 +6464,57 @@ document.getElementById('savePoseBtn').addEventListener('click', () => {
       };
     }
   }
-  if (Object.keys(folds).length === 0 && !payload.assembled.transform) {
+  return assembled;
+}
+
+// True if the assembled block represents a default pose (all folds 0, no
+// transform, no snapped connections). Used by maybeSaveCurrent to skip the
+// auto-save when there's nothing meaningful to capture — without this guard
+// every piece switch would overwrite a sidecar's real data with zeros.
+function assembledIsIdentity(assembled) {
+  if (!assembled) return true;
+  if (assembled.transform) return false;
+  if (assembled.snapped_connections && assembled.snapped_connections.length) return false;
+  const EPS = 0.01;
+  for (const v of Object.values(assembled.folds || {})) {
+    if (Number.isFinite(v) && Math.abs(v) >= EPS) return false;
+  }
+  return true;
+}
+
+// Auto-save hook for the Bench-mode piece switch. Called at the top of
+// loadPieceById when the new id differs from currentPieceId; silent (no
+// banner, no flash) so the user doesn't see a flicker on every load.
+// Bridge-offline case: silently skip — user's in-memory state is unchanged
+// (Load proceeds and overwrites it; that's the same behavior as before this
+// PR, so nothing regresses).
+async function maybeSaveCurrent() {
+  if (currentMode !== 'bench') return;
+  if (!currentPieceId) return;
+  const assembled = buildBenchAssembled();
+  if (assembledIsIdentity(assembled)) return;
+  await saveViaBridge(assembled, currentPieceId);
+}
+
+const savePoseBtnEl = document.getElementById('savePoseBtn');
+savePoseBtnEl.addEventListener('click', async () => {
+  if (!currentPieceId) {
+    addBanner('Save assembled pose: no piece id loaded — use the piece-id loader, not drag-drop.', 'warn');
+    return;
+  }
+  const assembled = buildBenchAssembled();
+  if (Object.keys(assembled.folds).length === 0 && !assembled.transform) {
     addBanner('Save assembled pose: no folds and no transform to capture.', 'warn');
     return;
   }
-  showAssembledPoseModal(currentPieceId, payload);
+  const saved = await saveViaBridge(assembled, currentPieceId);
+  if (saved) {
+    flashBtn(savePoseBtnEl, 'Saved ✓', 'btn-ok');
+  } else {
+    // Bridge offline — fall back to copy/download modal so the workflow keeps
+    // working without the bridge running.
+    showAssembledPoseModal(currentPieceId, { assembled });
+  }
 });
 
 // PR C: Save selected piece (cluster mode). Reads the selected cluster
@@ -6439,7 +6523,7 @@ document.getElementById('savePoseBtn').addEventListener('click', () => {
 // payload so a sidecar that doesn't yet exist gets a complete write; the user
 // can hand-edit the folds block out if they only want to update the transform.
 const saveSelectedBtnEl = document.getElementById('saveSelectedBtn');
-if (saveSelectedBtnEl) saveSelectedBtnEl.addEventListener('click', () => {
+if (saveSelectedBtnEl) saveSelectedBtnEl.addEventListener('click', async () => {
   const sel = selectedClusterPieceId ? clusterPieces.get(selectedClusterPieceId) : null;
   if (!sel) {
     addBanner('Save selected piece: no piece selected. Click a piece first.', 'warn');
@@ -6496,7 +6580,12 @@ if (saveSelectedBtnEl) saveSelectedBtnEl.addEventListener('click', () => {
     addBanner('Save selected piece: no folds, transform, or snapped connections to capture.', 'warn');
     return;
   }
-  showAssembledPoseModal(sel.id, payload);
+  const saved = await saveViaBridge(payload.assembled, sel.id);
+  if (saved) {
+    flashBtn(saveSelectedBtnEl, 'Saved ✓', 'btn-ok');
+  } else {
+    showAssembledPoseModal(sel.id, payload);
+  }
 });
 
 // ─── "→ Claude" bridge button ────────────────────────────────────────────────
