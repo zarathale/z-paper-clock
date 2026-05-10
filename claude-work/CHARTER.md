@@ -86,6 +86,8 @@ z-paper-clock/
 ├── claude-work/             ← NEW. Claude's lead zone.
 │   ├── CHARTER.md           ← this document
 │   ├── (further structure detailed in §5)
+├── site/                    ← NEW (charter A2 2026-05-09). Co-owned outward-facing zone:
+│                              strategy, voice, content, and eventually the built site.
 ├── sessions/                ← session notes, both modes
 ├── CLAUDE.md, README.md, ROADMAP.md, PROJECT-STATE.md, WORKPLAN.md, LAYER-CONVENTIONS.md
 │                            ← inherited at repo root. LAYER-CONVENTIONS.md is co-authored;
@@ -102,6 +104,7 @@ z-paper-clock/
 - `source/` — neither writes (study side is stable).
 - `sessions/` — both write, in their respective modes.
 - `LAYER-CONVENTIONS.md` at repo root — both write (co-authored).
+- `site/` — co-owned. Both write. Claude leads on strategy, structure, code, and the collaboration-side narrative; Alan leads on personal-arc content and on voice-on-Alan's-behalf (any copy putting words in Alan's voice needs Alan's sign-off before it goes live).
 - All other root-level docs — read-only for Claude. Alan can edit (and may, e.g. to update README for the public face).
 
 **Rename policy: clean break.** The existing `work/` folder is archived in place as a frozen reference. `alan-work/` is a fresh folder, created from scratch. We copy out of `work/` whatever we want to reuse — pieces.csv, individual piece folders, the preview.html source-of-truth pattern, scripts worth carrying forward — and bring it into `alan-work/` or `claude-work/` deliberately. This avoids the find/replace pain of renaming a folder referenced in dozens of docs, and it gives the pivot a clean substrate to work on rather than picking up implicit history.
@@ -138,6 +141,8 @@ In rough order, with the existing roadmap as the baseline:
 5. **Assemble the clock.** Per-group transforms (existing M4). This is hand-fitting against the book's figures; substantial.
 6. **Polish + ship v0.1.** Public URL.
 7. **Mechanism animation** if the budget supports it. Stretch.
+
+**In parallel (per charter A2, 2026-05-09): a public-face site for the project.** Lives in `site/`; co-owned. Hybridized **A** (long-arc memoir, the 30-year return as the why) + **C** (open notebook, honest about mid-flight state) at launch, graduating to feature **B** (3D viewer as headline) once M3+ ships. Foregrounds the collaboration; audience deliberately niche (horology-craft + LLM / working-with-AI). Visual direction inherits from the project's source-of-truth so the site evolves when the project's aesthetic does.
 
 Claude is **not** committing to a timeline. This is a hobby project. The commitment is to make steady progress, surface where help is needed, and not let the build drift.
 
@@ -251,6 +256,17 @@ Substantive amendments stack here per §12. The original §10 table stays as the
 - **Why:** the gap surfaced concretely on 2026-05-05: PR #15 verification trusted the Code session's eyes because Claude couldn't open `preview.html` headlessly. The right response wasn't "qualify the verification" — it was to ask for the tool. Alan called this out as a charter clarification: "if you're missing a tool or integration that would help you do your work more efficiently, ask me for perms." Earlier-rather-than-later is the spirit.
 - **Initials:** Alan ☑ (proposed in chat 2026-05-05) / Claude ☑ (drafted same session)
 
+### A2 — `site/` folder added; outward-facing storytelling track opened (§3, §4, §6)
+
+- **Date:** 2026-05-09
+- **What changed:**
+  - **New top-level `site/` folder, co-owned** (read-write for both, same model as `LAYER-CONVENTIONS.md`). Houses the public-facing site — strategy, voice, content, and eventually the built site code. Adds a new co-ownership location to the §4 folder split.
+  - **§6 ship list gains a public-face site,** as a parallel track to the build. Direction: hybridized **A** (long-arc memoir, the 30-year return as the why) + **C** (open notebook, honest about mid-flight state), with **B** (3D viewer as the eventual headline) as the destination once M3+ lands. The Claude-collaboration angle is foregrounded, not buried — the charter is part of what the site is *about*, not just behind it. Audience deliberately niche: horology-craft community + LLM / working-with-AI crowd.
+  - **Visual direction inherits from the project, by design.** The site doesn't carry a separate aesthetic — it derives from the same visual source-of-truth as `preview.html` and the eventual viewer (shared CSS variables / tokens / similar; exact mechanism TBD at design time). When the project's aesthetic evolves, the site evolves with it. Cream paper, scan-textured, illustrative — same family.
+  - **Co-ownership inside `site/` tilts toward Claude-leads-with-Alan-input,** matching the charter's overall stance — *except* where it's Alan's voice or Alan's story (the 30-year arc, the physical-clock memory, anything in his voice), where Alan leads. Both can edit. Voice-on-Alan's-behalf needs Alan's sign-off before it goes live. The `to-alan/` rework protocol applies to site asks like any other.
+- **Why:** A public face is a real scope addition the original charter doesn't speak to. Touches §3 (role boundaries — a new co-ownership zone), §4 (folder split — new co-owned location at root), and §6 (ship list — a new deliverable beyond the viewer). Per §12's test cases, substantive — explicit amendment, both sides initial.
+- **Initials:** Alan ☑ (agreed in chat 2026-05-09) / Claude ☑ (drafted + committed same session)
+
 ---
 
-*Last updated: 2026-05-05 (amendment A1: tool-acquisition directive strengthened in §9). Earlier 2026-05-04 (signed v1.0; effective. Amendment policy added as §12. Both Alan and Claude signed at kick-off.)*
+*Last updated: 2026-05-09 (amendment A2: `site/` folder added, outward-facing storytelling track opened, co-owned). Earlier 2026-05-05 (amendment A1: tool-acquisition directive strengthened in §9). Earlier 2026-05-04 (signed v1.0; effective. Amendment policy added as §12. Both Alan and Claude signed at kick-off.)*

@@ -1,0 +1,274 @@
+/*
+ * styles.css — mypaperclock.cc
+ *
+ * VISUAL DIRECTION: inherits from the project's source-of-truth (preview.html).
+ * The custom properties below are the consumer interface — they're set here
+ * with literal values pulled directly from preview.html's 3D paper rendering.
+ * When task #2 (formal linkage mechanism) lands, the values move into a shared
+ * tokens source and this file becomes a thin consumer of them. The structure
+ * doesn't change — only where the values come from.
+ *
+ * The cream-paper palette comes from preview.html's THREE.js MeshStandardMaterial
+ * defaults: paper = 0xf0e0c8, brass-gold accent (slider) = #c9a96e, brass (north) =
+ * 0xb89e5b, silver (axles) = 0xc8cdd0. Site uses the inverted-light direction —
+ * paper background, ink-dark text — but the palette family is preserved.
+ */
+
+:root {
+
+  /* ---- Paper-and-ink ---- */
+  --paper:        #f0e0c8;   /* preview.html 0xf0e0c8 — cream paper, body bg */
+  --paper-tint:   #ebdac0;   /* slightly darker — code blocks, recessed surfaces */
+  --paper-deep:   #e3d2b3;   /* deeper — dropzones, drag-areas */
+  --ink:          #2a2520;   /* warm near-black — body text */
+  --ink-mute:     #7a6f5e;   /* warm gray — secondary text */
+  --rule:         #d8c9a8;   /* soft division — borders, separators */
+
+  /* ---- Mechanism accents (used sparingly) ---- */
+  --gold:         #c9a96e;   /* preview.html slider accent — brass-adjacent. site link accent */
+  --brass:        #b89e5b;   /* preview.html north marker */
+  --silver:       #c8cdd0;   /* preview.html axle wire */
+
+  /* ---- Type ---- */
+  --serif:        "Iowan Old Style", Charter, Georgia, "Times New Roman", serif;
+  --mono:         ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* ---- Measure ---- */
+  --measure:      36rem;
+  --measure-wide: 52rem;
+
+}
+
+/* ---- Reset ---- */
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+img, video, svg { max-width: 100%; height: auto; display: block; }
+
+/* ---- Layout ---- */
+
+main {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 4rem 1.25rem 2rem 1.25rem;
+}
+
+section {
+  padding: 2.25rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+section:first-of-type { border-top: none; padding-top: 0; }
+
+/* ---- Hero ---- */
+
+.hero {
+  padding: 3rem 0 2rem 0;
+  border-top: none;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: -0.01em;
+  margin: 0 0 1.25rem 0;
+  line-height: 1.15;
+}
+
+.hero .frame {
+  font-size: 1.15rem;
+  line-height: 1.55;
+  margin: 0;
+  color: var(--ink);
+}
+
+/* ---- Type ---- */
+
+h1, h2, h3 {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+}
+
+h2 {
+  font-size: 1.5rem;
+  font-style: italic;
+  margin: 0 0 1rem 0;
+}
+
+h3 {
+  font-size: 1.15rem;
+  margin: 1.5rem 0 0.5rem 0;
+}
+
+p { margin: 0 0 1rem 0; }
+p:last-child { margin-bottom: 0; }
+
+cite, em { font-style: italic; }
+
+a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--brass);
+  text-decoration-thickness: 2px;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  background: var(--paper-tint);
+  padding: 0.05em 0.35em;
+  border-radius: 2px;
+  color: var(--ink);
+}
+
+pre {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  background: var(--paper-tint);
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+}
+
+ul, ol { padding-left: 1.5em; margin: 0 0 1rem 0; }
+li { margin-bottom: 0.4rem; }
+
+time { font-style: italic; color: var(--ink-mute); }
+
+blockquote {
+  margin: 1rem 0;
+  padding-left: 1rem;
+  border-left: 2px solid var(--gold);
+  color: var(--ink-mute);
+  font-style: italic;
+}
+
+/* ---- Counters (mid-flight section) ---- */
+
+.counters {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+  border-top: 1px dotted var(--rule);
+}
+
+.counters li {
+  padding: 0.5em 0;
+  border-bottom: 1px dotted var(--rule);
+  display: flex;
+  align-items: baseline;
+}
+
+.counters strong {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--brass);
+  min-width: 5em;
+  font-family: var(--mono);
+  font-size: 0.95em;
+}
+
+/* ---- Colophon ---- */
+
+.colophon {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 3rem 1.25rem 4rem 1.25rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.92em;
+  color: var(--ink-mute);
+}
+
+.colophon a { color: var(--ink-mute); }
+.colophon a:hover { color: var(--brass); }
+.colophon .repo {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  margin-top: 0.5rem;
+}
+
+/* ---- Charter page ---- */
+
+.charter-page { max-width: var(--measure); }
+
+.breadcrumb {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  color: var(--ink-mute);
+  margin-bottom: 2rem;
+  border-bottom: 1px dotted var(--rule);
+  padding-bottom: 0.75rem;
+}
+
+.breadcrumb p { margin: 0; }
+.breadcrumb a { color: var(--ink-mute); text-decoration-color: var(--rule); }
+
+article h1 {
+  font-size: 2rem;
+  font-weight: 400;
+  font-style: italic;
+  margin: 0 0 1.5rem 0;
+}
+
+/* ---- DRAFT placeholders (Alan-voice TODOs) ---- */
+/* Visible in dev so it's clear what still needs voice. Each block prepends a
+   "DRAFT — Alan voice needed" label. Should not survive to the live site. */
+
+.todo-alan {
+  background: rgba(201, 169, 110, 0.10);
+  border-left: 3px solid var(--gold);
+  padding: 0.85rem 1rem;
+  margin: 1rem 0;
+  font-style: italic;
+  color: var(--ink-mute);
+  border-radius: 0 2px 2px 0;
+}
+
+.todo-alan::before {
+  content: "DRAFT — Alan voice needed";
+  display: block;
+  font-style: normal;
+  font-size: 0.78em;
+  color: var(--brass);
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  font-family: var(--mono);
+}
+
+.todo-alan p:last-child { margin-bottom: 0; }
+.todo-alan code { background: rgba(201, 169, 110, 0.15); }
+
+/* ---- Placeholder embed slots ---- */
+
+.placeholder-embed {
+  padding: 2.5rem 1.25rem;
+  border: 1px dashed var(--rule);
+  border-radius: 4px;
+  text-align: center;
+  color: var(--ink-mute);
+  font-style: italic;
+  margin: 1.25rem 0;
+  background: var(--paper-tint);
+}
+
+.placeholder-embed p:last-child { margin-bottom: 0; }

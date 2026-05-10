@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>my paper clock</title>
+  <meta name="description" content="A 1990s paper-clock build, rebuilt in three.js with an AI collaborator. A personal hobby project, in the open.">
+
+  <!-- Open Graph / social -->
+  <meta property="og:title" content="my paper clock">
+  <meta property="og:description" content="A 1990s paper-clock build, rebuilt in three.js with an AI collaborator.">
+  <meta property="og:url" content="https://mypaperclock.cc/">
+  <meta property="og:type" content="website">
+
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+
+<main>
+
+  <!-- 1. Hero -->
+  <section class="hero" id="hero">
+    <h1>my paper clock</h1>
+
+    <!--
+      ALAN VOICE — replace the seed below with your own one-sentence frame.
+      The seed is a working example; treat it as a starting point, not a default.
+    -->
+    <p class="frame">
+      In the mid-1990s I built this paper clock from a book.
+      Three decades later, I'm rebuilding it in three.js, with an AI collaborator.
+    </p>
+  </section>
+
+  <!-- 2. The arc -->
+  <section class="arc" id="arc">
+    <h2>The arc</h2>
+
+    <!--
+      ALAN VOICE — the personal-arc memoir. ~150-300 words; tight, not sprawling.
+      Anchor points to consider, not requirements:
+        - When and where you first encountered the book
+        - What it was like to actually cut, fold, and watch the thing tick
+        - Why you kept the spare copy on the shelf
+        - What made you come back to it now
+        - What "rebuilding it in three.js" actually means to you
+      Don't pad with sentiment. The arc is moving on its own.
+    -->
+    <div class="todo-alan">
+      <p>The personal-arc memoir lives here. ~150-300 words in your voice. See the HTML comment above this section in the source for anchor points to draw from. Replace this entire <code>.todo-alan</code> block with one or two prose paragraphs.</p>
+    </div>
+  </section>
+
+  <!-- 3. What this is -->
+  <section class="what" id="what">
+    <h2>What this is</h2>
+    <p>
+      This site is the public face of a personal hobby project — a digital reinterpretation of James Smith Rudolph's <cite>Make Your Own Working Paper Clock</cite> (Harper &amp; Row, 1983; in print as a Perennial reprint). The book is a set of thirteen plates containing 123 pieces that, when cut, folded, and assembled, form a working pendulum clock made entirely of cardstock.
+    </p>
+    <p>
+      The project here is a 3D digital model of that clock — every piece traced from scans of an authentic copy, every fold and glue point preserved, the whole assembly rebuilt as an interactive web object. It's done in the open, in collaboration with Claude, an AI from Anthropic. The collaboration is part of the point.
+    </p>
+    <p>
+      A note on scope: the book itself is held privately for personal reference and isn't republished here. If you'd like to build the physical clock, please buy a copy — it's still in print.
+    </p>
+  </section>
+
+  <!-- 4. The pieces -->
+  <section class="pieces" id="pieces">
+    <h2>The pieces</h2>
+    <p>
+      There are 123 pieces in the clock. Most are panels of folded cardstock; some are mechanism components — gears, an anchor, a pendulum, a weight. Each is being hand-traced into a layered SVG and given a small JSON sidecar that records its cuts, folds, glue points, and (for the moving parts) the geometry the mechanism actually needs to tick.
+    </p>
+    <p>
+      Below: a working preview tool for one of the pieces, embedded directly. Drag to orbit; slide to fold.
+    </p>
+
+    <!--
+      Featured piece: pendulum bob (settled 2026-05-09).
+      TODO: embed preview.html. Approach options:
+        a) iframe pointing at /preview/?piece=NNN (preview.html copied alongside site under /preview/)
+        b) inline embed with the relevant piece SVG already loaded at page-open
+      Specific bob piece id (from the 094-100 cluster) to be confirmed when wiring up.
+    -->
+    <div class="placeholder-embed">
+      <p>Piece preview tool — to be embedded.</p>
+    </div>
+  </section>
+
+  <!-- 5. Mid-flight -->
+  <section class="midflight" id="midflight">
+    <h2>Mid-flight</h2>
+    <p>
+      The build is ongoing. A few numbers:
+    </p>
+
+    <!--
+      TODO: pull live counters from work/state.json. v0 hardcoded; later build-time render or runtime fetch.
+      Updated by hand for now. Expected to drift between source-of-truth updates; intentional.
+    -->
+    <ul class="counters">
+      <li><strong>17 / 123</strong> &nbsp;pieces authored as fold-aware SVGs</li>
+      <li><strong>123 / 123</strong> &nbsp;source scans captured</li>
+      <li><strong>M0.6</strong> &nbsp;active milestone (per-piece preview tooling)</li>
+    </ul>
+
+    <p>
+      The full work-in-progress lives in the
+      <!-- TODO: confirm public repo URL -->
+      <a href="https://github.com/Zarathale/z-paper-clock">project repo</a>.
+      It's operating-doc-heavy by design — the build is being documented as it happens, not after.
+    </p>
+  </section>
+
+  <!-- 6. The collaboration -->
+  <section class="collab" id="collab">
+    <h2>The collaboration</h2>
+    <p>
+      The project is being built by Claude — an AI from Anthropic — working on Alan's behalf. The split is unusual: Claude leads, Alan enables. Alan owns the physical-side of the digital model. He runs the scanner, hand-authors the per-piece SVGs in Affinity Designer, and his memory of how the clock actually folds is the source of truth. Claude owns the rest — the queue of what gets authored next, the per-piece sidecars, the pipeline, the eventual viewer code, this site.
+    </p>
+    <p>
+      Because the working agreement is unusual, it's also written down. The <a href="/charter/">collaboration charter</a> is public. So is every architectural decision, every working note, the queue Alan pulls from, and the dropbox where Claude leaves piece-revisions for him to act on. The repo is a working laboratory; the site is its window.
+    </p>
+  </section>
+
+  <!-- 7. What's next -->
+  <section class="next" id="next">
+    <h2>What's next</h2>
+    <p>
+      The headline goal is a public 3D viewer of the assembled clock — orbit, zoom, explode it into individual pieces, click any piece to see how it folds. That ships in stages: first a flat viewer (every piece, no assembly), then assembled, then (as a stretch goal) the mechanism actually animates at real-time pace.
+    </p>
+    <p>
+      Today, the build is at the per-piece authoring stage — slower than viewer work but the bottleneck for everything downstream. The site grows alongside it; what's on this page is what exists today, and it'll evolve as the build does.
+    </p>
+  </section>
+
+</main>
+
+<!-- 8. Colophon -->
+<footer class="colophon" id="colophon">
+  <p>
+    <em>my paper clock</em> is a personal hobby project by Alan Lytle, built in collaboration with Claude (Anthropic). Source material: <cite>Make Your Own Working Paper Clock</cite> by James Smith Rudolph, Harper &amp; Row 1983; available in print from HarperCollins.
+  </p>
+  <p class="repo">
+    <!-- TODO: confirm public repo URL -->
+    <a href="https://github.com/Zarathale/z-paper-clock">github.com/Zarathale/z-paper-clock</a>
+  </p>
+</footer>
+
+</body>
+</html>
