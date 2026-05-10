@@ -1597,6 +1597,7 @@ document.addEventListener('mousedown', e => {
 document.addEventListener('keydown', e => {
   if (e.key !== 'r' && e.key !== 'R') return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.defaultPrevented) return;   // R was handled by the TC mode-toggle above; don't also reload
   const active = document.activeElement;
   if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
   if (currentPieceId) reloadCurrentPiece();

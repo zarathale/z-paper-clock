@@ -1,0 +1,33 @@
+{
+  "assembled": {
+    "folds": {
+      "fold-taba-abc": -90,
+      "fold-main-ai": -90,
+      "fold-abc-tabb": -90,
+      "fold-main-bh": -90,
+      "fold-bh-tabe": -90,
+      "fold-abc-tabc": -90,
+      "fold-main-abc": -90,
+      "fold-main-g": -90,
+      "fold-tabf-g": -90,
+      "fold-tabd-ai": -90
+    },
+    "captured": "2026-05-10T05:57:02.952Z",
+    "note": "",
+    "transform": {
+      "translation": [
+        0,
+        7.1,
+        0
+      ],
+      "rotation_deg": [
+        99.5,
+        0,
+        0
+      ],
+      "rotation_order": "XYZ",
+      "frame": "cluster",
+      "origin": "pivot-anchor"
+    }
+  }
+}
