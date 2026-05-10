@@ -6,13 +6,9 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 
 ## Now
 
-### 1. Bridge button in preview.html — send to Code now
+### 1. ~~Bridge button in preview.html~~ — shipped 2026-05-10
 
-`CODE_PROMPT_preview-bridge-button.md` is at repo root, `ready-for-code`. Small, self-contained, no blockers.
-
-- **What it adds:** a "→ Claude" button in the sidebar. Press it → sends current piece state (panels, folds, hinge tree, fold slider values, sidecar) to the local bridge server → writes `claude-work/state/preview-dump.json` → Claude reads it directly. No copy-paste, no console gymnastics.
-- **Bridge server already written:** `claude-work/scripts/preview_bridge.py`. Run once per session: `python3.12 claude-work/scripts/preview_bridge.py`. Button shows "Bridge offline" (dimmed) if it's not running.
-- **Why now:** unlocks pose-capture sessions immediately — instead of asking Alan to dump console output and paste it, Claude just says "press the button and I'll read the file."
+~~`CODE_PROMPT_preview-bridge-button.md` is at repo root, `ready-for-code`. Small, self-contained, no blockers.~~ Shipped via PR `claude/preview-bridge-button`. The "→ Claude" button now lives in `preview.html` between the sidecar block and the dropzone; pressing it POSTs the current piece's parsed state to `http://localhost:7777/dump/preview` (the bridge server `claude-work/scripts/preview_bridge.py` writes it to `claude-work/state/preview-dump.json`). The page-load ping detects offline state and dims the button. Prompt archived to `_archive/code-prompts/CODE_PROMPT_preview-bridge-button.md`. See `sessions/2026-05-10-0915_code_preview-bridge-button.md`.
 
 ### 2. Merge pending PRs + manual visual check on PR A
 
@@ -106,7 +102,9 @@ Post-tagging follow-on: merge `character` + `subtype` from `work/piece_character
 
 ---
 
-*Last updated: 2026-05-10 (second pass) — bridge button CODE_PROMPT drafted and added as Now #1. Alan requested a one-button workflow to send preview.html face graph / piece state to Claude; bridge server (`claude-work/scripts/preview_bridge.py`) written in Cowork; `CODE_PROMPT_preview-bridge-button.md` ready-for-code at repo root. Replaces the copy-paste console-dump workflow.*
+*Last updated: 2026-05-10 (third pass) — bridge button shipped. Now #1 struck through; the prompt moved from repo root to `_archive/code-prompts/CODE_PROMPT_preview-bridge-button.md`. preview.html iteration track in STATUS.md gained a 09:15 recent-log entry covering the implementation + verification. The copy-paste console-dump workflow is now replaced — Claude reads `claude-work/state/preview-dump.json` whenever Alan presses the button.*
+
+*Earlier 2026-05-10 (second pass) — bridge button CODE_PROMPT drafted and added as Now #1. Alan requested a one-button workflow to send preview.html face graph / piece state to Claude; bridge server (`claude-work/scripts/preview_bridge.py`) written in Cowork; `CODE_PROMPT_preview-bridge-button.md` ready-for-code at repo root. Replaces the copy-paste console-dump workflow.*
 
 *Earlier 2026-05-10 — Now section fully refreshed. PR A + parser-marks-lookup both shipped today (need merge + PR A visual check). Tagging struck through. Build-graph split-pieces extension struck through (done by marks-lookup ship). Three new Now entries: merge + visual check, 068 fold fix, anchor cluster pose capture. PR C finalization promoted to Soon #1. 097 period-suffix convention and LAYER-CONVENTIONS drift added as Soon #2 + #3.*
 
