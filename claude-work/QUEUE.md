@@ -10,16 +10,25 @@ _Pull-based per CHARTER §3 + §9. Alan checks this when there's bench time. Cla
 
 ~~`CODE_PROMPT_preview-bridge-button.md` is at repo root, `ready-for-code`. Small, self-contained, no blockers.~~ Shipped via PR `claude/preview-bridge-button`. The "→ Claude" button now lives in `preview.html` between the sidecar block and the dropzone; pressing it POSTs the current piece's parsed state to `http://localhost:7777/dump/preview` (the bridge server `claude-work/scripts/preview_bridge.py` writes it to `claude-work/state/preview-dump.json`). The page-load ping detects offline state and dims the button. Prompt archived to `_archive/code-prompts/CODE_PROMPT_preview-bridge-button.md`. See `sessions/2026-05-10-0915_code_preview-bridge-button.md`.
 
-### 2. Merge pending PRs + manual visual check on PR A
+### 2. Direct save via bridge — send to Code (`CODE_PROMPT_preview-bridge-save.md`)
 
-Two branches are sitting in PRs waiting for review:
+Fixes persistence. Save button POSTs assembled pose to `localhost:7777/save`; bridge merges
+it into the sidecar JSON and writes it back. No more copy-paste. Falls back to copy modal
+if bridge is offline. Auto-saves on piece switch in Bench mode. Small change to two files
+(`preview_bridge.py` + `preview.html`). No dependencies; ships independently.
 
-- `claude/preview-html-bench-cluster-foundation` (PR A) — cutouts as holes, slider+number-entry, camera lock, TC click-drag, RGB axes + corner gizmo, worktable, Bench/Cluster scaffold.
-- `claude/parser-marks-lookup` — marks-aware 8-step cross-piece resolution in `build_assembly_graph.py`; split-piece globbing now included.
+### 3. Snap-to-connection-point in Cluster mode — send to Code (`CODE_PROMPT_preview-html-snap.md`)
 
-After merging PR A, do a quick manual eyes-on in a real browser against piece 071 (`?piece=071`): confirm the two interior holes are visible, the corner gizmo paints and orbits, the TransformControls handles appear, and the worktable shows beneath the piece. The headless Code session couldn't verify the rAF-dependent rendering. See `sessions/2026-05-10-0335_code_preview-html-bench-cluster-foundation.md` §Open questions for the full checklist.
+The assembly centerpiece. In Cluster mode: click any connection sphere → system highlights
+known partner spheres from the connection graph → [Snap] translates tab piece to landing
+point. "Snap all N pairs" uses median translation across all known pairs (robust). Lock-
+together makes snapped pieces move as a rigid group. Green lines confirm snapped pairs.
+Max residual readout shows SVG geometry consistency. System offers pairings — user never
+identifies matching points manually. Depends on PRs A+B+C merged (already done).
 
-### 2. Fix 068 fold authoring — missing pane→c1 fold line
+Now #2 and #3 are independent — can go to Code concurrently.
+
+### 4. Fix 068 fold authoring — missing pane→c1 fold line
 
 068's fold graph has two disconnected components: the main pane chain (pane1–pane8, flap1, flap2, taba, tabb, tabff, b, g) and the slot cluster (c1, c2, sidel, sider) are not connected. A fold line is missing on the boundary between the slot panels and the adjacent pane.
 
@@ -29,7 +38,7 @@ parsed.panelsFirst.folds.filter(f => f.a === 'c1' || f.b === 'c1' || f.a === 'si
 ```
 This shows which folds currently touch c1/sidel — confirming the gap. Then add the missing valley/mountain fold line in `068.af` and re-export. The "Disconnected fold components: 2 sub-trees" banner in preview.html should clear.
 
-### 3. Capture anchor cluster pose sidecars (067 → 066 → 065 → 068)
+### 5. Capture anchor cluster pose sidecars (067 → 066 → 065 → 068)
 
 069 sidecar is done (all 10 folds at −90°, transform Y=7.1/rX=99.5, frame cluster/pivot-anchor). The remaining four:
 
@@ -102,7 +111,9 @@ Post-tagging follow-on: merge `character` + `subtype` from `work/piece_character
 
 ---
 
-*Last updated: 2026-05-10 (third pass) — bridge button shipped. Now #1 struck through; the prompt moved from repo root to `_archive/code-prompts/CODE_PROMPT_preview-bridge-button.md`. preview.html iteration track in STATUS.md gained a 09:15 recent-log entry covering the implementation + verification. The copy-paste console-dump workflow is now replaced — Claude reads `claude-work/state/preview-dump.json` whenever Alan presses the button.*
+*Last updated: 2026-05-10 (fourth pass) — two new CODE_PROMPTs drafted after Alan flagged assembly workflow as a blocker: `CODE_PROMPT_preview-bridge-save.md` (direct sidecar save, fixes persistence) and `CODE_PROMPT_preview-html-snap.md` (smart snap with auto-partner detection from connection graph, snap-all median translation, rigid group lock). Both ready-for-code; can go to Code concurrently. Now renumbered to 1–5; PR C cluster-mode added to Recently shipped.*
+
+*Earlier 2026-05-10 (third pass) — bridge button shipped. Now #1 struck through; the prompt moved from repo root to `_archive/code-prompts/CODE_PROMPT_preview-bridge-button.md`. The copy-paste console-dump workflow replaced — Claude reads `claude-work/state/preview-dump.json` whenever Alan presses the button.*
 
 *Earlier 2026-05-10 (second pass) — bridge button CODE_PROMPT drafted and added as Now #1. Alan requested a one-button workflow to send preview.html face graph / piece state to Claude; bridge server (`claude-work/scripts/preview_bridge.py`) written in Cowork; `CODE_PROMPT_preview-bridge-button.md` ready-for-code at repo root. Replaces the copy-paste console-dump workflow.*
 
