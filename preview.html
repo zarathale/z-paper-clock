@@ -140,14 +140,9 @@ button:hover { background:#383838; }
 
 #canvas-host { top:36px; }
 
-/* ── Cluster-mode placeholder banner ───────────────────────────────────────── */
-#cluster-stub {
-  position:absolute; inset:0; display:none;
-  align-items:center; justify-content:center;
-  pointer-events:none; color:#aaa; font-size:14px; text-align:center;
-  background:rgba(26,26,26,0.6);
-}
-body.mode-cluster #cluster-stub { display:flex; }
+/* ── Mode-scoped show/hide rules (PR C) ───────────────────────────────────── */
+/* Cluster-mode hides Bench-only side-panel sections; cluster controls live in
+   #cluster-panel and the topbar's #cluster-controls slot, both hidden in bench. */
 body.mode-cluster #fold-controls,
 body.mode-cluster #thickness-section,
 body.mode-cluster #rotation-section,
@@ -156,6 +151,48 @@ body.mode-cluster #piece-section #sceneRow { display:none; }
 body.mode-cluster #pieceInput,
 body.mode-cluster #loadBtn,
 body.mode-cluster #reloadPieceBtn { opacity:0.4; pointer-events:none; }
+body:not(.mode-cluster) #cluster-controls,
+body:not(.mode-cluster) #cluster-panel { display:none; }
+body.mode-cluster #cluster-controls { display:inline-flex; gap:6px; align-items:center; }
+body.mode-cluster #cluster-panel { display:flex; }
+
+/* Cluster controls in the topbar */
+#cluster-controls input#clusterInput {
+  width:120px; background:#1a1a1a; border:1px solid #444; color:#e8e3da;
+  border-radius:3px; padding:3px 6px; font-size:12px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+#cluster-controls input#clusterInput:focus { outline:none; border-color:#7af; }
+#cluster-controls button { font-size:12px; padding:3px 8px; }
+#cluster-controls button.active { background:#3a4a5a; color:#e8e3da; border-color:#5a7090; }
+
+/* Cluster-mode side panel section */
+#cluster-panel { flex-direction:column; gap:8px;
+  border:1px solid #333; border-radius:4px; padding:8px; }
+#cluster-panel .selected-row { font-size:12px; color:#aaa; }
+#cluster-panel .selected-row strong { color:#8cf; }
+#cluster-panel .saveSelectedBtn { font-size:11px; padding:3px 8px; }
+#cluster-panel #measurements-list {
+  display:flex; flex-direction:column; gap:3px;
+  font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px;
+}
+#cluster-panel #measurements-list .meas-row {
+  display:flex; align-items:center; gap:6px;
+  background:#1a1a1a; border:1px solid #2a2a2a; border-radius:3px;
+  padding:3px 6px;
+}
+#cluster-panel #measurements-list .meas-row .label { flex:1; min-width:0; color:#ddd;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#cluster-panel #measurements-list .meas-row .dist { color:#8cf; min-width:54px; text-align:right; }
+#cluster-panel #measurements-list .meas-row button {
+  font-size:10px; padding:1px 5px; background:#2a1a1a; color:#c88;
+  border:1px solid #5a3a3a;
+}
+#cluster-panel .show-conn-row { display:none; }   /* shown only in bench */
+body:not(.mode-cluster) #cluster-panel { display:none; }
+body:not(.mode-cluster) #conn-toggle-row { display:flex; }
+#conn-toggle-row { display:none; align-items:center; gap:6px; font-size:12px; color:#aaa;
+  border:1px solid #333; border-radius:4px; padding:6px 8px; }
 
 /* ── Corner axes gizmo (rendered into a fixed bottom-right viewport) ──────── */
 #gizmo-overlay {
@@ -180,10 +217,15 @@ body.mode-cluster #reloadPieceBtn { opacity:0.4; pointer-events:none; }
 <div id="topbar">
   <div class="seg" role="tablist" aria-label="Mode">
     <button id="modeBenchBtn"   class="active" role="tab" aria-selected="true"  title="Single-piece authoring">Bench</button>
-    <button id="modeClusterBtn"               role="tab" aria-selected="false" title="Multi-piece subassembly (lands in PR C)">Cluster</button>
+    <button id="modeClusterBtn"               role="tab" aria-selected="false" title="Multi-piece subassembly authoring">Cluster</button>
   </div>
   <button id="cameraToggleBtn" title="Toggle camera lock (default = locked, head-on; click to free orbit)">Camera locked</button>
   <span id="xformModeIndicator" hidden>xform: <strong>translate</strong> · <span class="key">R</span> rotate · <span class="key">T</span> translate · <span class="key">Shift</span> snap</span>
+  <span id="cluster-controls">
+    <input id="clusterInput" type="text" placeholder="Cluster id (e.g., anchor)" autocomplete="off" spellcheck="false">
+    <button id="loadClusterBtn">Load</button>
+    <button id="measureToggleBtn" title="Click two connection points on different pieces to pin a distance measurement">Measure</button>
+  </span>
   <span style="flex:1"></span>
 </div>
 
@@ -240,6 +282,31 @@ body.mode-cluster #reloadPieceBtn { opacity:0.4; pointer-events:none; }
     </div>
   </div>
 
+  <!-- PR C (DECISIONS #13): cluster mode side panel — selected piece state,
+       Save selected piece, pinned measurements list. Hidden in bench. -->
+  <div id="cluster-panel">
+    <div class="selected-row">
+      <span id="cluster-selected-label">Click a piece to select it.</span>
+    </div>
+    <div style="display:flex; gap:6px;">
+      <button id="saveSelectedBtn" class="saveSelectedBtn"
+              title="Capture selected piece's pose into a JSON snippet for sidecar merge">Save selected piece</button>
+      <button id="deselectBtn" style="font-size:11px; padding:3px 8px;" title="Clear selection">Deselect</button>
+    </div>
+    <div style="font-size:11px;color:#aaa;border-top:1px solid #2a2a2a;padding-top:6px;">
+      <strong>Measurements</strong>
+      <span style="color:#666; font-weight:normal;"> (click two points)</span>
+    </div>
+    <div id="measurements-list"></div>
+  </div>
+
+  <!-- PR C: Bench-mode toggle to render connection-point spheres on the loaded
+       piece. Useful for visualizing attach + landing geometry on a single piece. -->
+  <div id="conn-toggle-row">
+    <input type="checkbox" id="showConnPointsCheckbox">
+    <label for="showConnPointsCheckbox">Show connection points</label>
+  </div>
+
   <!-- PR B (DECISIONS #13): per-piece transform capture. Bench mode only;
        hidden in cluster mode and while in scene mode. -->
   <div id="transform-panel" hidden>
@@ -286,11 +353,7 @@ body.mode-cluster #reloadPieceBtn { opacity:0.4; pointer-events:none; }
   </div>
 </div>
 
-<div id="canvas-host">
-  <div id="cluster-stub">
-    Cluster mode lands in PR C — load a single piece in Bench mode for now.
-  </div>
-</div>
+<div id="canvas-host"></div>
 <div id="hint">Camera locked · click-drag the piece to translate · <strong>R</strong> rotate · <strong>T</strong> translate · <strong>Shift</strong> snap · toggle <strong>Camera</strong> in top bar to orbit</div>
 
 <script>
@@ -471,12 +534,10 @@ let currentAssembledFolds = null;
 // forward function/assembled blocks alongside parsed state.
 let currentSidecar = null;
 
-// ─── Scene mode state ─────────────────────────────────────────────────────────
-// Scene mode loads N panels-first pieces into the same scene and positions
-// them via the cross-piece connection graph (claude-work/state/connection-graph.json).
-// Consumed by loadScene + renderSceneMulti.
-let connectionGraph = null;   // populated once at startup; null = unavailable
-let sceneGroups = [];         // THREE.Groups added by the most recent loadScene call
+// ─── Scene / Cluster mode shared state ────────────────────────────────────────
+// connectionGraph is loaded once at startup; null = unavailable. Used by
+// findPieceCluster + cluster transitive-walk + comma-list scene routing.
+let connectionGraph = null;
 
 // ─── Init three.js scene ──────────────────────────────────────────────────────
 function initScene() {
@@ -674,23 +735,30 @@ function positionWorktableForPiece() {
   requestRender();
 }
 
-// Attach TransformControls to the current piece group. Visibility +
-// enabled-state are gated on cameraLocked (locked → TC active; free → TC
-// hidden so OrbitControls owns the drag). Called from wrapForTransform on
-// piece load and from setCameraLocked when the toggle flips.
-function attachTransformToCurrentPiece() {
+// Attach TransformControls to whichever piece is "active" — in Bench mode
+// that's currentPieceGroup; in Cluster mode it's the selected cluster piece's
+// pieceGroup (or null if no selection). Visibility + enabled-state are gated
+// on cameraLocked (locked → TC active; free → TC hidden so OrbitControls owns
+// the drag). Called from wrapForTransform on piece load, from setCameraLocked
+// when the toggle flips, from setMode on mode swap, and from cluster select.
+//
+// PR C: keeps the legacy name alongside `attachTransformToActivePiece` so old
+// callsites still work; both route through `getActivePieceContext`.
+function attachTransformToActivePiece() {
   if (!transformControls) return;
-  if (!currentPieceGroup || !cameraLocked) {
+  const ctx = getActivePieceContext();
+  if (!ctx || !cameraLocked) {
     detachTransform();
     return;
   }
-  transformControls.attach(currentPieceGroup);
+  transformControls.attach(ctx.pieceGroup);
   transformControls.setMode(xformMode);
   transformControls.visible = true;
   transformControls.enabled = true;
   updateXformIndicator();
   requestRender();
 }
+const attachTransformToCurrentPiece = attachTransformToActivePiece;
 
 function detachTransform() {
   if (!transformControls) return;
@@ -763,6 +831,8 @@ function setCameraLocked(locked) {
 
 function setMode(mode) {
   if (mode !== 'bench' && mode !== 'cluster') return;
+  if (currentMode === mode) return;   // no-op if already in this mode
+  const prev = currentMode;
   currentMode = mode;
   document.body.classList.toggle('mode-bench', mode === 'bench');
   document.body.classList.toggle('mode-cluster', mode === 'cluster');
@@ -770,13 +840,60 @@ function setMode(mode) {
   const clusterBtn = document.getElementById('modeClusterBtn');
   if (benchBtn)   { benchBtn.classList.toggle('active', mode === 'bench');   benchBtn.setAttribute('aria-selected', mode === 'bench'); }
   if (clusterBtn) { clusterBtn.classList.toggle('active', mode === 'cluster'); clusterBtn.setAttribute('aria-selected', mode === 'cluster'); }
-  if (mode === 'cluster') {
-    detachTransform();   // hide gizmo over the stub overlay
-  } else {
-    attachTransformToCurrentPiece();
+  // Tear down the mode we're leaving so its scene contents don't bleed into
+  // the new mode. Bench teardown clears the single-piece state; cluster
+  // teardown clears all cluster pieces + measurements.
+  if (prev === 'bench' && mode === 'cluster') {
+    teardownBenchScene();
+  } else if (prev === 'cluster' && mode === 'bench') {
+    teardownClusterScene();
   }
+  // Re-attach TC to whichever side is active in the new mode.
+  attachTransformToActivePiece();
   refreshTransformPanel();
   requestRender();
+}
+
+// Strip the single-piece scene so cluster mode starts on a clean slate.
+// Mirrors the teardown that the start of loadClusterPieces does (kept in sync
+// with that path's disposal).
+function teardownBenchScene() {
+  if (transformControls) transformControls.detach();
+  if (currentPieceGroup) {
+    scene.remove(currentPieceGroup);
+    currentPieceGroup.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) obj.material.dispose();
+    });
+    currentPieceGroup = null;
+    currentPieceInnerGroup = null;
+  }
+  // Bench's stand-alone slab pivot + axle wires (kept around as legacy refs
+  // for cut-line-first paths). They were re-parented into pieceGroup by
+  // wrapForTransform, so the dispose above already handled them; null the
+  // refs so Bench-only code paths don't grab stale handles.
+  currentSlabPivot = null;
+  currentAxleWires = [];
+  pathHingeMap = new Map();
+  parsed = null;
+  currentPieceId = null;
+  currentAssembledFolds = null;
+  currentAssembledTransform = null;
+  currentSidecar = null;
+  currentPieceOrigin = null;
+  currentPieceOrigin3js = null;
+  currentPieceCluster = null;
+  if (reloadPieceBtn) reloadPieceBtn.disabled = true;
+  document.getElementById('per-fold-sliders').innerHTML = '';
+  document.getElementById('global-fold-row').style.display = 'none';
+  const savePoseRow = document.getElementById('save-pose-row');
+  if (savePoseRow) savePoseRow.style.display = 'none';
+  hideSidecarBlock();
+  // Bench-only connection-point overlay (toggled in the side panel). Cluster
+  // mode handles its own per-piece spheres independently.
+  hideBenchConnectionPoints();
+  rotationSection.hidden = true;
+  if (rotateSlider) { rotateSlider.value = 0; if (rotateVal) rotateVal.textContent = '0°'; }
 }
 
 // ─── PR B helpers (DECISIONS #13) ────────────────────────────────────────────
@@ -845,33 +962,72 @@ function setCurrentPieceContext(p, silBbox) {
 // auto-detected kind. Frame field is informational in Bench mode.
 function applyAssembledTransformIfAny() {
   if (!currentPieceGroup || !currentAssembledTransform) return;
-  const t = currentAssembledTransform;
+  applyAssembledTransformToGroup(
+    currentPieceGroup, currentAssembledTransform,
+    currentPieceOrigin ? currentPieceOrigin.kind : null,
+    '[panels-first]'
+  );
+}
+
+// Reusable transform-apply helper. Used by Bench (currentPieceGroup) and by
+// each cluster piece's pieceGroup at load. Banners on origin mismatch only
+// when the auto-detected kind is known.
+function applyAssembledTransformToGroup(group, t, autoOriginKind, logTag) {
+  if (!group || !t) return;
   const tr = Array.isArray(t.translation) ? t.translation : [0, 0, 0];
   const rd = Array.isArray(t.rotation_deg) ? t.rotation_deg : [0, 0, 0];
   const order = (typeof t.rotation_order === 'string') ? t.rotation_order : 'XYZ';
-  currentPieceGroup.position.set(
+  group.position.set(
     Number(tr[0]) || 0, Number(tr[1]) || 0, Number(tr[2]) || 0
   );
-  currentPieceGroup.rotation.set(
+  group.rotation.set(
     (Number(rd[0]) || 0) * Math.PI / 180,
     (Number(rd[1]) || 0) * Math.PI / 180,
     (Number(rd[2]) || 0) * Math.PI / 180,
     order
   );
-  if (t.origin && currentPieceOrigin && t.origin !== currentPieceOrigin.kind) {
+  if (t.origin && autoOriginKind && t.origin !== autoOriginKind) {
     addBanner(
       `assembled.transform.origin "${t.origin}" differs from auto-detected ` +
-      `"${currentPieceOrigin.kind}" — applying transform anyway, but the ` +
-      `rotation pivot may not match what was authored.`,
+      `"${autoOriginKind}" — applying transform anyway, but the rotation ` +
+      `pivot may not match what was authored.`,
       'warn'
     );
   }
   console.log(
-    '[panels-first] assembled.transform applied: translation=[' +
+    (logTag || '[transform]') + ' assembled.transform applied: translation=[' +
       tr.join(', ') + '], rotation_deg=[' + rd.join(', ') +
       '], frame=' + (t.frame || '<none>') + ', origin=' + (t.origin || '<none>')
   );
   requestRender();
+}
+
+// Mode-aware lookup: returns the currently editable piece's pieceGroup +
+// identity info, or null if nothing is active. In Bench mode the active
+// piece is whatever's loaded; in Cluster mode it's the user-selected one.
+function getActivePieceContext() {
+  if (currentMode === 'bench') {
+    if (!currentPieceGroup) return null;
+    return {
+      pieceGroup: currentPieceGroup,
+      pieceId: currentPieceId,
+      originKind: currentPieceOrigin ? currentPieceOrigin.kind : null,
+      cluster: currentPieceCluster,
+      mode: 'bench',
+    };
+  }
+  if (currentMode === 'cluster' && selectedClusterPieceId) {
+    const cp = clusterPieces.get(selectedClusterPieceId);
+    if (!cp) return null;
+    return {
+      pieceGroup: cp.pieceGroup,
+      pieceId: cp.id,
+      originKind: cp.origin ? cp.origin.kind : null,
+      cluster: currentClusterName,
+      mode: 'cluster',
+    };
+  }
+  return null;
 }
 
 // Tear down + rebuild the Transform panel's slider rows + badges from the
@@ -882,27 +1038,32 @@ function applyAssembledTransformIfAny() {
 function refreshTransformPanel() {
   const panel = document.getElementById('transform-panel');
   if (!panel) return;
-  // Visibility: bench mode only, single piece loaded, panel populated.
-  const showPanel = (currentMode === 'bench') && !!currentPieceGroup;
-  panel.hidden = !showPanel;
-  if (!showPanel) return;
+  // Visibility: shown when an editable piece is active. In Bench: any loaded
+  // piece. In Cluster: only when one piece is selected.
+  const ctx = getActivePieceContext();
+  panel.hidden = !ctx;
+  if (!ctx) return;
 
-  // Origin badge.
+  // Origin badge — includes piece id when in cluster mode (multiple pieces in
+  // play, identity matters).
   const ob = document.getElementById('transform-origin-badge');
-  if (ob) ob.textContent = 'Rotates around: ' + (currentPieceOrigin ? currentPieceOrigin.kind : '<unknown>');
+  if (ob) {
+    const idSuffix = ctx.mode === 'cluster' && ctx.pieceId ? ' (piece ' + ctx.pieceId + ')' : '';
+    ob.textContent = 'Rotates around: ' + (ctx.originKind || '<unknown>') + idSuffix;
+  }
   // Frame badge.
   const fb = document.getElementById('transform-frame-badge');
   if (fb) {
-    fb.textContent = currentPieceCluster
-      ? `Frame: cluster (${currentPieceCluster})`
+    fb.textContent = ctx.cluster
+      ? `Frame: cluster (${ctx.cluster})`
       : 'Frame: world';
   }
 
   // Slider rows. Build once on first call; re-seed values on every refresh.
   const host = document.getElementById('transform-sliders');
   if (!host) return;
-  const pos = currentPieceGroup.position;
-  const rot = currentPieceGroup.rotation;
+  const pos = ctx.pieceGroup.position;
+  const rot = ctx.pieceGroup.rotation;
   const seed = {
     tx: pos.x, ty: pos.y, tz: pos.z,
     rx: rot.x * 180 / Math.PI,
@@ -948,22 +1109,26 @@ function setSliderValueQuiet(slider, value) {
   if (num) num.value = String(rounded);
 }
 
-// Read all 6 transform sliders, push to pieceGroup.position + rotation. Bound
-// to each slider's 'input' event in refreshTransformPanel.
+// Read all 6 transform sliders, push to active piece's pieceGroup. Bound to
+// each slider's 'input' event in refreshTransformPanel. Routes via
+// getActivePieceContext so cluster-mode's selected piece responds to the
+// same Transform panel as Bench.
 function onTransformSliderInput() {
-  if (!currentPieceGroup || !transformSliders.tx) return;
-  currentPieceGroup.position.set(
+  const ctx = getActivePieceContext();
+  if (!ctx || !transformSliders.tx) return;
+  ctx.pieceGroup.position.set(
     parseFloat(transformSliders.tx.value) || 0,
     parseFloat(transformSliders.ty.value) || 0,
     parseFloat(transformSliders.tz.value) || 0
   );
-  currentPieceGroup.rotation.set(
+  ctx.pieceGroup.rotation.set(
     (parseFloat(transformSliders.rx.value) || 0) * Math.PI / 180,
     (parseFloat(transformSliders.ry.value) || 0) * Math.PI / 180,
     (parseFloat(transformSliders.rz.value) || 0) * Math.PI / 180,
     'XYZ'
   );
-  positionWorktableForPiece();
+  if (ctx.mode === 'bench') positionWorktableForPiece();
+  if (ctx.mode === 'cluster') updateMeasurementVisuals();
   requestRender();
 }
 
@@ -976,21 +1141,46 @@ function onTransformControlsChange() {
   _xformSyncPending = true;
   requestAnimationFrame(() => {
     _xformSyncPending = false;
-    if (!currentPieceGroup || !transformSliders || !transformSliders.tx) return;
-    const p = currentPieceGroup.position;
-    const r = currentPieceGroup.rotation;
+    const ctx = getActivePieceContext();
+    if (!ctx || !transformSliders || !transformSliders.tx) return;
+    const p = ctx.pieceGroup.position;
+    const r = ctx.pieceGroup.rotation;
     setSliderValueQuiet(transformSliders.tx, p.x);
     setSliderValueQuiet(transformSliders.ty, p.y);
     setSliderValueQuiet(transformSliders.tz, p.z);
     setSliderValueQuiet(transformSliders.rx, r.x * 180 / Math.PI);
     setSliderValueQuiet(transformSliders.ry, r.y * 180 / Math.PI);
     setSliderValueQuiet(transformSliders.rz, r.z * 180 / Math.PI);
-    positionWorktableForPiece();
+    if (ctx.mode === 'bench') positionWorktableForPiece();
+    if (ctx.mode === 'cluster') updateMeasurementVisuals();
   });
 }
 
 // Cache of slider DOM nodes built lazily by refreshTransformPanel.
 let transformSliders = {};
+
+// ─── PR C state (DECISIONS #13): Cluster mode ────────────────────────────────
+// clusterPieces: Map<pieceId, ClusterPiece>. ClusterPiece shape:
+//   { id, parsed, sidecar, pieceGroup, sceneGroup, silBbox, origin,
+//     attachMeshes, selectionMesh }
+// pieceGroup is the wrapper TC attaches to in cluster mode; assembled.transform
+// is applied to it. sceneGroup sits inside pieceGroup at -origin so the
+// pieceGroup's local (0,0,0) is the piece's natural rotation origin (mirrors
+// Bench's wrapForTransform inner-group convention).
+const clusterPieces = new Map();
+let currentClusterName = null;     // 'anchor', or '<ad-hoc>' for cross-cluster comma-list
+let selectedClusterPieceId = null; // or null when nothing is selected
+// Mode within cluster mode: 'select' (default) drives raycast→pieceGroup;
+// 'measure' drives raycast→connection-point spheres for distance pinning.
+let clusterInteractionMode = 'select';
+// Pending first click during measurement pin (waits for second click).
+let pendingMeasurementPoint = null; // { pieceId, pointId, kind } | null
+// Pinned distance measurements. Each: { fromPieceId, fromPointId, toPieceId,
+// toPointId, line: THREE.Line, label: THREE.Sprite, labelTex }.
+const measurements = [];
+// Bench-mode connection-point overlay (toggled in side panel). Single-piece
+// only — cluster pieces carry their own spheres independently.
+let benchConnectionPoints = [];
 
 // ─── Banner helpers ───────────────────────────────────────────────────────────
 function clearBanners() { bannersEl.innerHTML = ''; }
@@ -1146,13 +1336,15 @@ function reloadCurrentPiece() {
   loadPieceById(currentPieceId, 'piece-id-reload');
 }
 
-// ─── Scene mode: multi-piece load + render ────────────────────────────────────
-// Parse `rawIds` (comma-separated list, e.g. "065,066,067,068,069"; whitespace
-// allowed; ids zero-padded to 3 digits, optional letter suffix), fetch each
-// piece's SVG from work/pieces/NNN/NNN.svg, parse them, and dispatch to
-// renderSceneMulti for placement. Single-piece state is cleared (currentPieceId
-// → null, Reload disabled) so the rotation slider and `R` keypress don't try
-// to operate on stale data.
+// ─── Scene mode: backwards-compat entry point routing into Cluster mode ──────
+// PR C (DECISIONS #13). The PR #17 multi-piece scene mode took a comma-list
+// of piece ids (e.g. "065,066,067,068,069") and laid them out via pivot
+// alignment. Cluster mode is the same multi-piece authoring tier with
+// transform capture; routing comma-list loads through it preserves URL +
+// scene-input behaviour while everything new lives in one place.
+//
+// If every id resolves to the same cluster, switch to Cluster mode with that
+// cluster's full membership; otherwise load ad-hoc with frame: world.
 async function loadScene(rawIds) {
   clearBanners();
   const ids = String(rawIds || '')
@@ -1169,263 +1361,766 @@ async function loadScene(rawIds) {
     addBanner('Scene: enter a comma-separated list of piece ids (e.g. 065,066,067,068,069).', 'warn');
     return;
   }
+  await loadClusterAdHoc(ids);
+}
 
-  // Tear down single-piece state. The renderSceneMulti call below also clears
-  // any prior scene groups; this just resets the single-piece tracking so the
-  // Rotation slider, Reload button, and `R` keypress don't operate on stale
-  // data.
-  currentPieceId = null;
-  currentAssembledFolds = null;
-  currentAssembledTransform = null;
-  currentSidecar = null;
-  currentPieceOrigin = null;
-  currentPieceOrigin3js = null;
-  currentPieceCluster = null;
-  reloadPieceBtn.disabled = true;
-  parsed = null;
-  rotationSection.hidden = true;
-  hideSidecarBlock();
-  refreshTransformPanel();   // hide the transform panel in scene mode
+// ─── PR C: Cluster mode — multi-piece subassembly authoring ───────────────────
+// Tier above Bench. Loads every piece in a named subassembly (cluster) into
+// one scene, applies each piece's saved assembled.transform (cluster-local
+// frame), and lets the user select / manipulate / measure pieces independently.
 
-  // Fetch + parse each piece in parallel — the fetches are independent and
-  // parseSVG is synchronous (image decode happens later, lazily).
-  const fetches = ids.map(async id => {
-    const path = `work/pieces/${id}/${id}.svg`;
-    try {
-      const resp = await fetch(path + '?t=' + Date.now());
-      if (!resp.ok) {
-        addBanner(`Scene: skipping ${id} — no SVG at ${path} (HTTP ${resp.status}).`, 'warn');
-        return null;
-      }
-      const text = await resp.text();
-      const p = parseSVG(text, `${id}.svg`);
-      if (!p) return null;
-      p._sceneId = id;
-      return p;
-    } catch (e) {
-      addBanner(`Scene: skipping ${id} — fetch failed: ${e.message}.`, 'warn');
+const SPHERE_ATTACH_RADIUS  = 0.5;   // mm; renders as 1 mm-diameter ball
+const SPHERE_LANDING_RADIUS = 0.5;
+const SPHERE_PIVOT_RADIUS   = 1.0;   // pivot-anchor: bigger so it reads as the cluster origin
+const COLOR_ATTACH    = 0xff5555;    // red
+const COLOR_LANDING   = 0x55aaff;    // blue
+const COLOR_PIVOT     = 0xffd34d;    // yellow
+const COLOR_SELECTION = 0x55e0ff;    // cyan
+
+// Find a piece's cluster name by walking pivot_clusters. Cluster mode is
+// concerned with the seed name, not transitive membership — that walk happens
+// at load time. Returns null if the piece isn't in any seed list.
+function findClusterForPiece(pieceId) { return findPieceCluster(pieceId); }
+
+// Transitive walk: starting from the seed pieces in `pivot_clusters[name]`,
+// follow valid edges in either direction until the set stops growing. Caps at
+// 50 pieces and banner-warns if exceeded.
+function expandClusterMembership(seedIds) {
+  const set = new Set(seedIds);
+  if (!connectionGraph || !connectionGraph.graph || !Array.isArray(connectionGraph.graph.edges)) {
+    return [...set];
+  }
+  const edges = connectionGraph.graph.edges.filter(e => e && e.valid);
+  let grew = true;
+  let safety = 0;
+  while (grew && safety++ < 100) {
+    grew = false;
+    for (const e of edges) {
+      if (set.has(e.from) && !set.has(e.to))      { set.add(e.to);   grew = true; }
+      else if (set.has(e.to) && !set.has(e.from)) { set.add(e.from); grew = true; }
+    }
+    if (set.size > 50) {
+      addBanner('Cluster transitive walk exceeded 50 pieces — capping (likely a bug in the graph).', 'warn');
+      break;
+    }
+  }
+  return [...set];
+}
+
+// Cluster load entry point. `name` is a key in connectionGraph.graph.pivot_clusters
+// (e.g., 'anchor'). Falls back to a per-piece "ad-hoc" load (frame: world) when
+// the comma-list path calls in.
+async function loadCluster(name) {
+  if (currentMode !== 'cluster') setMode('cluster');
+  clearBanners();
+  if (!connectionGraph || !connectionGraph.graph) {
+    addBanner('Cluster: connection-graph.json not loaded yet — try again in a moment.', 'warn');
+    return;
+  }
+  const pcs = connectionGraph.graph.pivot_clusters || {};
+  const seed = pcs[name];
+  if (!seed || !Array.isArray(seed) || seed.length === 0) {
+    addBanner(`Cluster "${name}" not found in connection-graph.json pivot_clusters.`, 'warn');
+    return;
+  }
+  const memberIds = expandClusterMembership(seed);
+  await loadClusterPieces(memberIds, name);
+  history.replaceState(null, '', `?cluster=${encodeURIComponent(name)}`);
+}
+
+// Ad-hoc cluster: a comma-list of pieces that may or may not share a cluster.
+// If they all share one, defer to loadCluster(name); otherwise load them in
+// cluster mode with frame:world (ad-hoc — no shared cluster origin).
+async function loadClusterAdHoc(pieceIds) {
+  if (currentMode !== 'cluster') setMode('cluster');
+  clearBanners();
+  if (pieceIds.length === 0) {
+    addBanner('Cluster: empty piece list.', 'warn');
+    return;
+  }
+  // If every piece resolves to the same cluster name, switch to that cluster's
+  // expanded membership (the common case for `?piece=065,066,067,068,069`).
+  const sharedClusters = new Set(pieceIds.map(id => findClusterForPiece(id)).filter(Boolean));
+  if (sharedClusters.size === 1) {
+    const name = [...sharedClusters][0];
+    addBanner(`Cluster: piece list resolves to "${name}" — auto-loading the cluster.`, 'ok');
+    return loadCluster(name);
+  }
+  if (sharedClusters.size > 1) {
+    addBanner(
+      `Cluster: pieces span multiple clusters (${[...sharedClusters].join(', ')}) — ` +
+      `loading ad-hoc with frame: world.`, 'warn'
+    );
+  }
+  await loadClusterPieces(pieceIds, '<ad-hoc>');
+}
+
+// The actual loader. Fetches each piece's SVG + sidecar, renders it as a
+// cluster piece, places the result. Pieces with no SVG or no sidecar are
+// banner-warned but the load continues.
+async function loadClusterPieces(pieceIds, clusterName) {
+  // Fresh slate: tear down any prior cluster pieces + measurements.
+  teardownClusterScene();
+  currentClusterName = clusterName;
+
+  // Fetch SVG + sidecar for each id in parallel. SVG fallback for split pieces:
+  // try NNN.svg, then NNNa.svg, then NNNb.svg.
+  const fetches = pieceIds.map(async rawId => {
+    const id = String(rawId).trim().toLowerCase();
+    const candidates = /^[0-9]{1,3}$/.test(id) ? [
+      String(parseInt(id, 10)).padStart(3, '0'),
+      String(parseInt(id, 10)).padStart(3, '0') + 'a',
+      String(parseInt(id, 10)).padStart(3, '0') + 'b',
+    ] : [id];
+    let svgText = null, useId = null;
+    for (const cand of candidates) {
+      const path = `work/pieces/${cand}/${cand}.svg`;
+      try {
+        const r = await fetch(path + '?t=' + Date.now());
+        if (r.ok) { svgText = await r.text(); useId = cand; break; }
+      } catch { /* try next */ }
+    }
+    if (!svgText) {
+      addBanner(`Cluster: no SVG found for piece ${id}.`, 'warn');
       return null;
     }
+    let sidecar = null;
+    try {
+      const r2 = await fetch(`work/pieces/${useId}/${useId}.json?t=${Date.now()}`);
+      if (r2.ok) sidecar = await r2.json();
+    } catch { /* sidecar is optional */ }
+    return { id: useId, svgText, sidecar };
   });
-  const parsedArray = (await Promise.all(fetches)).filter(p => p !== null);
+  const fetched = (await Promise.all(fetches)).filter(x => x !== null);
 
-  if (parsedArray.length === 0) {
-    addBanner('Scene: no pieces could be loaded.', 'error');
+  if (fetched.length === 0) {
+    addBanner('Cluster: no pieces could be loaded.', 'error');
     return;
   }
 
-  await renderSceneMulti(parsedArray);
+  // Parse all SVGs first; pick the first panels-first piece's image to drive
+  // MM_PER_UNIT for the whole cluster. Cut-line-first pieces are skipped with
+  // a per-piece warning (cluster mode is panels-first only in v1).
+  const parsedItems = [];
+  for (const { id, svgText, sidecar } of fetched) {
+    const p = parseSVG(svgText, `${id}.svg`);
+    if (!p) { addBanner(`Cluster: parse failed for piece ${id}.`, 'warn'); continue; }
+    if (!p.panelsFirst) {
+      addBanner(`Cluster: skipping ${id} — cut-line-first (cluster mode v1 is panels-first only).`, 'warn');
+      continue;
+    }
+    p._sceneId = id;
+    parsedItems.push({ id, parsed: p, sidecar });
+  }
+  if (parsedItems.length === 0) {
+    addBanner('Cluster: no panels-first pieces to render.', 'error');
+    return;
+  }
+
+  await new Promise(resolve => derivePPM(parsedItems[0].parsed, resolve));
+
+  // Reset shared per-cluster slider host once; renderPanelsFirstScene appends
+  // hidden rows per piece. The fold-controls section is hidden by CSS in
+  // cluster mode, so visual clutter is zero.
+  pathHingeMap = new Map();
+  document.getElementById('per-fold-sliders').innerHTML = '';
+
+  // Render each piece, wrap in a pieceGroup, apply assembled.transform, build
+  // sphere overlay.
+  const noTransformIds = [];
+  for (const { id, parsed: p, sidecar } of parsedItems) {
+    parsed = p;   // buildSlab reads parsed.scanPng for the front-face texture
+    VB = p.viewBox;
+    const sceneGroup = await renderPanelsFirstScene(p, { sceneMode: true, pieceIdPrefix: id });
+    if (!sceneGroup) continue;
+    const silBbox = sceneGroup.userData.silBbox;
+    const origin  = computePieceOrigin(p);
+    const origin3js = {
+      x:  (origin.vbX - silBbox.cx) * MM_PER_UNIT,
+      y: -(origin.vbY - silBbox.cy) * MM_PER_UNIT,
+      kind: origin.kind,
+    };
+    // Wrap sceneGroup in pieceGroup with sceneGroup offset so pieceGroup-local
+    // (0,0,0) IS the natural origin (axle / pivot-anchor / centroid). Same
+    // construction as Bench's wrapForTransform inner-group offset.
+    const pieceGroup = new THREE.Group();
+    pieceGroup.rotation.order = 'XYZ';
+    sceneGroup.position.set(-origin3js.x, -origin3js.y, 0);
+    pieceGroup.add(sceneGroup);
+    pieceGroup.userData.clusterPieceId = id;
+
+    // Apply per-piece assembled.folds (cluster scenes need each piece in its
+    // assembled pose; renderPanelsFirstScene's sceneMode skips this so it
+    // doesn't bleed across pieces). Drives the hinge quaternions directly.
+    if (sidecar && sidecar.assembled && sidecar.assembled.folds) {
+      applyClusterPieceFolds(id, p, sidecar.assembled.folds);
+    }
+
+    // Per-piece transform from sidecar; missing → identity (banner-warn).
+    if (sidecar && sidecar.assembled && sidecar.assembled.transform) {
+      applyAssembledTransformToGroup(
+        pieceGroup, sidecar.assembled.transform, origin.kind, '[cluster:' + id + ']'
+      );
+    } else {
+      noTransformIds.push(id);
+    }
+
+    // Connection-point spheres for raycast targets + visual cues.
+    const attachMeshes = buildConnectionSpheresOnSceneGroup(p, sceneGroup, id);
+
+    // Selection wireframe (hidden by default).
+    const selectionMesh = buildSelectionWireframe(silBbox, p.thicknessMm);
+    selectionMesh.visible = false;
+    sceneGroup.add(selectionMesh);
+
+    scene.add(pieceGroup);
+    clusterPieces.set(id, {
+      id, parsed: p, sidecar, pieceGroup, sceneGroup, silBbox,
+      origin: origin3js, attachMeshes, selectionMesh,
+    });
+  }
+
+  // Frame the camera over the union of all pieceGroups.
+  positionCameraOverCluster();
+  positionWorktableForCluster();
+
+  // Banners + console summary.
+  addBanner(
+    `Cluster ${clusterName === '<ad-hoc>' ? '<ad-hoc>' : '`' + clusterName + '`'} loaded — ` +
+    clusterPieces.size + ' piece' + (clusterPieces.size === 1 ? '' : 's') + '.', 'ok'
+  );
+  if (noTransformIds.length > 0) {
+    addBanner(
+      'Cluster: no saved assembled.transform for ' + noTransformIds.join(', ') +
+      ' — placed at default position (may overlap others).', 'warn'
+    );
+  }
+  console.log('[cluster]', clusterName, 'loaded:', [...clusterPieces.keys()].join(', '));
+
+  refreshClusterPanel();
+  refreshTransformPanel();
 }
 
-// Multi-piece scene assembler. Builds one panels-first sub-scene per piece,
-// places each piece's group along the X axis (5 mm gaps), then applies pivot
-// alignment from connectionGraph.graph.pivot_clusters so pieces sharing a
-// pivot marker (e.g. pivot-anchor on 067/069) co-locate at that point in
-// world space. Cut-line-first pieces are skipped with a console warning —
-// only panels-first pieces participate in scene mode in v0.
-async function renderSceneMulti(parsedArray) {
-  // ── 1. Tear down whatever's currently in the scene ────────────────────────
-  // PR A: TransformControls / pieceGroup wrapper teardown. detach() unbinds
-  // the gizmo; scene.remove(pieceGroup) drops the wrapper. The pivot/wires
-  // disposed below traverse from inside the (now-detached) wrapper.
-  if (transformControls) transformControls.detach();
-  if (currentPieceGroup) { scene.remove(currentPieceGroup); currentPieceGroup = null; currentPieceInnerGroup = null; }
-  if (currentSlabPivot) {
-    scene.remove(currentSlabPivot);
-    currentSlabPivot.traverse(obj => {
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
-    });
-    currentSlabPivot = null;
+// Apply per-piece assembled.folds map to that piece's hinges in pathHingeMap.
+// Mirrors the per-fold quaternion-set inside renderPanelsFirstScene; called
+// after that function returns so each piece's pose is correct without a slider.
+function applyClusterPieceFolds(pieceId, p, foldsMap) {
+  if (!p.panelsFirst || !foldsMap) return;
+  for (const fold of p.panelsFirst.folds) {
+    const angle = Number(foldsMap[fold.id]);
+    if (!Number.isFinite(angle)) continue;
+    const items = pathHingeMap.get(pieceId + ':' + fold.id) || [];
+    for (const item of items) {
+      if (item.mode === 'fold') {
+        item.target.quaternion.setFromAxisAngle(
+          item.axis,
+          -(item.signFwd || 1) * angle * Math.PI / 180
+        );
+      } else if (item.mode === 'curved') {
+        item.target.quaternion.setFromAxisAngle(item.axis, angle * Math.PI / 180);
+      }
+    }
   }
-  for (const m of currentAxleWires) {
-    scene.remove(m);
+}
+
+// Build the per-piece sphere overlay: one sphere per attach point (red), per
+// landing (blue), per pivot (yellow). Spheres are children of sceneGroup so
+// they move with the piece geometry. Returns the array of meshes for raycast.
+function buildConnectionSpheresOnSceneGroup(p, sceneGroup, pieceId) {
+  const meshes = [];
+  const silBbox = sceneGroup.userData.silBbox;
+  const ppm = MM_PER_UNIT;
+  const v2t = (vbX, vbY) => ({
+    x:  (vbX - silBbox.cx) * ppm,
+    y: -(vbY - silBbox.cy) * ppm,
+  });
+
+  // Attach-points layer: every entry has a centroid in viewBox coords. Pivot
+  // markers (id starts with `pivot-`) get the yellow ball; everything else is
+  // red (attach) — landings rendered separately below.
+  if (p.panelsFirst && Array.isArray(p.panelsFirst.attachPoints)) {
+    for (const ap of p.panelsFirst.attachPoints) {
+      if (!ap.centroid) continue;
+      const isPivot = /^(back-)?pivot-/.test(ap.id);
+      const radius = isPivot ? SPHERE_PIVOT_RADIUS : SPHERE_ATTACH_RADIUS;
+      const color  = isPivot ? COLOR_PIVOT : COLOR_ATTACH;
+      const mesh = makeConnectionSphere(radius, color, pieceId, ap.id, isPivot ? 'pivot' : 'attach');
+      const t = v2t(ap.centroid.x, ap.centroid.y);
+      mesh.position.set(t.x, t.y, 0);
+      sceneGroup.add(mesh);
+      meshes.push(mesh);
+    }
+  }
+  // Marks-layer landings + tabs. Iterate marksCentroidsById; both `tab-X` and
+  // `landing-Y` are valid connection points (tabs partner with landings across
+  // pieces, e.g. tab-c on 069 ↔ landing-c69 on 067).
+  if (p.marksCentroidsById) {
+    for (const [id, centroid] of p.marksCentroidsById) {
+      const isLanding = id.startsWith('landing-') || id.startsWith('back-landing-');
+      const isTab     = id.startsWith('tab-')     || id.startsWith('back-tab-');
+      if (!isLanding && !isTab) continue;
+      // Skip if the same id was already in attach-points (some pieces double-author).
+      if (meshes.some(m => m.userData.pointId === id)) continue;
+      const color = isTab ? COLOR_ATTACH : COLOR_LANDING;
+      const kind  = isTab ? 'tab' : 'landing';
+      const mesh = makeConnectionSphere(SPHERE_LANDING_RADIUS, color, pieceId, id, kind);
+      const t = v2t(centroid.x, centroid.y);
+      mesh.position.set(t.x, t.y, 0);
+      sceneGroup.add(mesh);
+      meshes.push(mesh);
+    }
+  }
+  return meshes;
+}
+
+function makeConnectionSphere(radiusMm, color, pieceId, pointId, kind) {
+  const geo = new THREE.SphereGeometry(radiusMm, 12, 12);
+  const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.userData.connection = true;
+  mesh.userData.pieceId = pieceId;
+  mesh.userData.pointId = pointId;
+  mesh.userData.kind    = kind;
+  mesh.renderOrder = 10;   // draw on top of slabs
+  mat.depthTest = false;   // visible even when behind a slab
+  return mesh;
+}
+
+// Selection wireframe: a thin cyan line-box at the piece's silBbox in
+// sceneGroup-local coords (thickness covers a couple of mm). Hidden by default.
+function buildSelectionWireframe(silBbox, thicknessMm) {
+  const wMm = (silBbox.maxX - silBbox.minX) * MM_PER_UNIT;
+  const hMm = (silBbox.maxY - silBbox.minY) * MM_PER_UNIT;
+  const tMm = Math.max(thicknessMm * 1.4, 1.5);   // outset a bit so it's visible
+  const box = new THREE.BoxGeometry(wMm, hMm, tMm);
+  const edges = new THREE.EdgesGeometry(box);
+  const mat = new THREE.LineBasicMaterial({ color: COLOR_SELECTION, transparent: true, opacity: 0.95 });
+  const lines = new THREE.LineSegments(edges, mat);
+  // sceneGroup-local: silBbox center sits at (0, 0). Box is centered at origin
+  // by default, so no further offset is needed.
+  return lines;
+}
+
+// Frame camera over the union bbox of every cluster piece. Resets to head-on.
+function positionCameraOverCluster() {
+  const union = new THREE.Box3();
+  for (const cp of clusterPieces.values()) {
+    cp.pieceGroup.updateMatrixWorld(true);
+    union.union(new THREE.Box3().setFromObject(cp.pieceGroup));
+  }
+  if (union.isEmpty()) return;
+  const center = union.getCenter(new THREE.Vector3());
+  const size   = union.getSize(new THREE.Vector3());
+  const diag   = Math.hypot(size.x, size.y) || 1;
+  const fovRad = camera.fov * Math.PI / 180;
+  const dist   = (diag / 2) / Math.tan(fovRad / 2) * 1.4;
+  camera.position.set(center.x, center.y, dist);
+  camera.near = dist * 0.001;
+  camera.far  = dist * 100;
+  camera.updateProjectionMatrix();
+  controls.target.set(center.x, center.y, 0);
+  controls.update();
+  requestRender();
+}
+
+function positionWorktableForCluster() {
+  if (!worktableMesh) return;
+  if (clusterPieces.size === 0) { worktableMesh.position.set(0, -50, 0); return; }
+  const union = new THREE.Box3();
+  for (const cp of clusterPieces.values()) {
+    cp.pieceGroup.updateMatrixWorld(true);
+    union.union(new THREE.Box3().setFromObject(cp.pieceGroup));
+  }
+  if (union.isEmpty()) { worktableMesh.position.set(0, -50, 0); return; }
+  worktableMesh.position.set(0, union.min.y - 5, 0);
+  requestRender();
+}
+
+// Tear down the cluster scene completely. Disposes geometry/materials,
+// removes pieces + measurements + sphere overlays from the scene.
+function teardownClusterScene() {
+  if (transformControls && transformControls.object &&
+      [...clusterPieces.values()].some(cp => cp.pieceGroup === transformControls.object)) {
+    transformControls.detach();
+  }
+  for (const cp of clusterPieces.values()) {
+    scene.remove(cp.pieceGroup);
+    cp.pieceGroup.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+        else obj.material.dispose();
+      }
+    });
+  }
+  clusterPieces.clear();
+  selectedClusterPieceId = null;
+  pendingMeasurementPoint = null;
+  for (const m of measurements) disposeMeasurementVisuals(m);
+  measurements.length = 0;
+  currentClusterName = null;
+  pathHingeMap = new Map();
+  document.getElementById('per-fold-sliders').innerHTML = '';
+  refreshClusterPanel();
+  requestRender();
+}
+
+// ── Cluster selection ────────────────────────────────────────────────────────
+
+function selectClusterPiece(id) {
+  if (selectedClusterPieceId === id) return;
+  // Hide previous selection mesh.
+  if (selectedClusterPieceId) {
+    const prev = clusterPieces.get(selectedClusterPieceId);
+    if (prev && prev.selectionMesh) prev.selectionMesh.visible = false;
+  }
+  selectedClusterPieceId = id;
+  if (id) {
+    const cp = clusterPieces.get(id);
+    if (cp && cp.selectionMesh) cp.selectionMesh.visible = true;
+  }
+  attachTransformToActivePiece();
+  refreshTransformPanel();
+  refreshClusterPanel();
+  requestRender();
+}
+
+function deselectClusterPiece() { selectClusterPiece(null); }
+
+function refreshClusterPanel() {
+  const label = document.getElementById('cluster-selected-label');
+  const saveBtn = document.getElementById('saveSelectedBtn');
+  const deselBtn = document.getElementById('deselectBtn');
+  const sel = selectedClusterPieceId ? clusterPieces.get(selectedClusterPieceId) : null;
+  if (label) {
+    if (clusterPieces.size === 0) {
+      label.innerHTML = '<em>No cluster loaded.</em>';
+    } else if (sel) {
+      label.innerHTML = 'Selected: <strong>' + sel.id + '</strong>' +
+        ' &nbsp;<span style="color:#666;">(' + clusterPieces.size + ' in cluster)</span>';
+    } else {
+      label.innerHTML = '<em>Click a piece to select it. (' + clusterPieces.size + ' loaded)</em>';
+    }
+  }
+  if (saveBtn) saveBtn.disabled = !sel;
+  if (deselBtn) deselBtn.disabled = !sel;
+  refreshMeasurementsList();
+  // Measure-button state.
+  const mb = document.getElementById('measureToggleBtn');
+  if (mb) mb.classList.toggle('active', clusterInteractionMode === 'measure');
+}
+
+// ── Distance measurements ────────────────────────────────────────────────────
+
+function setMeasureMode(on) {
+  clusterInteractionMode = on ? 'measure' : 'select';
+  pendingMeasurementPoint = null;
+  refreshClusterPanel();
+}
+
+function pinMeasurement(a, b) {
+  if (!a || !b) return;
+  if (a.pieceId === b.pieceId && a.pointId === b.pointId) return;
+  const m = createMeasurementVisuals(a, b);
+  measurements.push(m);
+  updateMeasurementVisuals();
+  refreshMeasurementsList();
+  requestRender();
+}
+
+function removeMeasurement(idx) {
+  if (idx < 0 || idx >= measurements.length) return;
+  const m = measurements[idx];
+  disposeMeasurementVisuals(m);
+  measurements.splice(idx, 1);
+  refreshMeasurementsList();
+  requestRender();
+}
+
+function createMeasurementVisuals(a, b) {
+  // Line: 2-point THREE.Line. Updated each frame in updateMeasurementVisuals.
+  const lineGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0)
+  ]);
+  const lineMat = new THREE.LineBasicMaterial({ color: 0xfff066, depthTest: false });
+  const line = new THREE.Line(lineGeo, lineMat);
+  line.renderOrder = 9;
+  scene.add(line);
+
+  // Label: text sprite. CanvasTexture → Sprite. Each measurement gets its own
+  // canvas; we redraw the canvas on distance change in updateMeasurementVisuals.
+  const canvas = document.createElement('canvas');
+  canvas.width = 160; canvas.height = 48;
+  const labelTex = new THREE.CanvasTexture(canvas);
+  labelTex.minFilter = THREE.LinearFilter;
+  const spriteMat = new THREE.SpriteMaterial({ map: labelTex, depthTest: false });
+  const sprite = new THREE.Sprite(spriteMat);
+  // World-size sprite ~12 mm wide; label is screen-readable around 100mm pieces.
+  sprite.scale.set(20, 6, 1);
+  sprite.renderOrder = 10;
+  scene.add(sprite);
+
+  return {
+    fromPieceId: a.pieceId, fromPointId: a.pointId,
+    toPieceId:   b.pieceId, toPointId:   b.pointId,
+    line, label: sprite, labelTex, canvas,
+    lastDist: -1,
+  };
+}
+
+function disposeMeasurementVisuals(m) {
+  if (!m) return;
+  if (m.line) {
+    scene.remove(m.line);
+    if (m.line.geometry) m.line.geometry.dispose();
+    if (m.line.material) m.line.material.dispose();
+  }
+  if (m.label) {
+    scene.remove(m.label);
+    if (m.label.material) {
+      if (m.label.material.map) m.label.material.map.dispose();
+      m.label.material.dispose();
+    }
+  }
+}
+
+// Resolve a measurement endpoint to its current world position by looking up
+// the connection sphere mesh on the cluster piece. Spheres live as children
+// of sceneGroup; world position reflects the piece's accumulated transforms.
+function resolveMeasurementEndpoint(pieceId, pointId, target) {
+  const cp = clusterPieces.get(pieceId);
+  if (!cp) return null;
+  const mesh = cp.attachMeshes.find(m => m.userData.pointId === pointId);
+  if (!mesh) return null;
+  return mesh.getWorldPosition(target);
+}
+
+const _measVecA = new THREE.Vector3();
+const _measVecB = new THREE.Vector3();
+
+function updateMeasurementVisuals() {
+  if (measurements.length === 0) return;
+  for (const m of measurements) {
+    const a = resolveMeasurementEndpoint(m.fromPieceId, m.fromPointId, _measVecA);
+    const b = resolveMeasurementEndpoint(m.toPieceId,   m.toPointId,   _measVecB);
+    if (!a || !b) continue;
+    // Update line geometry.
+    const positions = m.line.geometry.attributes.position.array;
+    positions[0] = a.x; positions[1] = a.y; positions[2] = a.z;
+    positions[3] = b.x; positions[4] = b.y; positions[5] = b.z;
+    m.line.geometry.attributes.position.needsUpdate = true;
+    m.line.geometry.computeBoundingSphere();
+    // Sprite midpoint.
+    m.label.position.set((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+    // Distance label (mm) — only redraw the canvas if the value changed
+    // by ≥ 0.05mm to keep the texture upload cost low.
+    const d = a.distanceTo(b);
+    if (Math.abs(d - m.lastDist) > 0.05) {
+      drawMeasurementLabel(m, d);
+      m.lastDist = d;
+    }
+  }
+}
+
+function drawMeasurementLabel(m, distMm) {
+  const ctx = m.canvas.getContext('2d');
+  ctx.clearRect(0, 0, m.canvas.width, m.canvas.height);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.78)';
+  ctx.fillRect(0, 0, m.canvas.width, m.canvas.height);
+  ctx.fillStyle = '#fff066';
+  ctx.font = 'bold 28px ui-monospace, Menlo, Consolas, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(distMm.toFixed(1) + ' mm', m.canvas.width / 2, m.canvas.height / 2);
+  m.labelTex.needsUpdate = true;
+}
+
+function refreshMeasurementsList() {
+  const host = document.getElementById('measurements-list');
+  if (!host) return;
+  host.innerHTML = '';
+  if (measurements.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'color:#666;font-style:italic;font-size:11px;';
+    if (clusterInteractionMode === 'measure') {
+      empty.textContent = pendingMeasurementPoint
+        ? 'Click a second connection point on a different piece.'
+        : 'Click a connection point to start.';
+    } else {
+      empty.textContent = 'No measurements pinned.';
+    }
+    host.appendChild(empty);
+    return;
+  }
+  measurements.forEach((m, i) => {
+    const row = document.createElement('div');
+    row.className = 'meas-row';
+    const lab = document.createElement('span');
+    lab.className = 'label';
+    lab.textContent = m.fromPieceId + ':' + m.fromPointId + ' → ' +
+                      m.toPieceId + ':' + m.toPointId;
+    lab.title = lab.textContent;
+    const dist = document.createElement('span');
+    dist.className = 'dist';
+    dist.textContent = (m.lastDist >= 0 ? m.lastDist.toFixed(1) : '?') + 'mm';
+    const rm = document.createElement('button');
+    rm.textContent = '✕';
+    rm.title = 'Remove';
+    rm.addEventListener('click', () => removeMeasurement(i));
+    row.appendChild(lab);
+    row.appendChild(dist);
+    row.appendChild(rm);
+    host.appendChild(row);
+  });
+}
+
+// Suggest a connection-graph partner for a clicked point. If the user clicked
+// e.g. tab-c on piece 065 and the graph contains a valid edge to a partner
+// landing on 066, banner-suggest.
+function suggestPartnerFor(pieceId, pointId) {
+  if (!connectionGraph || !connectionGraph.graph || !Array.isArray(connectionGraph.graph.edges)) return;
+  for (const e of connectionGraph.graph.edges) {
+    if (!e || !e.valid) continue;
+    if (e.from === pieceId && e.raw_id && e.raw_id.replace(/^back-/, '') === pointId.replace(/^back-/, '')) {
+      addBanner(`Hint: ${pieceId}:${pointId} partners with piece ${e.to} — click a landing/tab on ${e.to} next.`, 'ok');
+      return;
+    }
+  }
+}
+
+// ── Cluster pointer/click handling ───────────────────────────────────────────
+
+const _raycaster = new THREE.Raycaster();
+const _mouseNDC  = new THREE.Vector2();
+let _clickDownPos = null;
+
+function onClusterPointerDown(e) {
+  _clickDownPos = { x: e.clientX, y: e.clientY };
+}
+
+function onClusterPointerUp(e) {
+  if (!_clickDownPos) return;
+  const dx = e.clientX - _clickDownPos.x;
+  const dy = e.clientY - _clickDownPos.y;
+  _clickDownPos = null;
+  if (currentMode !== 'cluster') return;
+  if (Math.hypot(dx, dy) > 3) return;     // it was a drag (orbit / TC), not a click
+  if (!cameraLocked) return;              // free orbit owns clicks
+  // If TransformControls swallowed this click (hit a handle), TC.axis is
+  // non-null after pointerdown; skip.
+  if (transformControls && transformControls.axis) return;
+
+  const rect = renderer.domElement.getBoundingClientRect();
+  _mouseNDC.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  _mouseNDC.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+  _raycaster.setFromCamera(_mouseNDC, camera);
+
+  // Build the candidate target list based on interaction mode.
+  if (clusterInteractionMode === 'measure') {
+    const sphereTargets = [];
+    for (const cp of clusterPieces.values()) sphereTargets.push(...cp.attachMeshes);
+    const hits = _raycaster.intersectObjects(sphereTargets, false);
+    if (hits.length === 0) return;
+    const hit = hits[0].object;
+    const point = {
+      pieceId: hit.userData.pieceId,
+      pointId: hit.userData.pointId,
+      kind:    hit.userData.kind,
+    };
+    if (!pendingMeasurementPoint) {
+      pendingMeasurementPoint = point;
+      addBanner(`Measure: 1st point set (${point.pieceId}:${point.pointId}). Click partner.`, 'ok');
+      suggestPartnerFor(point.pieceId, point.pointId);
+      refreshMeasurementsList();
+    } else {
+      pinMeasurement(pendingMeasurementPoint, point);
+      pendingMeasurementPoint = null;
+    }
+    return;
+  }
+
+  // Selection mode: raycast against pieceGroups (slabs).
+  const pieceTargets = [];
+  for (const cp of clusterPieces.values()) pieceTargets.push(cp.pieceGroup);
+  const hits = _raycaster.intersectObjects(pieceTargets, true);
+  if (hits.length === 0) {
+    deselectClusterPiece();
+    return;
+  }
+  // Walk up the hit's ancestors to find which clusterPiece owns it.
+  let obj = hits[0].object;
+  let pieceId = null;
+  while (obj) {
+    if (obj.userData && obj.userData.clusterPieceId) { pieceId = obj.userData.clusterPieceId; break; }
+    obj = obj.parent;
+  }
+  if (pieceId) selectClusterPiece(pieceId);
+}
+
+// ── Bench-mode connection-points overlay (toggle in side panel) ──────────────
+
+function showBenchConnectionPoints() {
+  hideBenchConnectionPoints();
+  if (!parsed || !currentSlabPivot || !currentPieceGroup) return;
+  if (!parsed.panelsFirst) return;
+  // We piggy-back on the piece's slabPivot (what currentSlabPivot points at
+  // is the rotating pivot inside currentPieceInnerGroup → currentPieceGroup).
+  // For Bench, attach spheres as children of currentSlabPivot so they sit at
+  // silBbox-relative coords (matching how panels are placed inside pivot).
+  // We need a silBbox in viewBox coords; the panels-first parser exposes
+  // panel bboxes; recompute the union here.
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  for (const panel of parsed.panelsFirst.panels.values()) {
+    if (panel.bbox.minX<minX) minX=panel.bbox.minX;
+    if (panel.bbox.maxX>maxX) maxX=panel.bbox.maxX;
+    if (panel.bbox.minY<minY) minY=panel.bbox.minY;
+    if (panel.bbox.maxY>maxY) maxY=panel.bbox.maxY;
+  }
+  const silBbox = { minX, maxX, minY, maxY, cx:(minX+maxX)/2, cy:(minY+maxY)/2 };
+  // Active axle drives currentSlabPivot.position; spheres live OUTSIDE the
+  // pivot (in pieceGroup-inner coords) so they're at silBbox-relative coords.
+  // Easiest: put them inside currentPieceInnerGroup.
+  if (!currentPieceInnerGroup) return;
+  const ppm = MM_PER_UNIT;
+  const v2t = (vbX, vbY) => ({ x:(vbX-silBbox.cx)*ppm, y:-(vbY-silBbox.cy)*ppm });
+
+  for (const ap of (parsed.panelsFirst.attachPoints || [])) {
+    if (!ap.centroid) continue;
+    const isPivot = /^(back-)?pivot-/.test(ap.id);
+    const radius = isPivot ? SPHERE_PIVOT_RADIUS : SPHERE_ATTACH_RADIUS;
+    const color  = isPivot ? COLOR_PIVOT : COLOR_ATTACH;
+    const mesh = makeConnectionSphere(radius, color, currentPieceId || '?', ap.id, isPivot ? 'pivot' : 'attach');
+    const t = v2t(ap.centroid.x, ap.centroid.y);
+    mesh.position.set(t.x, t.y, 0);
+    currentPieceInnerGroup.add(mesh);
+    benchConnectionPoints.push(mesh);
+  }
+  if (parsed.marksCentroidsById) {
+    for (const [id, c] of parsed.marksCentroidsById) {
+      const isLanding = id.startsWith('landing-') || id.startsWith('back-landing-');
+      const isTab     = id.startsWith('tab-')     || id.startsWith('back-tab-');
+      if (!isLanding && !isTab) continue;
+      if (benchConnectionPoints.some(m => m.userData.pointId === id)) continue;
+      const color = isTab ? COLOR_ATTACH : COLOR_LANDING;
+      const kind  = isTab ? 'tab' : 'landing';
+      const mesh = makeConnectionSphere(SPHERE_LANDING_RADIUS, color, currentPieceId || '?', id, kind);
+      const t = v2t(c.x, c.y);
+      mesh.position.set(t.x, t.y, 0);
+      currentPieceInnerGroup.add(mesh);
+      benchConnectionPoints.push(mesh);
+    }
+  }
+  requestRender();
+}
+
+function hideBenchConnectionPoints() {
+  for (const m of benchConnectionPoints) {
+    if (m.parent) m.parent.remove(m);
     if (m.geometry) m.geometry.dispose();
     if (m.material) m.material.dispose();
   }
-  currentAxleWires = [];
-  for (const g of sceneGroups) {
-    scene.remove(g);
-    g.traverse(obj => {
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
-    });
-  }
-  sceneGroups = [];
-
-  pathHingeMap = new Map();
-  document.getElementById('per-fold-sliders').innerHTML = '';
-  const globalFoldRow    = document.getElementById('global-fold-row');
-  const globalFoldSlider = document.getElementById('globalFoldSlider');
-  const globalFoldVal    = document.getElementById('globalFoldVal');
-  globalFoldRow.style.display = 'none';
-  globalFoldSlider.value = 0;
-  globalFoldVal.textContent = '0%';
-  // Save assembled pose is single-piece-mode only (DECISIONS #11); scene mode
-  // shares the slider area across multiple pieces and the v1 sidecar covers
-  // a single piece's folds.
-  const savePoseRowMulti = document.getElementById('save-pose-row');
-  if (savePoseRowMulti) savePoseRowMulti.style.display = 'none';
-  if (dumpFaceGraphBtn)          dumpFaceGraphBtn.disabled = true;
-  if (toggleFaceGraphOverlayBtn) toggleFaceGraphOverlayBtn.disabled = true;
-
-  // ── 2. Use the first piece's PPM for all (avoids N image-load awaits;
-  //      derivePPM is synchronous and just sets the global MM_PER_UNIT). ────
-  const firstPanelsFirst = parsedArray.find(p => p && p.panelsFirst);
-  if (!firstPanelsFirst) {
-    addBanner('Scene: no panels-first pieces in the list — scene mode requires panels-first authoring.', 'error');
-    return;
-  }
-  await new Promise(resolve => derivePPM(firstPanelsFirst, resolve));
-
-  // ── 3. Build one group per piece (panels-first only). The function returns
-  //      a THREE.Group containing pivot + axle wires; we'll position it later. ─
-  const placedPieces = [];   // { id, parsed, group, attachPoints[], silBbox }
-  const skipped      = [];   // ids that fell through to cut-line-first
-  for (const p of parsedArray) {
-    const id = p._sceneId;
-    if (!p.panelsFirst) {
-      console.warn('[scene] skipping', id, '— cut-line-first piece (scene mode v0 is panels-first only)');
-      skipped.push(id);
-      continue;
-    }
-    parsed = p;  // buildSlab reads parsed.scanPng for the front-face texture
-    VB = p.viewBox;
-    const group = await renderPanelsFirstScene(p, { sceneMode: true, pieceIdPrefix: id });
-    if (!group) continue;
-    placedPieces.push({
-      id, parsed: p, group,
-      attachPoints: p.panelsFirst.attachPoints || [],
-      silBbox: group.userData.silBbox
-    });
-  }
-
-  if (placedPieces.length === 0) {
-    addBanner('Scene: no pieces could be rendered (all panels-first parsers returned null).', 'error');
-    return;
-  }
-
-  // ── 4. Initial placement: side-by-side along X with 5 mm gaps. Each
-  //      piece's content is centered at its silBbox center; we place the
-  //      group's origin so the piece's bbox sits at the running offset. ──
-  const GAP_MM = 5;
-  let offsetX = 0;
-  const groupExtents = new Map();   // id → { width, height }
-  for (const pp of placedPieces) {
-    const widthMm  = (pp.silBbox.maxX - pp.silBbox.minX) * MM_PER_UNIT;
-    const heightMm = (pp.silBbox.maxY - pp.silBbox.minY) * MM_PER_UNIT;
-    groupExtents.set(pp.id, { width: widthMm, height: heightMm });
-    pp.group.position.set(offsetX + widthMm / 2, 0, 0);
-    offsetX += widthMm + GAP_MM;
-  }
-
-  // ── 5. Pivot alignment. For each pivot cluster in the connection graph,
-  //      find the pieces in placedPieces that appear in the cluster and
-  //      align them so their `pivot-<name>` centroids coincide. The first
-  //      piece in the cluster is the anchor (don't move); each subsequent
-  //      piece shifts so its pivot-marker world position matches the
-  //      anchor's. ──────────────────────────────────────────────────────────
-  const placedById = new Map(placedPieces.map(pp => [pp.id, pp]));
-  const pivotAlignments = [];
-  const pivotClusters = (connectionGraph && connectionGraph.graph &&
-                         connectionGraph.graph.pivot_clusters) || null;
-  if (pivotClusters) {
-    for (const [pivotName, pieceIds] of Object.entries(pivotClusters)) {
-      const present = pieceIds.filter(id => placedById.has(id));
-      if (present.length < 2) continue;
-      const anchorId = present[0];
-      const anchorPP = placedById.get(anchorId);
-      const anchorAP = anchorPP.attachPoints.find(
-        ap => ap.id === 'pivot-' + pivotName || ap.id === 'back-pivot-' + pivotName
-      );
-      if (!anchorAP || !anchorAP.centroid) {
-        console.warn('[scene] pivot-' + pivotName + ': anchor', anchorId,
-                     'has no parsable pivot marker centroid; skipping cluster');
-        continue;
-      }
-      const aWX = (anchorAP.centroid.x - anchorPP.silBbox.cx) * MM_PER_UNIT + anchorPP.group.position.x;
-      const aWY = -(anchorAP.centroid.y - anchorPP.silBbox.cy) * MM_PER_UNIT + anchorPP.group.position.y;
-
-      for (let i = 1; i < present.length; i++) {
-        const otherId = present[i];
-        const otherPP = placedById.get(otherId);
-        const otherAP = otherPP.attachPoints.find(
-          ap => ap.id === 'pivot-' + pivotName || ap.id === 'back-pivot-' + pivotName
-        );
-        if (!otherAP || !otherAP.centroid) {
-          console.warn('[scene] pivot-' + pivotName + ': piece', otherId,
-                       'has no parsable pivot marker centroid; skipping');
-          continue;
-        }
-        const oWX = (otherAP.centroid.x - otherPP.silBbox.cx) * MM_PER_UNIT + otherPP.group.position.x;
-        const oWY = -(otherAP.centroid.y - otherPP.silBbox.cy) * MM_PER_UNIT + otherPP.group.position.y;
-        const dx = aWX - oWX;
-        const dy = aWY - oWY;
-        otherPP.group.position.x += dx;
-        otherPP.group.position.y += dy;
-        pivotAlignments.push({ pivot: pivotName, anchor: anchorId, moved: otherId, dx, dy });
-      }
-    }
-  }
-
-  // ── 6. Add all groups to the scene + track for cleanup. ──────────────────
-  for (const pp of placedPieces) {
-    scene.add(pp.group);
-    sceneGroups.push(pp.group);
-  }
-
-  // ── 7. Frame camera over the union bbox. ─────────────────────────────────
-  const unionBox = new THREE.Box3();
-  for (const pp of placedPieces) {
-    pp.group.updateMatrixWorld(true);
-    const b = new THREE.Box3().setFromObject(pp.group);
-    unionBox.union(b);
-  }
-  if (!unionBox.isEmpty()) {
-    const center = unionBox.getCenter(new THREE.Vector3());
-    const size   = unionBox.getSize(new THREE.Vector3());
-    const diag   = Math.hypot(size.x, size.y) || 1;
-    const fovRad = camera.fov * Math.PI / 180;
-    const dist   = (diag / 2) / Math.tan(fovRad / 2) * 1.4;
-    camera.position.set(center.x, center.y, dist);
-    camera.near = dist * 0.001;
-    camera.far  = dist * 100;
-    camera.updateProjectionMatrix();
-    controls.target.set(center.x, center.y, 0);
-    controls.update();
-  }
-
-  // Show the global fold slider if any piece contributed folds.
-  if (pathHingeMap.size > 0) globalFoldRow.style.display = '';
-
+  benchConnectionPoints = [];
   requestRender();
-
-  // ── 8. Banners + console summary. ────────────────────────────────────────
-  const graphLabel = pivotClusters ? '' : ' (no graph)';
-  addBanner('Scene: ' + placedPieces.length + ' piece' +
-            (placedPieces.length === 1 ? '' : 's') + graphLabel, 'ok');
-  if (skipped.length > 0) {
-    addBanner('Scene: skipped (cut-line-first) — ' + skipped.join(', '), 'warn');
-  }
-
-  console.log('[scene] loaded', placedPieces.length, 'pieces:',
-              placedPieces.map(pp => pp.id).join(' '));
-  for (const a of pivotAlignments) {
-    console.log('[scene] pivot-' + a.pivot + ': pieces ' + a.anchor + ',' + a.moved +
-                ' — aligned (delta: {x: ' + a.dx.toFixed(3) + ', y: ' + a.dy.toFixed(3) + '})');
-  }
-  if (pivotClusters && pivotAlignments.length === 0) {
-    console.log('[scene] no pivot clusters matched the loaded set — using side-by-side placement');
-  }
-  if (connectionGraph && connectionGraph.graph && Array.isArray(connectionGraph.graph.edges)) {
-    const placedSet = new Set(placedPieces.map(pp => pp.id));
-    const totalEdges = connectionGraph.graph.edges.length;
-    const inSceneEdges = connectionGraph.graph.edges.filter(
-      e => placedSet.has(e.from) && placedSet.has(e.to) && e.valid
-    ).length;
-    console.log('[scene] cross-piece edges in scene: ' + inSceneEdges +
-                ' valid (out of ' + totalEdges + ' total in graph)');
-  }
 }
 
 // Optional sidecar surfacing: if work/pieces/NNN/NNN.json exists, surface its
@@ -3549,7 +4244,7 @@ function parsePanelsFirstMarks(layerEl) {
 //
 // `options.sceneMode` (default false): when true, the function builds a slab
 // pivot + axle wires inside a returnable parent THREE.Group instead of adding
-// directly to `scene` / `currentSlabPivot`. The caller (renderSceneMulti)
+// directly to `scene` / `currentSlabPivot`. The caller (loadClusterPieces)
 // positions the group in world space using cross-piece pivot data. In sceneMode
 // the function also (a) skips clearing pathHingeMap so multiple pieces' folds
 // merge into one map, (b) prefixes each fold's pathHingeMap key with
@@ -3595,7 +4290,7 @@ async function renderPanelsFirstScene(p, options = {}) {
 
   // PR B: capture the piece's natural origin + cluster membership for the
   // transform-capture loop. Single-piece mode only — scene mode places pieces
-  // by cluster pivot in renderSceneMulti and doesn't use these globals.
+  // by cluster pivot in loadClusterPieces and doesn't use these globals.
   if (!sceneMode) setCurrentPieceContext(p, silBbox);
 
   const pivot = new THREE.Group();
@@ -3952,7 +4647,7 @@ async function renderPanelsFirstScene(p, options = {}) {
     }
   }
 
-  // ── Frame camera (single-piece mode only; renderSceneMulti frames the
+  // ── Frame camera (single-piece mode only; loadClusterPieces frames the
   // union of all groups after positioning is complete). ─────────────────────
   if (!sceneMode) {
     const diagUnits = Math.hypot(
@@ -3997,7 +4692,7 @@ async function renderPanelsFirstScene(p, options = {}) {
   }
 
   // ── Banners (green info, sort to bottom) ───────────────────────────────────
-  // Scene mode emits one summary banner per scene from renderSceneMulti, so
+  // Scene mode emits one summary banner per scene from loadClusterPieces, so
   // we suppress the per-piece banners here to keep the panel uncluttered.
   if (!sceneMode) {
     addBanner('panels-first ✓ — ' + pf.panels.size + ' panels, ' + pf.folds.length +
@@ -4077,17 +4772,6 @@ async function renderScene(p) {
     if (m.material) m.material.dispose();
   }
   currentAxleWires = [];
-  // A fresh single-piece render also tears down any prior multi-piece scene
-  // groups so loading a single piece after a scene leaves only the new slab
-  // in the world.
-  for (const g of sceneGroups) {
-    scene.remove(g);
-    g.traverse(obj => {
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
-    });
-  }
-  sceneGroups = [];
 
   // ── Panels-first vs cut-line-first dispatch ────────────────────────────────
   // Settled 2026-05-05 (DECISIONS #6 + #7). Pieces with a non-empty <g id="panels">
@@ -4782,6 +5466,56 @@ document.getElementById('savePoseBtn').addEventListener('click', () => {
   showAssembledPoseModal(currentPieceId, payload);
 });
 
+// PR C: Save selected piece (cluster mode). Reads the selected cluster
+// piece's pieceGroup pose + its sidecar's existing assembled.folds. Folds are
+// authored in Bench mode and not editable here — they're included in the
+// payload so a sidecar that doesn't yet exist gets a complete write; the user
+// can hand-edit the folds block out if they only want to update the transform.
+const saveSelectedBtnEl = document.getElementById('saveSelectedBtn');
+if (saveSelectedBtnEl) saveSelectedBtnEl.addEventListener('click', () => {
+  const sel = selectedClusterPieceId ? clusterPieces.get(selectedClusterPieceId) : null;
+  if (!sel) {
+    addBanner('Save selected piece: no piece selected. Click a piece first.', 'warn');
+    return;
+  }
+  const round2 = v => Math.round(v * 100) / 100;
+  const pos = sel.pieceGroup.position;
+  const rot = sel.pieceGroup.rotation;
+  const txDeg = rot.x * 180 / Math.PI;
+  const tyDeg = rot.y * 180 / Math.PI;
+  const tzDeg = rot.z * 180 / Math.PI;
+  const EPS = 0.01;
+  const isIdentity =
+    Math.abs(pos.x) < EPS && Math.abs(pos.y) < EPS && Math.abs(pos.z) < EPS &&
+    Math.abs(txDeg) < EPS && Math.abs(tyDeg) < EPS && Math.abs(tzDeg) < EPS;
+  const payload = {
+    assembled: {
+      captured: new Date().toISOString(),
+      note: ""
+    }
+  };
+  // Carry forward any existing assembled.folds from the sidecar so the saved
+  // JSON is a complete `assembled` block. Cluster mode doesn't edit folds.
+  if (sel.sidecar && sel.sidecar.assembled && sel.sidecar.assembled.folds &&
+      typeof sel.sidecar.assembled.folds === 'object') {
+    payload.assembled.folds = sel.sidecar.assembled.folds;
+  }
+  if (!isIdentity) {
+    payload.assembled.transform = {
+      translation: [round2(pos.x), round2(pos.y), round2(pos.z)],
+      rotation_deg: [round2(txDeg), round2(tyDeg), round2(tzDeg)],
+      rotation_order: 'XYZ',
+      frame: currentClusterName && currentClusterName !== '<ad-hoc>' ? 'cluster' : 'world',
+      origin: sel.origin ? sel.origin.kind : 'centroid'
+    };
+  }
+  if (!payload.assembled.folds && !payload.assembled.transform) {
+    addBanner('Save selected piece: no folds and no transform to capture.', 'warn');
+    return;
+  }
+  showAssembledPoseModal(sel.id, payload);
+});
+
 // ─── "→ Claude" bridge button ────────────────────────────────────────────────
 // Local-loopback HTTP bridge between preview.html and Claude's filesystem.
 // Run `python3.12 claude-work/scripts/preview_bridge.py` once per session;
@@ -5244,20 +5978,85 @@ function logFaceGraphSummary(diag) {
   if (cameraBtn)  cameraBtn .addEventListener('click', () => setCameraLocked(!cameraLocked));
 }
 
-// PR B (DECISIONS #13): Reset transform — snaps pieceGroup.pos/rot back to
-// identity and re-seeds the sliders. Folds and per-axle rotation are handled
-// by their own reset paths.
+// PR B (DECISIONS #13): Reset transform — snaps the active piece's pos/rot
+// back to identity and re-seeds the sliders. Mode-aware: in Bench, that's
+// currentPieceGroup; in Cluster, the selected cluster piece. Folds and
+// per-axle rotation are handled by their own reset paths.
 {
   const btn = document.getElementById('resetTransformBtn');
   if (btn) btn.addEventListener('click', () => {
-    if (!currentPieceGroup) return;
-    currentPieceGroup.position.set(0, 0, 0);
-    currentPieceGroup.rotation.set(0, 0, 0, 'XYZ');
+    const ctx = getActivePieceContext();
+    if (!ctx) return;
+    ctx.pieceGroup.position.set(0, 0, 0);
+    ctx.pieceGroup.rotation.set(0, 0, 0, 'XYZ');
     refreshTransformPanel();
-    positionWorktableForPiece();
+    if (ctx.mode === 'bench') positionWorktableForPiece();
+    if (ctx.mode === 'cluster') updateMeasurementVisuals();
     requestRender();
   });
 }
+
+// PR C (DECISIONS #13): Cluster controls + canvas pointer + bench connection
+// points + measurement visuals into the render loop. Wired once at boot.
+{
+  const loadClusterBtn = document.getElementById('loadClusterBtn');
+  const clusterInput   = document.getElementById('clusterInput');
+  const measureBtn     = document.getElementById('measureToggleBtn');
+  const deselectBtn    = document.getElementById('deselectBtn');
+  const showConnCb     = document.getElementById('showConnPointsCheckbox');
+  if (loadClusterBtn) loadClusterBtn.addEventListener('click', () => {
+    const name = (clusterInput && clusterInput.value || '').trim();
+    if (!name) { addBanner('Cluster: enter a cluster id (e.g. anchor) and click Load.', 'warn'); return; }
+    loadCluster(name);
+  });
+  if (clusterInput) clusterInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const name = clusterInput.value.trim();
+      if (name) loadCluster(name);
+    }
+  });
+  if (measureBtn) measureBtn.addEventListener('click', () => {
+    setMeasureMode(clusterInteractionMode !== 'measure');
+  });
+  if (deselectBtn) deselectBtn.addEventListener('click', () => deselectClusterPiece());
+  if (showConnCb) showConnCb.addEventListener('change', () => {
+    if (showConnCb.checked) showBenchConnectionPoints();
+    else                    hideBenchConnectionPoints();
+  });
+  // Canvas pointer listeners for cluster click selection / measurement pin.
+  // Capture phase isn't needed — TC's pointerdown sets transformControls.axis
+  // synchronously, and we check that in onClusterPointerUp to avoid hijacking
+  // a TC handle click.
+  if (renderer && renderer.domElement) {
+    renderer.domElement.addEventListener('pointerdown', onClusterPointerDown);
+    renderer.domElement.addEventListener('pointerup',   onClusterPointerUp);
+  }
+}
+
+// Tick measurement visuals each render. updateMeasurementVisuals is a no-op
+// when measurements is empty so this is essentially free in Bench mode.
+{
+  const _origRequestRender = requestRender;
+  // Hook into the animate loop's render path: there's no render-callback
+  // surface, but updateMeasurementVisuals only needs to touch geometry just
+  // before render. Easiest is to wrap each requestRender call: when the
+  // render loop next fires it'll see the latest line/sprite positions.
+  // (We actually want this every frame even without explicit requestRender —
+  // pieces moved via TC do call requestRender, and OrbitControls damping
+  // keeps the loop ticking. Per-frame work in a dedicated tick is below.)
+  void _origRequestRender;
+}
+// Per-frame measurement update: piggy-back on requestAnimationFrame so any
+// transform change (TC drag, slider, OrbitControls damping) sees fresh visuals
+// regardless of whether someone called requestRender first.
+(function measureTick() {
+  requestAnimationFrame(measureTick);
+  if (currentMode === 'cluster' && measurements.length > 0) {
+    updateMeasurementVisuals();
+    requestRender();
+  }
+})();
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 initScene();
@@ -5268,18 +6067,43 @@ document.body.classList.add('mode-bench');
 // Best-effort autocomplete population (silent on file://).
 populatePieceDatalist();
 
-// Fire-and-forget connection-graph load. Scene mode degrades to side-by-side
-// placement (no pivot alignment) when the file is unreachable.
-fetch('claude-work/state/connection-graph.json')
+// Fire-and-forget connection-graph load. Cluster mode degrades to a banner-
+// warn ("connection-graph.json not loaded yet") when fetched too early or
+// when the file is unreachable.
+const connectionGraphReady = fetch('claude-work/state/connection-graph.json')
   .then(r => r.ok ? r.json() : null)
   .then(g => { connectionGraph = g; })
   .catch(() => {});
 
-// URL-param auto-load: ?piece=069 → fetch + render on first load.
-// Bookmark / share-link surface; localStorage isn't used.
+// URL-bootstrap helper: cluster autoload needs connectionGraph available so
+// the transitive-walk has edges to follow. Resolves immediately if already
+// loaded; otherwise piggy-backs on the bootstrap fetch above. Capped by a
+// 3 s timeout so a missing file doesn't deadlock the autoload.
+function waitForConnectionGraph(timeoutMs = 3000) {
+  if (connectionGraph) return Promise.resolve();
+  return Promise.race([
+    connectionGraphReady,
+    new Promise(resolve => setTimeout(resolve, timeoutMs))
+  ]);
+}
+
+// URL-param auto-load (precedence: ?cluster > ?piece comma-list > ?piece NNN).
+// `?cluster=anchor` enters Cluster mode and loads that cluster.
+// `?piece=065,066,067,068,069` enters Cluster mode via loadScene's backcompat
+// routing (auto-resolves to a shared cluster when applicable).
+// `?piece=069` keeps Bench-mode single-piece behaviour.
+// Cluster autoload is deferred until connectionGraph resolves so the
+// transitive walk has data to chew on.
 {
-  const urlPiece = new URLSearchParams(location.search).get('piece');
-  if (urlPiece) loadPieceById(urlPiece, 'url-param');
+  const params  = new URLSearchParams(location.search);
+  const urlClus = params.get('cluster');
+  const urlPiece = params.get('piece');
+  const isCommaList = urlPiece && urlPiece.includes(',');
+  if (urlClus) {
+    waitForConnectionGraph().then(() => loadCluster(urlClus));
+  } else if (isCommaList) {
+    waitForConnectionGraph().then(() => loadScene(urlPiece));
+  } else if (urlPiece) loadPieceById(urlPiece, 'url-param');
 }
 </script>
 </body>

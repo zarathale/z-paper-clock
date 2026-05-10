@@ -42,9 +42,9 @@ Once all five sidecars exist, regenerate `connection-graph.json` (the anchor `pi
 
 ## Soon (Claude-side work or decision pending)
 
-### 1. PR C finalization (cluster mode) — Cowork then Code
+### 1. Cluster-pose authoring loop (post-PR-C) — Alan
 
-`CODE_PROMPT_preview-html-cluster-mode.md` is at repo root as `status: draft`. It's unblocked on the Code side (PR A + B both shipped) but needs all five anchor cluster sidecars + an updated connection-graph.json before its verification checklist is runnable. Once Now #3 is done, the Cowork step is: confirm the open questions in the prompt are answered, bump status to `ready-for-code`, and hand to Code.
+PR C (preview-html-cluster-mode) shipped 2026-05-10 — `_archive/code-prompts/CODE_PROMPT_preview-html-cluster-mode.md` is the decision record. The cluster-mode authoring loop is now the next-up Alan-side task: load Cluster → `anchor`, manually adjust 065/066/067/068's transforms (only 069 has a saved sidecar), Save selected piece → merge each JSON snippet by hand → reload to confirm. Distance readouts between authored attach/landing pairs guide the alignment. After all five anchor sidecars land, regenerate connection-graph.json so `pivot_clusters.anchor` reflects the full transitive membership (currently still seeded `[067, 069]`).
 
 ### 2. 097 period-suffix convention — Cowork beat
 
