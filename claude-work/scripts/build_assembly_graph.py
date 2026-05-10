@@ -96,13 +96,15 @@ def all_ids_in_block(block: str) -> list[tuple[str, str]]:
 
 # -- sidecar parsing (per-piece JSON; learned overlay) ---------------------
 
-def parse_sidecar(piece_dir: Path) -> dict | None:
-    """Read NNN.json sidecar if it exists. Returns parsed dict or None.
+def parse_sidecar(svg_path: Path) -> dict | None:
+    """Read the JSON sidecar that lives next to this SVG, if it exists.
 
-    Failures (file missing, malformed JSON) return None silently — sidecars
-    are optional and the script must run cleanly with none present.
+    Sidecars are colocated with their SVG: `093/093a.svg` → `093/093a.json`,
+    `069/069.svg` → `069/069.json`. Failures (file missing, malformed JSON)
+    return None silently — sidecars are optional and the script must run
+    cleanly with none present.
     """
-    sidecar_path = piece_dir / f"{piece_dir.name}.json"
+    sidecar_path = svg_path.with_suffix(".json")
     if not sidecar_path.exists():
         return None
     try:
@@ -442,8 +444,13 @@ def parse_marks(svg_text: str) -> list[dict]:
 # -- per-piece extraction --------------------------------------------------
 
 def parse_piece(svg_path: Path) -> dict:
-    """Read one piece's SVG and return its full extracted record."""
-    piece_id = svg_path.parent.name  # e.g. "069"
+    """Read one piece's SVG and return its full extracted record.
+
+    The piece id comes from the SVG filename stem, not the parent folder —
+    letter-variant pieces (093a, 093b, 092a, 112a) share a parent dir with
+    their numeric base.
+    """
+    piece_id = svg_path.stem  # e.g. "069", "093a", "112a"
     text = read_svg(svg_path)
 
     layers_present = []
@@ -463,7 +470,7 @@ def parse_piece(svg_path: Path) -> dict:
     if block:
         cutouts = [eid for tag, eid in all_ids_in_block(block) if eid != "cutouts"]
 
-    sidecar = parse_sidecar(svg_path.parent)
+    sidecar = parse_sidecar(svg_path)
     inferred = extract_inferred_connections(piece_id, sidecar)
 
     return {
@@ -488,50 +495,108 @@ def is_panels_first(record: dict) -> bool:
 
 # -- cross-piece graph + cross-checks --------------------------------------
 
-def _find_letter_match(letter: str, partner: dict) -> dict | None:
+def find_partner_feature(letter: str, partner: dict, self_id: str | None = None) -> dict | None:
     """Search a partner piece for any feature matching `letter`.
 
-    Strips structural prefixes (attach-, landing-, tab-, pivot-, hole-, back-)
-    from partner ids before comparing, so substring matches don't leak into
-    those prefix words. Compares against parsed letter fields where available.
+    Lookup chain (LAYER-CONVENTIONS.md "Cross-piece feature lookup"; DECISIONS #12):
 
-    Search priority:
-      1. Exact panel id == letter
-      2. Exact panel id == "tab" + letter   (landing-c69 → tabc on 069)
-      3. Partner attach-points: parsed letter field == letter
-      4. Partner attach-points: id (semantic part) starts with letter / equals letter
-      5. Fuzzy substring on panel id (composite ids like 'bh', 'ai', 'e65')
-      6. Fuzzy substring on attach-points semantic part
+      1. Exact panel id == letter                              → "panel-exact"
+      2. Panel id == "tab" + letter                            → "panel-tab"
+      3. Partner attach-points: parsed letter field == letter  → "attach-{kind}-letter"
+      4. Partner marks: id == letter (exact bare-letter match) → "marks-exact"
+                                                                 ("marks-exact-multi" when N≥2)
+      5. Partner marks: id == "mark-" + letter
+                  OR id matches "landing-<letter><self>"       → "marks-mark-prefix"
+                                                                 / "marks-landing-self"
+      6. Fuzzy substring on panel id                           → "panel-substring"
+      7. Fuzzy substring on attach-points semantic part        → "attach-substring"
+      8. Fuzzy substring on marks semantic part                → "marks-substring"
 
-    Returns {"id": <matched id>, "via": <which search step>} or None.
+    Substring tiebreaker: shortest matching id wins (composite letter clusters
+    like 'ai' beat word-shaped names like 'main'); alphabetical break.
+
+    Multi-instance partner marks (one id repeated N≥2 times) return one record
+    with `count` field populated so the connection-graph report can render
+    "id (×N)" and the via reads "marks-exact-multi".
+
+    Returns {"id": <matched id>, "via": <which step>, "count"?: <N>} or None.
+    Backwards-compat alias `_find_letter_match` preserved below.
     """
     if not letter:
         return None
     panels = set(partner.get("panels", []))
+    marks = partner.get("marks", [])
+
+    # Normalize self_id for the landing-<letter><self> match in step 5: marks
+    # parse partner ids without zero-padding (per the print convention), so
+    # "094" needs to compare as "94", "092a" as "92a".
+    self_bare = None
+    if self_id:
+        m_self = re.match(r'^0*(\d+[a-z]?)$', self_id)
+        self_bare = m_self.group(1) if m_self else self_id
 
     # 1. Exact panel
     if letter in panels:
         return {"id": letter, "via": "panel-exact"}
+
     # 2. tab<letter>
     tab_form = "tab" + letter
     if tab_form in panels:
         return {"id": tab_form, "via": "panel-tab"}
-    # 3-4. Attach-points: compare against parsed letter field
+
+    # 3. Partner attach-points: parsed letter field == letter
     for ap in partner.get("attach_points", []):
         ap_letter = ap.get("letter")
         ap_kind = ap.get("kind")
         if ap_letter == letter and ap_kind in ("attach", "landing", "letter-target", "hole"):
             return {"id": ap.get("raw_id", letter), "via": f"attach-{ap_kind}-letter"}
-    # 5. Fuzzy substring on panel id (only meaningful chars; skip if letter is too short
-    # and would create silly matches — but composite ids like 'bh' are exactly the case
-    # we want, so keep it permissive on panels). Tie-break by preferring the SHORTEST
-    # match (composite letter clusters like 'ai' beat word-shaped names like 'main').
-    candidates = [pid for pid in panels if letter in pid]
-    if candidates:
-        candidates.sort(key=lambda x: (len(x), x))
-        return {"id": candidates[0], "via": "panel-substring"}
-    # 6. Fuzzy substring on attach-points but only on the SEMANTIC portion of the id
-    # (after stripping known prefixes), so 'h' in 'attach-d66' doesn't match.
+
+    # 4. Partner marks: bare-letter exact match (covers multi-instance markers).
+    # Convention #16 collision-collapse: when the partner has a base `<letter>`
+    # mark AND additional `<letter>\d+` marks (Affinity's auto-rename of
+    # duplicate ids on export — e.g. 099's `a, a1, a2, …, a11` for 12 instances),
+    # treat the whole group as one logical multi-instance marker. parse_marks
+    # keeps the raw ids; the collapse happens here so the resolver returns a
+    # single record with a combined `count`. The base id alone (no numbered
+    # siblings) returns the singleton with count=1.
+    has_base = any(m.get("id") == letter for m in marks)
+    if has_base:
+        sibling_re = re.compile(rf'^{re.escape(letter)}\d+$')
+        total = 0
+        for m in marks:
+            rid = m.get("id", "")
+            if rid == letter or sibling_re.match(rid):
+                total += m.get("count", 1)
+        via = "marks-exact-multi" if total > 1 else "marks-exact"
+        result = {"id": letter, "via": via}
+        if total > 1:
+            result["count"] = total
+        return result
+
+    # 5a. Partner marks: id == "mark-<letter>"
+    mark_prefix_id = f"mark-{letter}"
+    for mark in marks:
+        if mark.get("id") == mark_prefix_id:
+            return {"id": mark["id"], "via": "marks-mark-prefix"}
+
+    # 5b. Partner marks: typed-landing whose tab == letter and partner == self
+    # (i.e. id matches "landing-<letter><self>"). parse_marks already
+    # decomposed these into kind="landing-typed" with tab/partner fields.
+    if self_bare:
+        for mark in marks:
+            if (mark.get("kind") == "landing-typed"
+                    and mark.get("tab") == letter
+                    and mark.get("partner") == self_bare):
+                return {"id": mark["id"], "via": "marks-landing-self"}
+
+    # 6. Fuzzy substring on panel id; shortest-match tiebreaker.
+    panel_candidates = [pid for pid in panels if letter in pid]
+    if panel_candidates:
+        panel_candidates.sort(key=lambda x: (len(x), x))
+        return {"id": panel_candidates[0], "via": "panel-substring"}
+
+    # 7. Fuzzy substring on attach-points semantic part. Stripping the
+    # structural prefix prevents 'h' from matching the 'h' inside 'hole-'.
     structural_prefixes = ("attach-", "landing-", "tab-", "pivot-", "hole-", "back-")
     for ap in partner.get("attach_points", []):
         rid = ap.get("raw_id", "")
@@ -541,7 +606,35 @@ def _find_letter_match(letter: str, partner: dict) -> dict | None:
                 semantic = semantic[len(pfx):]
         if letter in semantic:
             return {"id": rid, "via": "attach-substring"}
+
+    # 8. Fuzzy substring on marks semantic part. Strip mark-/landing-/back-
+    # so the prefix word doesn't leak into the substring match.
+    def _strip_marks_prefix(rid: str) -> str:
+        s = rid
+        for pfx in ("back-", "mark-", "landing-"):
+            if s.startswith(pfx):
+                s = s[len(pfx):]
+        return s
+
+    mark_candidates = []
+    for mark in marks:
+        rid = mark.get("id", "")
+        semantic = _strip_marks_prefix(rid)
+        if semantic and letter in semantic:
+            mark_candidates.append((rid, mark.get("count", 1)))
+    if mark_candidates:
+        mark_candidates.sort(key=lambda x: (len(x[0]), x[0]))
+        rid, count = mark_candidates[0]
+        result = {"id": rid, "via": "marks-substring"}
+        if count > 1:
+            result["count"] = count
+        return result
+
     return None
+
+
+# Backwards-compat alias for any in-tree caller still using the old name.
+_find_letter_match = find_partner_feature
 
 
 def _edge_signature(edge: dict) -> tuple:
@@ -697,21 +790,27 @@ def build_connection_graph(pieces: dict[str, dict]) -> dict:
             continue
         if edge["kind"] == "landing":
             target = edge["tab"]
-            match = _find_letter_match(target, partner)
+            match = find_partner_feature(target, partner, edge.get("from"))
             if match:
-                edge_validation.append({**edge, "valid": True,
-                                        "matched_panel": match["id"],
-                                        "matched_via": match["via"]})
+                rec = {**edge, "valid": True,
+                       "matched_panel": match["id"],
+                       "matched_via": match["via"]}
+                if match.get("count", 1) > 1:
+                    rec["matched_panel_count"] = match["count"]
+                edge_validation.append(rec)
             else:
                 edge_validation.append({**edge, "valid": False,
                                         "reason": f"partner has no feature matching letter {target!r}"})
         elif edge["kind"] == "attach":
             target = edge["letter"]
-            match = _find_letter_match(target, partner)
+            match = find_partner_feature(target, partner, edge.get("from"))
             if match:
-                edge_validation.append({**edge, "valid": True,
-                                        "matched_panel": match["id"],
-                                        "matched_via": match["via"]})
+                rec = {**edge, "valid": True,
+                       "matched_panel": match["id"],
+                       "matched_via": match["via"]}
+                if match.get("count", 1) > 1:
+                    rec["matched_panel_count"] = match["count"]
+                edge_validation.append(rec)
             else:
                 edge_validation.append({**edge, "valid": False,
                                         "reason": f"partner has no feature matching letter {target!r}"})
@@ -853,6 +952,9 @@ def render_markdown(pieces: dict[str, dict], graph: dict) -> str:
         for edge in graph["edges"]:
             tab_or_letter = edge.get("tab") or edge.get("letter") or "—"
             partner_panel = edge.get("matched_panel", "—")
+            count = edge.get("matched_panel_count")
+            if count and count > 1:
+                partner_panel = f"{partner_panel} (×{count})"
             via = edge.get("matched_via", "")
             valid = "✓" if edge.get("valid") else "✗"
             prov = edge.get("provenance", "authored")
@@ -877,6 +979,9 @@ def render_markdown(pieces: dict[str, dict], graph: dict) -> str:
         for edge in inferred_edges:
             tab_or_letter = edge.get("tab") or edge.get("letter") or "—"
             partner_panel = edge.get("matched_panel", "—")
+            count = edge.get("matched_panel_count")
+            if count and count > 1:
+                partner_panel = f"{partner_panel} (×{count})"
             valid = "✓" if edge.get("valid") else "✗"
             note = edge.get("note") or edge.get("reason") or ""
             source = edge.get("source") or ""
@@ -1046,16 +1151,24 @@ def render_markdown(pieces: dict[str, dict], graph: dict) -> str:
 
 def main() -> int:
     pieces: dict[str, dict] = {}
+    # Match SVGs whose stem is the dir name OR the dir name + a single lowercase
+    # letter (the variant suffix per File Naming Conventions: `093/093a.svg`,
+    # `093/093b.svg`). This skips Affinity untitled exports like `Document.svg`.
+    variant_re = re.compile(r'^[a-z]?$')
     for piece_dir in sorted(PIECES_DIR.iterdir()):
         if not piece_dir.is_dir():
             continue
-        svg_path = piece_dir / f"{piece_dir.name}.svg"
-        if not svg_path.exists():
-            continue
-        rec = parse_piece(svg_path)
-        if not is_panels_first(rec):
-            continue
-        pieces[piece_dir.name] = rec
+        for svg_path in sorted(piece_dir.glob("*.svg")):
+            stem = svg_path.stem
+            if not stem.startswith(piece_dir.name):
+                continue
+            suffix = stem[len(piece_dir.name):]
+            if not variant_re.match(suffix):
+                continue
+            rec = parse_piece(svg_path)
+            if not is_panels_first(rec):
+                continue
+            pieces[stem] = rec
 
     graph = build_connection_graph(pieces)
 
