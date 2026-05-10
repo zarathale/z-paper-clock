@@ -287,6 +287,17 @@ It cannot:
 
 Claude Code runs natively on Alan's Mac/Windows with full filesystem and network access. It can install, run, test, deploy. CODE_PROMPT files at repo root drive each Code session.
 
+**Known constraint: do not start an HTTP server to verify `preview.html`.**
+
+Claude Code works in a worktree (`.claude/worktrees/<auto-name>/`), not the repo root. If a server is already running against the repo root (Alan often leaves one going), starting a new server in the worktree at the same or a different port creates a path mismatch — the URL resolves to the main-repo copy of `preview.html`, not the worktree's just-edited copy. Additionally, port-binding can fail silently or be blocked in some Code sandbox configurations.
+
+**The right verification split for browser-rendered files:**
+
+- **Code-side (commit gate):** `node --check preview.html` for syntax; `rg` / `grep` for undefined symbol references; file-existence and structural checks. These run reliably in the worktree.
+- **Browser-side (post-merge gate):** Documented in each CODE_PROMPT's "Manual tests" section and in the Verification Checklist's tier (b). Alan opens the file after merge using whatever server he already has running (or `open preview.html` directly for offline-compatible pages). This tier is not optional for `preview.html` PRs — it's the live-browser gate, just owned by Alan rather than Code.
+
+Code's session note should explicitly state which checklist items were verified Code-side and which are deferred to Alan's post-merge manual pass. "Browser verification blocked" is a valid session-note state; it is not a failure — it means the commit gate passed and the browser gate is waiting for Alan.
+
 ### The bridge: trigger-file daemon (`watch_and_render.py`)
 
 For verification work that needs to run on Alan's bench but be readable by Cowork-Claude:
@@ -313,3 +324,4 @@ _When the environment changes, append a one-line entry here. Substantive changes
 
 - **2026-05-05** — Initial authoring. Captures Mac + Windows + sandbox toolchain at the post-PR-#15 state. Sandbox network constraint surfaced (no public-registry access) and documented as a standing fact. Playwright headless install moved to bench-side per the constraint. ENVIRONMENT.md created at `claude-work/standards/`.
 - **2026-05-05 (later)** — Trigger-file daemon protocol settled. `claude-work/scripts/preview_render.py` + `watch_and_render.py` + `PREVIEW_RENDER_README.md` shipped. `.gitignore` extended for `claude-work/state/render-triggers/` (paired with the existing `preview-renders/` ignore). "Headless browser verification" flipped from Open → Settled in the §"What's settled / what's open" section.
+- **2026-05-10** — Documented the HTTP-server constraint for Code sessions under §"Code sessions (Claude Code on Alan's bench)". Root cause: Code works in a `.claude/worktrees/<name>/` path and cannot reliably bind a server that points at its own copy of `preview.html` — port conflicts with Alan's existing server and worktree path mismatch combine to make this approach fail. Resolution: two-tier verification split (Code-side syntax/symbol checks as commit gate; browser manual tests as post-merge gate). Same constraint and split documented in CLAUDE.md "Orchestration Prompt Format" §6 and "Notes for Every Session".
