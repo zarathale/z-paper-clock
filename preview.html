@@ -45,6 +45,40 @@ html, body { width:100%; height:100%; overflow:hidden; background:#1a1a1a; color
 #fold-controls .slider-row,
 #fold-controls #per-fold-sliders { font-style:normal; }
 
+/* ── Fold group sections (renderPanelsFirstScene grouped mode) ─────────────── */
+.fold-group { margin-top: 6px; }
+.fold-group-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 2px 0 3px; border-bottom: 1px solid #2e2e2e;
+  cursor: pointer; user-select: none;
+}
+.fold-group-toggle {
+  color: #555; font-size: 10px; min-width: 10px; flex-shrink: 0;
+}
+.fold-group-label {
+  flex: 1; font-size: 11px; font-weight: bold; color: #8cf;
+}
+.fold-group-sum {
+  font-size: 10px; color: #fa8; min-width: 64px; text-align: right;
+}
+.fold-group-body { display: flex; flex-direction: column; gap: 2px; margin-top: 3px; }
+.fold-group-body.collapsed { display: none; }
+.fold-group-controls {
+  display: flex; align-items: center; gap: 4px; padding: 2px 0;
+}
+.fold-group-controls button {
+  font-size: 10px; padding: 1px 6px;
+  background: #2a2a2a; color: #aaa;
+  border: 1px solid #444; border-radius: 3px; cursor: pointer;
+}
+.fold-group-controls button:hover { background: #383838; }
+.fold-master-row {
+  display: flex; align-items: center; gap: 6px; padding: 2px 0;
+}
+.fold-master-row label {
+  font-size: 10px; color: #888; min-width: 90px;
+}
+
 #thickness-section,
 #rotation-section { display:flex; flex-direction:column; gap:6px; }
 #rotation-section[hidden] { display:none; }
@@ -5558,6 +5592,25 @@ function parsePanelsFirstMarks(layerEl) {
   return out;
 }
 
+// ─── Fold-group classification ────────────────────────────────────────────────
+// Returns a group key for fold slider grouping, or null if unrecognised.
+// Keyed on the SVG fold id string (the raw `id="fold-..."` attribute value).
+//
+// Recognised patterns (all require the `fold-` prefix):
+//   pane-strip  — fold-paneX-paneY      (both segments start with "pane")
+//   closure     — fold-tabaa-paneX      (tab-aa closes the strip into a ring)
+//   tab-flap    — fold-tabX-paneY       (non-aa tab folds down for side-piece glue)
+//   cross-piece — fold-[letter][N]-paneY (landing-marker fold for external tab attach)
+//
+// Returns null for anything that doesn't match — falls back to flat rendering.
+function classifyFoldId(foldId) {
+  if (/^fold-pane[^-]+-pane[^-]+$/.test(foldId))   return 'pane-strip';
+  if (/^fold-tabaa-/.test(foldId))                   return 'closure';
+  if (/^fold-tab[a-z]+-pane/.test(foldId))           return 'tab-flap';
+  if (/^fold-[a-z]+\d+[a-z]?-pane/.test(foldId))    return 'cross-piece';
+  return null;
+}
+
 // Render a panels-first piece. Mirrors renderScene's slab+hinge wiring (per-
 // panel buildSlab, parent→child hinge as Object3D, slider drives quaternion)
 // but takes panels and the hinge tree directly from the panels-first parsed
@@ -5845,16 +5898,19 @@ async function renderPanelsFirstScene(p, options = {}) {
       globalFoldVal.textContent = '0%';
     }
 
+    // ── Collect slider descriptors (same loop as before, DOM not yet built) ──
     const seen = new Set();
+    const sliderDescs = [];   // [{ fold, pid, items, isCurved, defAngle, isAuthored, initialValue, displayLabel }]
+
     for (const fold of pf.folds) {
       const pid = prefixKey(fold.id);
       if (seen.has(pid) || !pathHingeMap.has(pid)) continue;
       seen.add(pid);
 
       const items = pathHingeMap.get(pid) || [];
-      const isCurved = items.length > 0 && items[0].mode === 'curved';
+      const isCurved   = items.length > 0 && items[0].mode === 'curved';
       const layerDefault = fold.polarity === 'valley' ? -90 : 90;
-      const defAngle = fold.defaultAngle != null ? fold.defaultAngle : layerDefault;
+      const defAngle   = fold.defaultAngle != null ? fold.defaultAngle : layerDefault;
       const isAuthored = fold.defaultAngle != null;
 
       // Precedence for the slider initial value (highest first):
@@ -5891,53 +5947,61 @@ async function renderPanelsFirstScene(p, options = {}) {
       }
       if (sceneMode && pieceIdPrefix) displayLabel = pieceIdPrefix + ':' + displayLabel;
 
+      sliderDescs.push({ fold, pid, items, isCurved, defAngle, isAuthored, initialValue, displayLabel });
+    }
+
+    // ── Determine whether any fold group is present ──────────────────────────
+    // Bench mode only: scene mode shares perFoldSliders across pieces, so per-
+    // piece groups would clutter the panel. Sticking to flat append there.
+    // If no fold id matches a known group, fall back to flat rendering (no regression).
+    const hasGroups = !sceneMode && sliderDescs.some(d => classifyFoldId(d.fold.id) !== null);
+
+    // ── Helper: build one slider row + wire its 3D rotation ─────────────────
+    function buildFoldSliderRow(d) {
       const { row, slider } = createSliderRow({
-        label: displayLabel,
-        labelTitle: displayLabel + (isCurved ? ' (curved fold; v0 sketch)' : ''),
-        min: -180, max: 180, step: 1, value: initialValue,
-        dataset: { pathId: pid, defaultAngle: defAngle }
+        label: d.displayLabel,
+        labelTitle: d.displayLabel + (d.isCurved ? ' (curved fold; v0 sketch)' : ''),
+        min: -180, max: 180, step: 1, value: d.initialValue,
+        dataset: { pathId: d.pid, defaultAngle: d.defAngle }
       });
       const xN = document.createElement('span');
       xN.style.cssText = 'color:#666;font-size:10px;min-width:22px';
-      xN.textContent = '×' + items.length;
+      xN.textContent = '×' + d.items.length;
       row.appendChild(xN);
       const degBadge = document.createElement('span');
-      degBadge.title = 'Assembled angle' + (isAuthored ? ' (authored in id)' : ' (layer default)');
-      degBadge.style.cssText = 'color:' + (isAuthored ? '#8cf' : '#666') +
+      degBadge.title = 'Assembled angle' + (d.isAuthored ? ' (authored in id)' : ' (layer default)');
+      degBadge.style.cssText = 'color:' + (d.isAuthored ? '#8cf' : '#666') +
         ';font-size:10px;min-width:36px;text-align:right;flex-shrink:0';
-      degBadge.textContent = '→' + (defAngle > 0 ? '+' : '') + defAngle + '°';
+      degBadge.textContent = '→' + (d.defAngle > 0 ? '+' : '') + d.defAngle + '°';
       row.appendChild(degBadge);
-      if (isCurved) {
+      if (d.isCurved) {
         const cb = document.createElement('span');
         cb.title = 'Descriptive curved fold — approximate visual sketch only';
         cb.style.cssText = 'color:#fc6;font-size:10px';
         cb.textContent = '≈';
         row.appendChild(cb);
       }
-      perFoldSliders.appendChild(row);
 
       // Drive the fold rotation immediately so the piece appears in its
       // assembled (or authored-default) pose at load time. Skip when the
       // initial is exactly 0 — the at-rest pose is already correct.
-      if (initialValue !== 0) {
-        for (const item of items) {
+      if (d.initialValue !== 0) {
+        for (const item of d.items) {
           if (item.mode === 'fold') {
             item.target.quaternion.setFromAxisAngle(
-              item.axis,
-              -(item.signFwd || 1) * initialValue * Math.PI / 180
+              item.axis, -(item.signFwd || 1) * d.initialValue * Math.PI / 180
             );
           } else if (item.mode === 'curved') {
-            item.target.quaternion.setFromAxisAngle(item.axis, initialValue * Math.PI / 180);
+            item.target.quaternion.setFromAxisAngle(item.axis, d.initialValue * Math.PI / 180);
           }
         }
       }
       slider.addEventListener('input', () => {
         const deg = parseFloat(slider.value);
-        for (const item of items) {
+        for (const item of d.items) {
           if (item.mode === 'fold') {
             item.target.quaternion.setFromAxisAngle(
-              item.axis,
-              -(item.signFwd || 1) * deg * Math.PI / 180
+              item.axis, -(item.signFwd || 1) * deg * Math.PI / 180
             );
           } else if (item.mode === 'curved') {
             item.target.quaternion.setFromAxisAngle(item.axis, deg * Math.PI / 180);
@@ -5945,7 +6009,198 @@ async function renderPanelsFirstScene(p, options = {}) {
         }
         requestRender();
       });
+
+      return { row, slider };
     }
+
+    // ── FLAT rendering (no groups detected) ──────────────────────────────────
+    if (!hasGroups) {
+      for (const d of sliderDescs) {
+        const { row } = buildFoldSliderRow(d);
+        perFoldSliders.appendChild(row);
+      }
+
+    // ── GROUPED rendering ────────────────────────────────────────────────────
+    } else {
+      // Group order defines the visual stacking order in the panel.
+      const GROUP_ORDER    = ['pane-strip', 'closure', 'tab-flap', 'cross-piece', null];
+      const GROUP_LABELS   = {
+        'pane-strip':  'Pane strip',
+        'closure':     'Closure',
+        'tab-flap':    'Tab flaps',
+        'cross-piece': 'Cross-piece landings',
+        null:          'Other',
+      };
+      // cross-piece group starts collapsed (not the primary focus when folding solo)
+      const STARTS_COLLAPSED = new Set(['cross-piece']);
+
+      // Bucket folds by group
+      const buckets = new Map();
+      for (const d of sliderDescs) {
+        const g = classifyFoldId(d.fold.id);
+        if (!buckets.has(g)) buckets.set(g, []);
+        buckets.get(g).push(d);
+      }
+
+      // Render each populated group in order
+      for (const g of GROUP_ORDER) {
+        if (!buckets.has(g)) continue;
+        const members = buckets.get(g);
+
+        const groupEl   = document.createElement('div');
+        groupEl.className = 'fold-group';
+
+        // ── Group header (click to collapse/expand) ──
+        const header = document.createElement('div');
+        header.className = 'fold-group-header';
+
+        const toggleSpan = document.createElement('span');
+        toggleSpan.className = 'fold-group-toggle';
+        const collapsed0 = STARTS_COLLAPSED.has(g);
+        toggleSpan.textContent = collapsed0 ? '▶' : '▼';
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'fold-group-label';
+        labelSpan.textContent = (GROUP_LABELS[g] || g || 'Other') + ' (' + members.length + ')';
+
+        // Sum readout — only shown for pane-strip group
+        let sumSpan = null;
+        if (g === 'pane-strip') {
+          sumSpan = document.createElement('span');
+          sumSpan.className = 'fold-group-sum';
+          sumSpan.title = 'Sum of all pane-to-pane fold angles. ' +
+            'For a closed tube, target ≈ 360°.';
+          sumSpan.textContent = 'Σ = 0°';
+        }
+
+        header.appendChild(toggleSpan);
+        header.appendChild(labelSpan);
+        if (sumSpan) header.appendChild(sumSpan);
+
+        // ── Group body ──
+        const body = document.createElement('div');
+        body.className = 'fold-group-body' + (collapsed0 ? ' collapsed' : '');
+
+        // Collapse toggle
+        header.addEventListener('click', () => {
+          const isCollapsed = body.classList.toggle('collapsed');
+          toggleSpan.textContent = isCollapsed ? '▶' : '▼';
+        });
+
+        groupEl.appendChild(header);
+
+        // ── Group controls (above individual sliders) ─────────────────────
+        const ctrlRow = document.createElement('div');
+        ctrlRow.className = 'fold-group-controls';
+
+        if (g === 'pane-strip') {
+          // "Equal" button: distributes 360° equally across all pane-strip sliders
+          const equalBtn = document.createElement('button');
+          equalBtn.textContent = 'Equal (÷360°)';
+          equalBtn.title = 'Set each pane fold to 360° ÷ ' + members.length +
+            ' = ' + Math.round(360 / members.length) + '° (closed tube target)';
+          equalBtn.addEventListener('click', () => {
+            const each = 360 / members.length;
+            for (const d of members) {
+              const sliderEl = body.querySelector('[data-path-id="' + d.pid + '"] input[type=range]') ||
+                body.querySelector('.slider-row[data-path-id="' + d.pid + '"] input');
+              if (sliderEl) {
+                sliderEl.value = each;
+                sliderEl.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+            }
+          });
+          ctrlRow.appendChild(equalBtn);
+
+          // "Flat" button: set all pane folds to 0°
+          const flatBtn2 = document.createElement('button');
+          flatBtn2.textContent = 'Flat';
+          flatBtn2.title = 'Set all pane folds to 0°';
+          flatBtn2.addEventListener('click', () => {
+            for (const d of members) {
+              const sliderEl = body.querySelector('[data-path-id="' + d.pid + '"] input[type=range]') ||
+                body.querySelector('.slider-row[data-path-id="' + d.pid + '"] input');
+              if (sliderEl) { sliderEl.value = 0; sliderEl.dispatchEvent(new Event('input', { bubbles: true })); }
+            }
+          });
+          ctrlRow.appendChild(flatBtn2);
+        }
+
+        if (g === 'tab-flap' || g === 'closure') {
+          // Master sub-slider: moves all sliders in the group simultaneously
+          const masterRow = document.createElement('div');
+          masterRow.className = 'fold-master-row';
+          const masterLabel = document.createElement('label');
+          masterLabel.textContent = 'All ' + (GROUP_LABELS[g] || g);
+          const masterSlider = document.createElement('input');
+          masterSlider.type = 'range';
+          masterSlider.min = '-180'; masterSlider.max = '180'; masterSlider.step = '1';
+          masterSlider.value = '0';
+          masterSlider.style.flex = '1';
+          const masterVal = document.createElement('span');
+          masterVal.style.cssText = 'font-size:10px;color:#aaa;min-width:32px;text-align:right';
+          masterVal.textContent = '0°';
+          masterSlider.addEventListener('input', () => {
+            masterVal.textContent = masterSlider.value + '°';
+            // Drive all individual sliders in this group
+            for (const d of members) {
+              const sliderEl = body.querySelector('[data-path-id="' + d.pid + '"] input[type=range]') ||
+                body.querySelector('.slider-row[data-path-id="' + d.pid + '"] input');
+              if (sliderEl) { sliderEl.value = masterSlider.value; sliderEl.dispatchEvent(new Event('input', { bubbles: true })); }
+            }
+          });
+          masterRow.appendChild(masterLabel);
+          masterRow.appendChild(masterSlider);
+          masterRow.appendChild(masterVal);
+
+          // Quick buttons
+          const flatB = document.createElement('button');
+          flatB.textContent = 'Flat';
+          flatB.style.cssText = 'font-size:10px;padding:1px 5px;background:#2a2a2a;color:#aaa;border:1px solid #444;border-radius:3px;cursor:pointer;margin-left:2px';
+          flatB.addEventListener('click', () => { masterSlider.value = 0; masterSlider.dispatchEvent(new Event('input')); });
+          const downB = document.createElement('button');
+          downB.textContent = '90°';
+          downB.style.cssText = flatB.style.cssText;
+          downB.title = 'Fold all tabs 90° down';
+          downB.addEventListener('click', () => { masterSlider.value = 90; masterSlider.dispatchEvent(new Event('input')); });
+          masterRow.appendChild(flatB);
+          masterRow.appendChild(downB);
+
+          ctrlRow.appendChild(masterRow);
+        }
+
+        if (ctrlRow.children.length > 0) body.appendChild(ctrlRow);
+
+        // ── Individual slider rows ────────────────────────────────────────
+        for (const d of members) {
+          const { row } = buildFoldSliderRow(d);
+          body.appendChild(row);
+        }
+
+        // ── Wire up sum readout for pane-strip (runs after sliders are built) ─
+        if (g === 'pane-strip' && sumSpan) {
+          const updateSum = () => {
+            let s = 0;
+            for (const d of members) {
+              const sl = body.querySelector('[data-path-id="' + d.pid + '"] input[type=range]') ||
+                body.querySelector('.slider-row[data-path-id="' + d.pid + '"] input');
+              if (sl) s += parseFloat(sl.value) || 0;
+            }
+            const diff = Math.round(s - 360);
+            sumSpan.textContent = 'Σ = ' + Math.round(s) + '°' +
+              (Math.abs(diff) > 1 ? (diff > 0 ? ' (+' + diff + ')' : ' (' + diff + ')') : ' ✓');
+            sumSpan.style.color = Math.abs(diff) <= 5 ? '#7ec894' : '#fa8';
+          };
+          body.addEventListener('input', updateSum);
+          // Initialise readout
+          updateSum();
+        }
+
+        groupEl.appendChild(body);
+        perFoldSliders.appendChild(groupEl);
+      }
+    }
+
   } else {
     globalFoldRow.style.display = 'none';
   }
