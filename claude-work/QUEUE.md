@@ -26,17 +26,24 @@ partner highlighting + snapPair / snapAllPairs (median translation) + rigid-grou
 lock + `assembled.snapped_connections` save payload all landed. Prompt moved to
 `_archive/code-prompts/`. See `sessions/2026-05-10-1127_code_preview-html-snap.md`.
 
-### 1. Guided assembly stepper — send to Code (`CODE_PROMPT_preview-html-guided-stepper.md`)
+### ~~1. Guided assembly stepper — send to Code (`CODE_PROMPT_preview-html-guided-stepper.md`)~~
 
-`CODE_PROMPT_preview-html-guided-stepper.md` is at repo root, `ready-for-code`. 12 tasks:
-"Guide" toggle button in cluster controls, guided panel section in `#cluster-panel` (above
-Measurements), sequence loader fetching `claude-work/state/guided_sequence_anchor.json`, step
-card with type-badge color map, `applyGuidedStepBehavior` (snap-connection auto-activates
-snap tool; fold auto-selects piece), `highlightGuidedPieces` (amber emissive on current
-step's pieces), lock-shape confirm modal, auto-advance hooks in `snapAllPairs` and
-`loadClusterPieces`. 10-step browser manual test.
+→ **Closed 2026-05-10** by the preview-html-guided-stepper ship. "Guide" toggle in cluster
+controls, guided panel in `#cluster-panel`, 12-task sequence loader + step card + type badges +
+`applyGuidedStepBehavior` + amber highlight + lock-shape modal + auto-advance hooks in
+`snapAllPairs` / `loadClusterPieces`. Prompt archived to `_archive/code-prompts/`.
+See sessions for the code ship and the 16:00 Cowork design session.
 
-No blockers. Snap (PR #25) and bridge-save (PR #26) are the substrate; both merged.
+### 1. Fold panel group-aware redesign — send to Code (`CODE_PROMPT_preview-html-fold-groups.md`)
+
+`CODE_PROMPT_preview-html-fold-groups.md` is at repo root, `ready-for-code`. Adds automatic
+fold-group detection and grouped rendering to the Bench-mode fold slider panel. Groups detected
+from fold id naming patterns: **pane-strip** (sum readout + Equal/Flat buttons), **closure**
+(master sub-slider), **tab-flap** (master sub-slider + Flat/90° buttons), **cross-piece**
+(collapsible, starts collapsed). Pieces with no recognised patterns fall back to flat rendering
+— no regression. Driving use case: piece 066 (22 folds across four groups).
+
+No blockers. No SVG authoring prereqs — pure preview.html JS/CSS change.
 
 ### 2. Fix 068 fold authoring — missing pane→c1 fold line
 
@@ -123,7 +130,9 @@ Post-tagging follow-on: merge `character` + `subtype` from `work/piece_character
 
 ---
 
-*Last updated: 2026-05-10 (sixth pass) — guided stepper CODE_PROMPT drafted, added as Now #1. `CODE_PROMPT_preview-html-guided-stepper.md` ready-for-code at repo root. 12 tasks: Guide toggle, guided panel, sequence loader, step card + type badges, step behavior dispatch, piece highlighting, lock-shape modal, auto-advance hooks. Charter amendment A3 recorded (alan-work/ retired; work/pieces/ canonical).*
+*Last updated: 2026-05-10 (seventh pass) — guided stepper shipped; Now #1 struck through. Fold panel group-aware redesign added as new Now #1: `CODE_PROMPT_preview-html-fold-groups.md` ready-for-code at repo root. Groups: pane-strip (sum readout + Equal), closure (master slider), tab-flap (master slider + 90° quick-set), cross-piece (collapsed by default). Driving use case: piece 066 (22 folds). No SVG authoring prereqs; pure preview.html change.*
+
+*Earlier 2026-05-10 (sixth pass) — guided stepper CODE_PROMPT drafted, added as Now #1. `CODE_PROMPT_preview-html-guided-stepper.md` ready-for-code at repo root. 12 tasks: Guide toggle, guided panel, sequence loader, step card + type badges, step behavior dispatch, piece highlighting, lock-shape modal, auto-advance hooks. Charter amendment A3 recorded (alan-work/ retired; work/pieces/ canonical).*
 
 *Earlier 2026-05-10 (fifth pass) — preview-bridge-save shipped. Now #2 struck through; the prompt moved from repo root to `_archive/code-prompts/CODE_PROMPT_preview-bridge-save.md`. Save buttons now POST directly to the bridge → copy-paste sidecar merge eliminated; copy modal preserved as offline fallback; Bench-mode piece switch auto-saves the outgoing piece. Recently shipped tail bumped.*
 
