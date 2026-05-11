@@ -34,35 +34,28 @@ controls, guided panel in `#cluster-panel`, 12-task sequence loader + step card 
 `snapAllPairs` / `loadClusterPieces`. Prompt archived to `_archive/code-prompts/`.
 See sessions for the code ship and the 16:00 Cowork design session.
 
-### 1. Fold panel group-aware redesign — send to Code (`CODE_PROMPT_preview-html-fold-groups.md`)
+### ~~1. Fold panel group-aware redesign — send to Code (`CODE_PROMPT_preview-html-fold-groups.md`)~~
 
-`CODE_PROMPT_preview-html-fold-groups.md` is at repo root, `ready-for-code`. Adds automatic
-fold-group detection and grouped rendering to the Bench-mode fold slider panel. Groups detected
-from fold id naming patterns: **pane-strip** (sum readout + Equal/Flat buttons), **closure**
-(master sub-slider), **tab-flap** (master sub-slider + Flat/90° buttons), **cross-piece**
-(collapsible, starts collapsed). Pieces with no recognised patterns fall back to flat rendering
-— no regression. Driving use case: piece 066 (22 folds across four groups).
+→ **Shipped PR #28 (2026-05-10).** `classifyFoldId()` + grouped fold slider panel (pane-strip sum readout, tab-flap/closure master sub-slider, cross-piece collapsed by default). Flat fallback for unclassified pieces. Prompt archived to `_archive/code-prompts/`. See `sessions/2026-05-10-1714_code_preview-html-fold-groups.md`.
 
-No blockers. No SVG authoring prereqs — pure preview.html JS/CSS change.
+### ~~1. Fix 068 fold authoring — missing pane→c1 fold line~~
 
-### 2. Fix 068 fold authoring — missing pane→c1 fold line
+→ **Already fixed.** `fold-c2-pane3` bridges the slot cluster into the pane chain. Two-component banner should be gone.
 
-068's fold graph has two disconnected components: the main pane chain (pane1–pane8, flap1, flap2, taba, tabb, tabff, b, g) and the slot cluster (c1, c2, sidel, sider) are not connected. A fold line is missing on the boundary between the slot panels and the adjacent pane.
+### 1. Closure-fold derivation — send to Code (`CODE_PROMPT_preview-html-closure-derive.md`)
 
-To diagnose before opening Affinity: load 068 in preview.html Bench mode and run in the console:
-```js
-parsed.panelsFirst.folds.filter(f => f.a === 'c1' || f.b === 'c1' || f.a === 'sidel' || f.b === 'sidel')
-```
-This shows which folds currently touch c1/sidel — confirming the gap. Then add the missing valley/mountain fold line in `068.af` and re-export. The "Disconnected fold components: 2 sub-trees" banner in preview.html should clear.
+`CODE_PROMPT_preview-html-closure-derive.md` is at repo root, `ready-for-code`. Implements **derive-one** for the closure fold (`fold-tabaa-pane7` on 066): a "Lock ⊗" toggle causes the closure angle to be computed geometrically from the `landing-tabaa` mark whenever any pane-strip fold changes. Also fixes the Σ readout and Equal button to handle ±360° correctly.
 
-### 5. Capture anchor cluster pose sidecars (067 → 066 → 065 → 068)
+No SVG authoring prereqs — pure `preview.html` JS change.
 
-069 sidecar is done (all 10 folds at −90°, transform Y=7.1/rX=99.5, frame cluster/pivot-anchor). The remaining four:
+### 2. Capture anchor cluster pose sidecars — 066 and 068
 
-- **067 first** — it's the pivot-anchor reference piece; its transform is the cluster origin. Load in Bench mode, fold to assembled pose, save. Expect frame: cluster, origin: pivot-anchor.
-- **066, 065, 068** — in any order after 068's fold bug is fixed. 068 can't be Bench-folded until the two-component issue clears.
+**Current sidecar state:** 069 ✅ (folds + transform), 067 ✅ (transform; no fold paths authored), 065 ✅ (transform; no fold paths authored). Missing: **066** and **068** — neither has a sidecar yet.
 
-Once all five sidecars exist, regenerate `connection-graph.json` (the anchor `pivot_clusters` entry currently only lists [067, 069] — all five need to be there before PR C's cluster-load is testable). Regenerate with: `python3.12 claude-work/scripts/build_assembly_graph.py` from repo root.
+- **066** — 22 folds across four groups. The new grouped sliders (PR #28) make this much more manageable: pane-strip group has a Σ readout + Equal button, tab-flap/closure groups have a master sub-slider. Fold to assembled pose, save.
+- **068** — fold bug is fixed; no blocker. Load in Bench mode, fold the slot cluster (c1/c2/sidel/sider) and the main pane chain, save.
+
+Once both sidecars land, regenerate `connection-graph.json` so `pivot_clusters.anchor` reflects all five members: `python3.12 claude-work/scripts/build_assembly_graph.py` from repo root. After that, the Cluster mode authoring loop (Soon #1) is fully testable.
 
 ---
 
@@ -130,7 +123,7 @@ Post-tagging follow-on: merge `character` + `subtype` from `work/piece_character
 
 ---
 
-*Last updated: 2026-05-10 (seventh pass) — guided stepper shipped; Now #1 struck through. Fold panel group-aware redesign added as new Now #1: `CODE_PROMPT_preview-html-fold-groups.md` ready-for-code at repo root. Groups: pane-strip (sum readout + Equal), closure (master slider), tab-flap (master slider + 90° quick-set), cross-piece (collapsed by default). Driving use case: piece 066 (22 folds). No SVG authoring prereqs; pure preview.html change.*
+*Last updated: 2026-05-10 (tenth pass) — closure-derive CODE_PROMPT drafted; added as Now #1. Captures anchor cluster sidecars demoted to Now #2 (066 sidecar is blocked on closure working anyway). 066 won't close properly without derive-one; ship the Code prompt first, then capture the sidecar.*
 
 *Earlier 2026-05-10 (sixth pass) — guided stepper CODE_PROMPT drafted, added as Now #1. `CODE_PROMPT_preview-html-guided-stepper.md` ready-for-code at repo root. 12 tasks: Guide toggle, guided panel, sequence loader, step card + type badges, step behavior dispatch, piece highlighting, lock-shape modal, auto-advance hooks. Charter amendment A3 recorded (alan-work/ retired; work/pieces/ canonical).*
 
