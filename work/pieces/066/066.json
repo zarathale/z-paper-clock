@@ -1,0 +1,46 @@
+{
+  "assembled": {
+    "folds": {
+      "fold-pane7-pane6": 59,
+      "fold-pane6-pane5": 36,
+      "fold-pane3-pane2": 33,
+      "fold-pane1-pane2": 68,
+      "fold-pane5-pane4": 41,
+      "fold-pane4-pane3": 42,
+      "fold-tabaa-pane7": 81,
+      "fold-taba-pane1": 0,
+      "fold-tabb-pane2": 0,
+      "fold-tabc-pane3": 0,
+      "fold-tabd-pane4": 0,
+      "fold-tabg-pane7": 0,
+      "fold-tabf-pane6": 0,
+      "fold-tabe-pane5": 0,
+      "fold-e65-pane4": 0,
+      "fold-h65-pane7": 0,
+      "fold-g65-pane6": 0,
+      "fold-f65-pane5": 0,
+      "fold-d65-pane3": 0,
+      "fold-c65-pane2": 0,
+      "fold-b65-pane1": 0
+    },
+    "captured": "2026-05-11T04:33:58.805Z",
+    "note": "",
+    "transform": {
+      "translation": [
+        -23.9,
+        -70.8,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        -89.9,
+        0
+      ],
+      "rotation_order": "XYZ",
+      "frame": "world",
+      "origin": "centroid",
+      "note": "translation computed to center heptagonal tube on anchor-pivot (world origin). Y offset arises because tube center != strip centroid after folding. Z=0 correct; faces (065/067) sit at Z~±10mm but both saved at Z=0 — acceptable for visualization."
+    }
+  },
+  "_savedAt": "2026-05-10T21:33:58.808223"
+}

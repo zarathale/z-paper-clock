@@ -6181,6 +6181,24 @@ async function renderPanelsFirstScene(p, options = {}) {
         if (!buckets.has(g)) continue;
         const members = buckets.get(g);
 
+        // Ring-lock state — only used by the pane-strip group.
+        // When ringLocked is true, any pane fold slider change automatically
+        // updates the closure fold slider so Σ (all fold sliders) stays equal
+        // to ringTargetSum (= sign × 360°), maintaining orientation closure.
+        let ringLocked = false;
+        let ringTargetSum = null;
+        const paneSliderRefs = [];  // populated during slider-row build below
+        let ringLockEl = null;      // the lock toggle button (set below)
+        // Ring-radius state — set by Ring (cyclic), read by ↔ Ring R slider.
+        // These let the radius slider recompute ALL fold angles from a new R,
+        // maintaining full position + orientation closure (not just Σ=360°).
+        let ringBaseR = null;       // circumradius at the time Ring (cyclic) ran
+        let ringBaseH = null;       // panel heights array (structural panels only)
+        let ringBaseFoldIdxs = null;// foldIdxs from strip traversal (indices into paneSliderRefs)
+        let ringSign = 1;           // winding sign (+1 or -1) from Ring (cyclic)
+        let ringClosureFoldIdLocal = null; // closure fold id stored for radius recompute
+        let ringRadiusSlider = null;// <input type=range> for ring radius scale
+
         const groupEl   = document.createElement('div');
         groupEl.className = 'fold-group';
 
@@ -6228,28 +6246,209 @@ async function renderPanelsFirstScene(p, options = {}) {
         ctrlRow.className = 'fold-group-controls';
 
         if (g === 'pane-strip') {
-          // "Equal" button: distributes ±360° equally across all pane-strip
-          // sliders. Sign follows the current slider mean (valley-fold strips
-          // close at −360°, mountain at +360°); defaults to + when at rest.
+          // "Equal" button: distribute ±360° among pane folds, respecting polarity.
+          //
+          // For strips with mixed valley + mountain folds, equal raw slider values
+          // don't achieve closure: Σ(polarity × slider) = (Nv - Nm) × x ≠ 360°.
+          //
+          // Correct closure: Nv × V - Nm × M = ±360°
+          // Proportional constraint (equal contribution per fold): V/M = Nv/Nm
+          // Solving:   M = ±360 × Nm / (Nv² - Nm²)
+          //            V = ±360 × Nv / (Nv² - Nm²)
+          //
+          // For 066 (Nv=4, Nm=2): V = 1440/12 = 120°, M = 720/12 = 60°
+          //   Σ(polarity × slider) = 4×120 − 2×60 = 360° ✓
+          //   Physical total (signFwd-weighted) also sums to ±360° ✓
+          //   Mountain folds fold at smaller angle → outward bumps visible.
+          //
+          // For all-valley strips (Nm=0): V = 360/Nv (original behaviour).
           const equalBtn = document.createElement('button');
-          equalBtn.textContent = 'Equal (÷±360°)';
-          equalBtn.title = 'Set each pane fold to ±360° ÷ ' + members.length +
-            ' = ±' + Math.round(360 / members.length) + '° (sign follows current average)';
+          equalBtn.textContent = 'Ring (cyclic)';
+          equalBtn.title = 'Fold the strip into its cyclic-polygon ring: finds the unique closed convex polygon ' +
+            'inscribed in a circle whose sides equal the actual panel widths. ' +
+            'Each fold gets angle = (φ_left + φ_right)/2. Falls back to equal-angle when panel data is unavailable. ' +
+            'Enable Lock ⊗ on the closure fold to snap the ring shut.';
           equalBtn.addEventListener('click', () => {
-            let currentSum = 0;
-            for (const d of members) {
+            // Suppress ring-lock during batch application so constraint listeners
+            // don't fire on partial pane sums mid-update. Restored at the end.
+            const wasLocked = ringLocked;
+            ringLocked = false;
+
+            const N = members.length;
+
+            // ── Effective coefficients ────────────────────────────────────────
+            // eff_i = -(signFwd_i × axis.x_i): world-space rotation per unit slider.
+            // Valley folds drawn L→R have axis.x≈+1; mountain folds drawn R→L
+            // have axis.x≈-1. The axis.x flip means mountains bend the SAME world
+            // direction as valley — polarity alone is the wrong discriminator.
+            const effs = members.map(d => {
+              const sf = (d.items && d.items[0] && d.items[0].signFwd != null)
+                ? d.items[0].signFwd : 1;
+              const ax = (d.items && d.items[0] && d.items[0].axis)
+                ? d.items[0].axis.x : 1;
+              return -(sf * ax);
+            });
+
+            // ── Cyclic-polygon closure solver ─────────────────────────────────
+            // For a strip with unequal panel widths, equal fold angles give the
+            // correct ORIENTATION closure (Σ = 360°) but NOT position closure —
+            // the ends of the strip don't physically meet. The cyclic polygon
+            // approach finds the unique convex polygon inscribed in a circle of
+            // radius R that has these exact panel widths as its side lengths.
+            // Each fold's exterior angle = (φ_left + φ_right) / 2 where φ_i is
+            // the central angle for panel i: φ_i = 2·arcsin(h_i / 2R).
+            //
+            // The solver uses only the structural ring panels (pane1..pane7 for
+            // 066 — the heptagon faces). The closure tab (tabaa) is NOT a ring
+            // face; it's a glue tab whose angle is derived separately below.
+            let targetAngleByMemberIdx = null; // null → fall back to equal-angle
+            let targetClosureAngleDeg = null;   // set when closure fold is included
+            let closureFoldIdForRing = null;    // fold id used for ring closure
+            try {
+              // Build linear adjacency from pane-strip folds
+              const sAdj = new Map(); // panelId → [{neighbor, mIdx}]
+              for (let i = 0; i < N; i++) {
+                const d = members[i];
+                const a = d.fold && d.fold.a, b = d.fold && d.fold.b;
+                if (!a || !b) continue;
+                if (!sAdj.has(a)) sAdj.set(a, []);
+                if (!sAdj.has(b)) sAdj.set(b, []);
+                sAdj.get(a).push({ nb: b, mi: i });
+                sAdj.get(b).push({ nb: a, mi: i });
+              }
+              // Strip endpoints: panels with exactly one pane-strip fold
+              const eps = [...sAdj.keys()].filter(id => (sAdj.get(id) || []).length === 1);
+              if (eps.length === 2) {
+                // Traverse strip in panel order (endpoint → endpoint)
+                const panels = [], foldIdxs = [];
+                let cur = eps[0], prev = null;
+                for (let step = 0; step <= N; step++) {
+                  panels.push(cur);
+                  const nxt = (sAdj.get(cur) || []).filter(e => e.nb !== prev);
+                  if (!nxt.length) break;
+                  foldIdxs.push(nxt[0].mi);
+                  prev = cur; cur = nxt[0].nb;
+                }
+                if (panels.length === N + 1 && foldIdxs.length === N) {
+                  // Panel heights: SVG y-extent of each panel's bbox
+                  const H = panels.map(id => {
+                    const p = pf.panels && pf.panels.get(id);
+                    const bb = p && p.bbox;
+                    return (bb && bb.maxY > bb.minY) ? (bb.maxY - bb.minY) : 1;
+                  });
+
+                  // ── Find closure fold id (if any) ──────────────────────────────
+                  // tabaa is a glue tab, NOT a structural face of the heptagon.
+                  // The ring is an (N+1)-gon built from pane1..pane7 (the panels[]
+                  // array). The closure fold connects pane7 back to pane1, so its
+                  // exterior angle wraps around to phi[0], not to a tabaa phi.
+                  for (const f of pf.folds) {
+                    if (classifyFoldId(f.id) === 'closure') {
+                      closureFoldIdForRing = f.id; break;
+                    }
+                  }
+
+                  // ── Binary-search for circumradius R: Σ 2·arcsin(h/2R) = 2π ──
+                  const totalH = H.reduce((a, b) => a + b, 0);
+                  const maxH = Math.max(...H);
+                  if (maxH * 2 < totalH) {
+                    let lo = maxH / 2 + 1e-6, hi = maxH * 500;
+                    for (let iter = 0; iter < 100; iter++) {
+                      const mid = (lo + hi) / 2;
+                      const s = H.reduce((acc, h) => acc + 2 * Math.asin(Math.min(h / (2 * mid), 1)), 0);
+                      if (s > 2 * Math.PI) lo = mid; else hi = mid;
+                    }
+                    const R = (lo + hi) / 2;
+                    // Store for ring-radius slider (set after sign is known, below).
+                    ringBaseR = R;
+                    ringBaseH = [...H];
+                    ringBaseFoldIdxs = [...foldIdxs];
+                    const phi = H.map(h => 2 * Math.asin(Math.min(h / (2 * R), 1)));
+                    // phi[i] = central angle for structural panel i (0..N).
+                    // Strip fold fi: exterior angle = (phi[fi] + phi[fi+1]) / 2.
+                    // Closure fold: wraps back to phi[0] (pane1) — the (N+1)th
+                    // vertex of the polygon. Sum of all N+1 angles = 360°.
+                    targetAngleByMemberIdx = new Map();
+                    for (let fi = 0; fi < N; fi++) {
+                      const mi = foldIdxs[fi];
+                      const angDeg = (phi[fi] + phi[fi + 1]) / 2 * 180 / Math.PI;
+                      targetAngleByMemberIdx.set(mi, angDeg);
+                    }
+                    // Closure fold angle: (phi[last] + phi[first]) / 2
+                    if (closureFoldIdForRing) {
+                      targetClosureAngleDeg = (phi[N] + phi[0]) / 2 * 180 / Math.PI;
+                    }
+                  }
+                }
+              }
+            } catch (e) { targetAngleByMemberIdx = null; targetClosureAngleDeg = null; }
+
+            // ── Determine winding sign ────────────────────────────────────────
+            let currentNet = 0;
+            for (let i = 0; i < N; i++) {
+              const d = members[i];
               const sl = body.querySelector('[data-path-id="' + d.pid + '"] input[type=range]') ||
                 body.querySelector('.slider-row[data-path-id="' + d.pid + '"] input');
-              if (sl) currentSum += parseFloat(sl.value) || 0;
+              if (sl) currentNet += effs[i] * (parseFloat(sl.value) || 0);
             }
-            const sign = currentSum < -1 ? -1 : 1;
-            const each = sign * 360 / members.length;
-            for (const d of members) {
+            const sign = currentNet < -1 ? -1 : 1;
+
+            // ── Apply angles to pane-strip sliders ───────────────────────────
+            for (let i = 0; i < N; i++) {
+              const d = members[i];
               const sliderEl = body.querySelector('[data-path-id="' + d.pid + '"] input[type=range]') ||
                 body.querySelector('.slider-row[data-path-id="' + d.pid + '"] input');
-              if (sliderEl) {
-                sliderEl.value = each;
-                sliderEl.dispatchEvent(new Event('input', { bubbles: true }));
+              if (!sliderEl) continue;
+              const baseAngle = targetAngleByMemberIdx
+                ? (targetAngleByMemberIdx.get(i) || 360 / N)
+                : 360 / N;
+              // val = sign * baseAngle directly — NO division by eff.
+              // Dividing by eff would invert the slider for folds where the child
+              // panel hangs on the "other side" of the strip's hinge-tree root
+              // (e.g. fold-pane1-pane2, where pane1 extends in +Y from the fold
+              // while all other children extend in -Y). Both groups need a positive
+              // slider to fold inward; the hinge physics (via signFwd × axis) handle
+              // the direction correctly without eff compensation.
+              const targetAngle = sign * baseAngle;
+              let val = Math.max(-180, Math.min(180, Math.round(targetAngle * 10) / 10));
+              sliderEl.value = val;
+              sliderEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+
+            // ── Apply closure fold angle ──────────────────────────────────────
+            // Prefer the cyclic-polygon angle (correct for position+orientation
+            // closure). Fall back to geometric derivation if the solver didn't
+            // find the closure child panel (e.g. the piece has no tabaa bbox).
+            if (targetClosureAngleDeg !== null && closureSliderRef && closureFoldIdForRing) {
+              const cItems = pathHingeMap.get(prefixKey(closureFoldIdForRing));
+              if (cItems && cItems.length) {
+                const { signFwd: csf, axis: caxis } = cItems[0];
+                const ceff = -(csf * caxis.x);
+                let cval = Math.abs(ceff) > 0.01 ? sign * targetClosureAngleDeg / ceff : sign * targetClosureAngleDeg;
+                cval = Math.max(-180, Math.min(180, Math.round(cval * 10) / 10));
+                closureSliderRef.value = cval;
+                closureSliderRef.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+            } else if (closureSliderRef) {
+              // Fall back: no closure child panel found → geometric snap
+              const savedEnabled = closureDerivationEnabled;
+              closureDerivationEnabled = true;
+              deriveClosureFold();
+              closureDerivationEnabled = savedEnabled;
+            }
+            // After applying ring angles, record pane-only sum for ring-lock.
+            // (Closure fold is NOT included — it's fixed as the glue tab.)
+            ringTargetSum = paneSliderRefs.reduce(
+              (a, s) => a + (parseFloat(s.value) || 0), 0);
+            ringLocked = wasLocked;
+            // Finalise ring-radius state (sign is now known) and enable the slider.
+            if (ringBaseR !== null) {
+              ringSign = sign;
+              ringClosureFoldIdLocal = closureFoldIdForRing;
+              if (ringRadiusSlider) {
+                ringRadiusSlider.disabled = false;
+                ringRadiusSlider.style.opacity = '1';
+                ringRadiusSlider.value = '1.00';
               }
             }
           });
@@ -6267,6 +6466,31 @@ async function renderPanelsFirstScene(p, options = {}) {
             }
           });
           ctrlRow.appendChild(flatBtn2);
+
+          // "🔒 Ring" — constrained adjustment toggle.
+          // When active: dragging any ONE pane fold redistributes the change
+          // equally across the other (N-1) pane folds so Σ pane folds stays
+          // constant. The closure fold (tab-aa) is NOT touched — it's the
+          // physical glue tab and should stay at its Ring (cyclic) angle.
+          ringLockEl = document.createElement('button');
+          ringLockEl.textContent = '🔒 Ring';
+          ringLockEl.title = 'Lock ring shape: drag one pane fold and the other 5 ' +
+            'auto-adjust equally so Σ pane folds stays constant.\n' +
+            'Tab-aa closure fold is NOT changed. Run Ring (cyclic) first.';
+          ringLockEl.style.cssText = 'font-size:10px;padding:1px 6px;background:#1a1a2a;' +
+            'color:#8cf;border:1px solid #4a4a7a;border-radius:3px;cursor:pointer;margin-left:4px';
+          ringLockEl.addEventListener('click', () => {
+            ringLocked = !ringLocked;
+            ringLockEl.style.background = ringLocked ? '#0a0a20' : '#1a1a2a';
+            ringLockEl.style.borderColor = ringLocked ? '#8cf'    : '#4a4a7a';
+            ringLockEl.style.fontWeight  = ringLocked ? 'bold'    : 'normal';
+            if (ringLocked) {
+              // Record Σ pane folds (closure NOT included — closure is fixed).
+              ringTargetSum = paneSliderRefs.reduce(
+                (a, s) => a + (parseFloat(s.value) || 0), 0);
+            }
+          });
+          ctrlRow.appendChild(ringLockEl);
         }
 
         if (g === 'tab-flap' || g === 'closure') {
@@ -6339,9 +6563,123 @@ async function renderPanelsFirstScene(p, options = {}) {
 
         if (ctrlRow.children.length > 0) body.appendChild(ctrlRow);
 
+        // ── Ring-radius slider (pane-strip only) ─────────────────────────
+        // Scales the circumradius R so ALL fold angles update together,
+        // maintaining FULL closure (position + orientation) — as opposed to
+        // ring-lock which only maintains orientation (Σ=360°) while individual
+        // folds are adjusted freely.  Enabled after Ring (cyclic) runs.
+        if (g === 'pane-strip') {
+          const radRow = document.createElement('div');
+          radRow.style.cssText = 'display:flex;align-items:center;gap:4px;' +
+            'margin:2px 2px 0;padding:0 1px';
+          const radLabel = document.createElement('label');
+          radLabel.textContent = '↔ Ring R';
+          radLabel.title = 'Scale the ring radius: ALL fold angles recompute together, keeping ' +
+            'the ring fully closed (position + orientation closure).\n' +
+            'Run Ring (cyclic) first to enable.';
+          radLabel.style.cssText = 'font-size:10px;color:#8cf;white-space:nowrap;min-width:50px;cursor:help';
+          ringRadiusSlider = document.createElement('input');
+          ringRadiusSlider.type = 'range';
+          ringRadiusSlider.min = '0.3'; ringRadiusSlider.max = '3.0'; ringRadiusSlider.step = '0.005';
+          ringRadiusSlider.value = '1.00';
+          ringRadiusSlider.disabled = true;
+          ringRadiusSlider.style.cssText = 'flex:1;opacity:0.5';
+          const radValSpan = document.createElement('span');
+          radValSpan.textContent = '×1.00';
+          radValSpan.style.cssText = 'font-size:10px;color:#aaa;min-width:40px;text-align:right';
+          ringRadiusSlider.addEventListener('input', () => {
+            if (!ringBaseR || !ringBaseH || !ringBaseFoldIdxs) return;
+            ringRadiusSlider.style.opacity = '1';
+            const scale = parseFloat(ringRadiusSlider.value);
+            radValSpan.textContent = '×' + scale.toFixed(2);
+            const newR = ringBaseR * scale;
+            const newPhi = ringBaseH.map(h => 2 * Math.asin(Math.min(h / (2 * newR), 1)));
+            const N = ringBaseFoldIdxs.length;
+
+            // Update pane folds WITHOUT dispatching 'input' events.
+            // Dispatching per-slider causes ring-lock, deriveClosureFold, and
+            // updateSum to fire on every slider mid-batch, producing wrong state.
+            // Instead: set slider value + sync number input + apply 3D directly.
+            for (let fi = 0; fi < N; fi++) {
+              const mi = ringBaseFoldIdxs[fi];
+              const targetAngle = (newPhi[fi] + newPhi[fi + 1]) / 2 * 180 / Math.PI;
+              const deg = Math.max(-180, Math.min(180,
+                Math.round(ringSign * targetAngle * 10) / 10));
+              const psl = paneSliderRefs[mi];
+              if (psl) {
+                psl.value = deg;
+                // Sync number sibling (created by attachNumberInput)
+                const numSib = psl.nextSibling;
+                if (numSib && numSib.type === 'number') numSib.value = deg;
+              }
+              // Apply 3D rotation directly (mirrors buildFoldSliderRow's listener)
+              const member = members[mi];
+              if (member && member.items) {
+                for (const item of member.items) {
+                  if (item.mode === 'fold') {
+                    item.target.quaternion.setFromAxisAngle(
+                      item.axis, -(item.signFwd || 1) * deg * Math.PI / 180
+                    );
+                  }
+                }
+              }
+            }
+
+            // Update closure fold — dispatching 'input' here is safe because
+            // the ring-lock constraint only listens on pane sliders, not closure.
+            if (ringClosureFoldIdLocal && closureSliderRef) {
+              const targetClosure = (newPhi[N] + newPhi[0]) / 2 * 180 / Math.PI;
+              const cItems = pathHingeMap.get(prefixKey(ringClosureFoldIdLocal));
+              let cval = ringSign * targetClosure;
+              if (cItems && cItems.length) {
+                const { signFwd: csf, axis: caxis } = cItems[0];
+                const ceff = -(csf * caxis.x);
+                if (Math.abs(ceff) > 0.01) cval = ringSign * targetClosure / ceff;
+              }
+              cval = Math.max(-180, Math.min(180, Math.round(cval * 10) / 10));
+              closureSliderRef.value = cval;
+              closureSliderRef.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+
+            // Re-anchor ring-lock target sum so it agrees with the new ring angles.
+            if (ringLocked) {
+              const curPane = paneSliderRefs.reduce(
+                (a, s) => a + (parseFloat(s.value) || 0), 0);
+              const curClosure = closureSliderRef
+                ? (parseFloat(closureSliderRef.value) || 0) : 0;
+              ringTargetSum = curPane + curClosure;
+            }
+
+            // Single render call after all hinges are updated.
+            requestRender();
+
+            // Manually update the Σ pane readout (skipped because no 'input' fired).
+            if (sumSpan) {
+              let s = 0;
+              for (const sl of paneSliderRefs) s += parseFloat(sl.value) || 0;
+              const diffPos = s - 360, diffNeg = s + 360;
+              const diff = Math.round(
+                Math.abs(diffPos) <= Math.abs(diffNeg) ? diffPos : diffNeg);
+              sumSpan.textContent = 'Σ pane = ' + Math.round(s) + '°' +
+                (Math.abs(diff) <= 1 ? ' ✓' :
+                 diff > 0 ? ' (+' + Math.round(diff) + '→closure)' :
+                            ' (' + Math.round(diff) + '→closure)');
+              sumSpan.style.color =
+                Math.abs(diff) <= 5 ? '#7ec894' : Math.abs(s) > 5 ? '#8cf' : '#fa8';
+            }
+          });
+          radRow.appendChild(radLabel);
+          radRow.appendChild(ringRadiusSlider);
+          radRow.appendChild(radValSpan);
+          body.appendChild(radRow);
+        }
+
         // ── Individual slider rows ────────────────────────────────────────
         for (const d of members) {
           const { row, slider } = buildFoldSliderRow(d);
+          if (g === 'pane-strip') {
+            paneSliderRefs.push(slider);
+          }
           if (g === 'closure') {
             closureSliderRef = slider;
             slider.disabled = closureDerivationEnabled;
@@ -6350,23 +6688,67 @@ async function renderPanelsFirstScene(p, options = {}) {
           body.appendChild(row);
         }
 
+        // ── Ring-lock constraint (event delegation on pane-strip body) ──────
+        // One listener on `body` catches bubbled 'input' events from any
+        // pane slider. When ring-lock is active and a pane slider fires:
+        //   newI     = dragged slider's new value
+        //   eachOther = (ringTargetSum - newI) / (N-1)
+        //   all OTHER pane folds → eachOther (direct quaternion + value, no dispatch)
+        // Closure fold is NOT touched — it's the physical glue tab.
+        if (g === 'pane-strip') {
+          body.addEventListener('input', (event) => {
+            if (!ringLocked || ringTargetSum === null) return;
+            const draggedIdx = paneSliderRefs.indexOf(event.target);
+            if (draggedIdx < 0) return; // ring-radius or other non-pane slider
+            const nTotal = paneSliderRefs.length;
+            if (nTotal < 2) return;
+            const newI = parseFloat(event.target.value) || 0;
+            const eachOther = (ringTargetSum - newI) / (nTotal - 1);
+            const deg = Math.max(-180, Math.min(180,
+              Math.round(eachOther * 10) / 10));
+            for (let cj = 0; cj < nTotal; cj++) {
+              if (cj === draggedIdx) continue;
+              const pslJ = paneSliderRefs[cj];
+              pslJ.value = deg;
+              const numSib = pslJ.nextSibling;
+              if (numSib && numSib.type === 'number') numSib.value = deg;
+              // Apply 3D rotation directly — no 'input' dispatch to avoid cascade
+              const memberJ = members[cj];
+              if (memberJ && memberJ.items) {
+                for (const item of memberJ.items) {
+                  if (item.mode === 'fold') {
+                    item.target.quaternion.setFromAxisAngle(
+                      item.axis, -(item.signFwd || 1) * deg * Math.PI / 180
+                    );
+                  }
+                }
+              }
+            }
+            requestRender();
+          });
+        }
+
         // ── Wire up sum readout for pane-strip (runs after sliders are built) ─
         if (g === 'pane-strip' && sumSpan) {
           const updateSum = () => {
+            // Exterior-angle sum: Σ slider_i (raw slider values).
+            // With the cyclic-polygon ring convention, each slider is set to
+            // the exterior angle at that polygon vertex (= baseAngle, no eff
+            // division). The full ring closure condition is therefore simply
+            // Σ(all fold sliders, including closure) = ±360°.
+            // The pane-strip folds alone sum to ≈ 360° − closure_angle.
             let s = 0;
-            for (const d of members) {
-              const sl = body.querySelector('[data-path-id="' + d.pid + '"] input[type=range]') ||
-                body.querySelector('.slider-row[data-path-id="' + d.pid + '"] input');
-              if (sl) s += parseFloat(sl.value) || 0;
+            for (const sl of paneSliderRefs) {
+              s += parseFloat(sl.value) || 0;
             }
-            // Target is ±360°, whichever sign is closer to the current sum
-            // (valley-fold strips close at −360°; mountain at +360°).
             const diffPos = s - 360;
             const diffNeg = s + 360;
             const diff = Math.round(Math.abs(diffPos) <= Math.abs(diffNeg) ? diffPos : diffNeg);
-            sumSpan.textContent = 'Σ = ' + Math.round(s) + '°' +
-              (Math.abs(diff) > 1 ? (diff > 0 ? ' (+' + diff + ')' : ' (' + diff + ')') : ' ✓');
-            sumSpan.style.color = Math.abs(diff) <= 5 ? '#7ec894' : '#fa8';
+            // ✓ only when sum is exactly ±360° (all folds including closure at once).
+            // Otherwise show the residual — that's the closure fold's required angle.
+            sumSpan.textContent = 'Σ pane = ' + Math.round(s) + '°' +
+              (Math.abs(diff) <= 1 ? ' ✓' : (diff > 0 ? ' (+' + Math.round(diff) + '→closure)' : ' (' + Math.round(diff) + '→closure)'));
+            sumSpan.style.color = Math.abs(diff) <= 5 ? '#7ec894' : Math.abs(s) > 5 ? '#8cf' : '#fa8';
           };
           body.addEventListener('input', () => {
             updateSum();
