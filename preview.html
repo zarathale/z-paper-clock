@@ -653,6 +653,13 @@ let VB = null;             // shorthand for parsed.viewBox
 // pathId → [THREE.Object3D hinge, ...] — populated by renderScene, read by fold sliders
 let pathHingeMap = new Map();
 
+// Closure-fold derivation (derive-one) — populated by renderPanelsFirstScene,
+// read by deriveClosureFold so it can locate the tabaa + landing-tabaa panel
+// slabs in world space. Bench: keys are bare panel ids; Scene: 'piece:panelId'.
+let panelSlabMap   = new Map();
+let closureSliderRef = null;          // <input type=range> for the active closure fold, if any
+let closureDerivationEnabled = false; // true when "Lock ⊗" toggle is ON
+
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const dropzone   = document.getElementById('dropzone');
 const fileInput  = document.getElementById('fileInput');
@@ -1042,6 +1049,9 @@ function teardownBenchScene() {
   currentSlabPivot = null;
   currentAxleWires = [];
   pathHingeMap = new Map();
+  panelSlabMap = new Map();
+  closureSliderRef = null;
+  closureDerivationEnabled = false;
   parsed = null;
   currentPieceId = null;
   currentAssembledFolds = null;
@@ -5627,6 +5637,125 @@ function classifyFoldId(foldId) {
 // `options.pieceIdPrefix + ':'` so pieces' fold ids don't collide, (c) appends
 // slider rows to #per-fold-sliders without clearing, and (d) skips camera
 // framing + rotation slider visibility (the caller manages both).
+// ─── Closure-fold derivation (derive-one) ────────────────────────────────────
+// After pane-strip folds change, computes the angle that rotates the closure
+// tab panel (tabaa) so its centroid lands on the `landing-tabaa` mark in world
+// space. Sets the closure slider + drives the Three.js hinge directly.
+//
+// Requires: panelSlabMap populated, pathHingeMap populated, scene graph current.
+// Safe to call in single-piece Bench mode only (pieceIdPrefix is '' there).
+function deriveClosureFold() {
+  if (!closureDerivationEnabled) return;
+
+  // ── 1. Find the closure fold descriptor from `parsed` ─────────────────────
+  const pf = parsed && parsed.panelsFirst;
+  if (!pf) return;
+
+  let closureFoldId = null;
+  for (const f of pf.folds) {
+    if (classifyFoldId(f.id) === 'closure') { closureFoldId = f.id; break; }
+  }
+  if (!closureFoldId) return;
+
+  // ── 2. Find the child panel (tabaa) from the hinge tree ───────────────────
+  let tabChildId = null;
+  for (const [panelId, node] of pf.hingeTree.nodes) {
+    if (node.fold && node.fold.id === closureFoldId) { tabChildId = panelId; break; }
+  }
+  if (!tabChildId) return;
+
+  // ── 3. Get the closure hinge from pathHingeMap ────────────────────────────
+  // Bench (single-piece) mode: pieceIdPrefix is '' so keys are bare panel ids.
+  const closureKey = closureFoldId;
+  const hingeItems = pathHingeMap.get(closureKey);
+  if (!hingeItems || !hingeItems.length) return;
+  const { target: hinge, axis, signFwd } = hingeItems[0];
+
+  // ── 4. Find the landing mark centroid and which panel hosts it ────────────
+  const landingMarkId = 'landing-tabaa';
+  const landingCentroid = parsed.marksCentroidsById && parsed.marksCentroidsById.get(landingMarkId);
+  if (!landingCentroid) {
+    addBanner('deriveClosureFold: no "' + landingMarkId + '" mark found — author it in the marks layer first.', 'warn');
+    return;
+  }
+
+  let landingPanelId = null;
+  for (const [pid, panel] of pf.panels) {
+    const bb = panel.bbox;
+    if (landingCentroid.x >= bb.minX && landingCentroid.x <= bb.maxX &&
+        landingCentroid.y >= bb.minY && landingCentroid.y <= bb.maxY) {
+      landingPanelId = pid; break;
+    }
+  }
+  if (!landingPanelId) {
+    addBanner('deriveClosureFold: "' + landingMarkId + '" not contained in any panel bbox — cannot derive.', 'warn');
+    return;
+  }
+
+  // ── 5. Get slabs from panelSlabMap ────────────────────────────────────────
+  const tabaaSlab   = panelSlabMap.get(tabChildId);
+  const landingSlab = panelSlabMap.get(landingPanelId);
+  if (!tabaaSlab || !landingSlab) return;
+
+  // ── 6. Reset closure hinge to θ=0, update world matrices, measure v0 ─────
+  hinge.quaternion.set(0, 0, 0, 1);
+  scene.updateMatrixWorld(true);
+
+  const v0 = new THREE.Vector3();
+  tabaaSlab.getWorldPosition(v0);    // tabaa centroid in world space at θ=0
+
+  // ── 7. Landing-tabaa world position ──────────────────────────────────────
+  const bb = pf.panels.get(landingPanelId).bbox;
+  const landingLocal = new THREE.Vector3(
+    (landingCentroid.x - bb.cx) * MM_PER_UNIT,
+    -(landingCentroid.y - bb.cy) * MM_PER_UNIT,
+    0
+  );
+  const landingWorld = landingSlab.localToWorld(landingLocal);
+
+  // ── 8. Hinge world position + world axis ─────────────────────────────────
+  const hingeWorldPos = new THREE.Vector3();
+  hinge.getWorldPosition(hingeWorldPos);
+
+  const parentWorldQ = new THREE.Quaternion();
+  hinge.parent.getWorldQuaternion(parentWorldQ);
+  const worldAxis = axis.clone().applyQuaternion(parentWorldQ).normalize();
+
+  // ── 9. Project onto plane ⊥ worldAxis, compute signed angle ──────────────
+  const r0 = v0.clone().sub(hingeWorldPos);
+  const rT = landingWorld.clone().sub(hingeWorldPos);
+  r0.addScaledVector(worldAxis, -r0.dot(worldAxis));
+  rT.addScaledVector(worldAxis, -rT.dot(worldAxis));
+
+  const lenProduct = r0.length() * rT.length();
+  if (lenProduct < 1e-6) return;   // degenerate (landing on hinge axis)
+
+  const crossVec = new THREE.Vector3().crossVectors(r0, rT);
+  const sinTheta = crossVec.dot(worldAxis) / lenProduct;
+  const cosTheta = r0.dot(rT)              / lenProduct;
+  const thetaRad = Math.atan2(sinTheta, cosTheta);
+
+  // ── 10. Apply derived rotation to the hinge ──────────────────────────────
+  hinge.quaternion.setFromAxisAngle(axis, thetaRad);
+
+  // ── 11. Convert to slider convention and update the UI ───────────────────
+  // setFromAxisAngle(axis, -(signFwd) * sliderDeg * PI/180) = thetaRad
+  //   → sliderDeg = -thetaRad * 180/PI / signFwd
+  const sliderDeg = -(thetaRad * 180 / Math.PI) / (signFwd || 1);
+  const sliderDegRounded = Math.round(sliderDeg * 10) / 10;
+
+  if (closureSliderRef) {
+    // Update slider + sibling number input without re-dispatching 'input'
+    // (the hinge is already positioned above; no need to re-fire rotation).
+    closureSliderRef.value = String(sliderDegRounded);
+    const numInput = closureSliderRef.parentElement &&
+      closureSliderRef.parentElement.querySelector('input[type=number]');
+    if (numInput) numInput.value = sliderDegRounded;
+  }
+
+  requestRender();
+}
+
 async function renderPanelsFirstScene(p, options = {}) {
   const sceneMode = options.sceneMode === true;
   const pieceIdPrefix = sceneMode ? (options.pieceIdPrefix || '') : '';
@@ -5679,8 +5808,13 @@ async function renderPanelsFirstScene(p, options = {}) {
   // Build slab per panel (front + back + side meshes from buildSlab — already
   // centered at the polygon's bbox center in 3js space).
   const slabMap = new Map();
+  // Populate the module-level panelSlabMap so deriveClosureFold can locate
+  // slabs by panel id. Scene mode: caller resets once before per-piece runs.
+  if (!sceneMode) panelSlabMap = new Map();
   for (const [id, panel] of pf.panels) {
-    slabMap.set(id, buildSlab(panel.polygon, T, p.cutouts));
+    const slab = buildSlab(panel.polygon, T, p.cutouts);
+    slabMap.set(id, slab);
+    panelSlabMap.set(prefixKey(id), slab);
   }
 
   // Group descriptive curved folds by host panel = panel whose centroid is
@@ -6069,7 +6203,7 @@ async function renderPanelsFirstScene(p, options = {}) {
           sumSpan = document.createElement('span');
           sumSpan.className = 'fold-group-sum';
           sumSpan.title = 'Sum of all pane-to-pane fold angles. ' +
-            'For a closed tube, target ≈ 360°.';
+            'For a closed tube, target ≈ ±360° (sign follows fold polarity).';
           sumSpan.textContent = 'Σ = 0°';
         }
 
@@ -6094,13 +6228,22 @@ async function renderPanelsFirstScene(p, options = {}) {
         ctrlRow.className = 'fold-group-controls';
 
         if (g === 'pane-strip') {
-          // "Equal" button: distributes 360° equally across all pane-strip sliders
+          // "Equal" button: distributes ±360° equally across all pane-strip
+          // sliders. Sign follows the current slider mean (valley-fold strips
+          // close at −360°, mountain at +360°); defaults to + when at rest.
           const equalBtn = document.createElement('button');
-          equalBtn.textContent = 'Equal (÷360°)';
-          equalBtn.title = 'Set each pane fold to 360° ÷ ' + members.length +
-            ' = ' + Math.round(360 / members.length) + '° (closed tube target)';
+          equalBtn.textContent = 'Equal (÷±360°)';
+          equalBtn.title = 'Set each pane fold to ±360° ÷ ' + members.length +
+            ' = ±' + Math.round(360 / members.length) + '° (sign follows current average)';
           equalBtn.addEventListener('click', () => {
-            const each = 360 / members.length;
+            let currentSum = 0;
+            for (const d of members) {
+              const sl = body.querySelector('[data-path-id="' + d.pid + '"] input[type=range]') ||
+                body.querySelector('.slider-row[data-path-id="' + d.pid + '"] input');
+              if (sl) currentSum += parseFloat(sl.value) || 0;
+            }
+            const sign = currentSum < -1 ? -1 : 1;
+            const each = sign * 360 / members.length;
             for (const d of members) {
               const sliderEl = body.querySelector('[data-path-id="' + d.pid + '"] input[type=range]') ||
                 body.querySelector('.slider-row[data-path-id="' + d.pid + '"] input');
@@ -6167,13 +6310,43 @@ async function renderPanelsFirstScene(p, options = {}) {
           masterRow.appendChild(downB);
 
           ctrlRow.appendChild(masterRow);
+
+          // Closure group only: a "Lock ⊗" toggle that switches the single
+          // closure-fold slider into derive-one mode. When enabled, the
+          // closure angle is computed geometrically from the pane-strip
+          // sliders + landing-tabaa mark so the tab panel lands on the
+          // mark in world space.
+          if (g === 'closure') {
+            const lockBtn = document.createElement('button');
+            lockBtn.textContent = closureDerivationEnabled ? 'Unlock ⊗' : 'Lock ⊗';
+            lockBtn.title = 'Derive the closure fold angle geometrically (requires landing-tabaa mark)';
+            lockBtn.style.cssText = 'font-size:10px;padding:1px 6px;background:' +
+              (closureDerivationEnabled ? '#0a1a0a' : '#1a2a1a') +
+              ';color:#7ec894;border:1px solid #4a7a4a;border-radius:3px;cursor:pointer;margin-left:4px';
+            lockBtn.addEventListener('click', () => {
+              closureDerivationEnabled = !closureDerivationEnabled;
+              lockBtn.textContent = closureDerivationEnabled ? 'Unlock ⊗' : 'Lock ⊗';
+              lockBtn.style.background = closureDerivationEnabled ? '#0a1a0a' : '#1a2a1a';
+              if (closureSliderRef) {
+                closureSliderRef.disabled = closureDerivationEnabled;
+                closureSliderRef.style.opacity = closureDerivationEnabled ? '0.45' : '1';
+              }
+              if (closureDerivationEnabled) deriveClosureFold();
+            });
+            ctrlRow.appendChild(lockBtn);
+          }
         }
 
         if (ctrlRow.children.length > 0) body.appendChild(ctrlRow);
 
         // ── Individual slider rows ────────────────────────────────────────
         for (const d of members) {
-          const { row } = buildFoldSliderRow(d);
+          const { row, slider } = buildFoldSliderRow(d);
+          if (g === 'closure') {
+            closureSliderRef = slider;
+            slider.disabled = closureDerivationEnabled;
+            slider.style.opacity = closureDerivationEnabled ? '0.45' : '1';
+          }
           body.appendChild(row);
         }
 
@@ -6186,12 +6359,19 @@ async function renderPanelsFirstScene(p, options = {}) {
                 body.querySelector('.slider-row[data-path-id="' + d.pid + '"] input');
               if (sl) s += parseFloat(sl.value) || 0;
             }
-            const diff = Math.round(s - 360);
+            // Target is ±360°, whichever sign is closer to the current sum
+            // (valley-fold strips close at −360°; mountain at +360°).
+            const diffPos = s - 360;
+            const diffNeg = s + 360;
+            const diff = Math.round(Math.abs(diffPos) <= Math.abs(diffNeg) ? diffPos : diffNeg);
             sumSpan.textContent = 'Σ = ' + Math.round(s) + '°' +
               (Math.abs(diff) > 1 ? (diff > 0 ? ' (+' + diff + ')' : ' (' + diff + ')') : ' ✓');
             sumSpan.style.color = Math.abs(diff) <= 5 ? '#7ec894' : '#fa8';
           };
-          body.addEventListener('input', updateSum);
+          body.addEventListener('input', () => {
+            updateSum();
+            if (closureDerivationEnabled) deriveClosureFold();
+          });
           // Initialise readout
           updateSum();
         }
